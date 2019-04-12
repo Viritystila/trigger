@@ -132,9 +132,9 @@
                                                                (swap! synthConfig dissoc pattern-name-key) ) )))
 
                                         ;pattern generation functions
-(defn triggerDur [dur] (if (= dur 0) 0 1) )
+(defn trigger-dur [dur] (if (= dur 0) 0 1) )
 
-(defn traverseVector ([input-array] (let [input-vec input-array
+(defn traverse-vector ([input-array] (let [input-vec input-array
                                         ;_ (println input-vec)
                                            result []]
                                       (if true ;(vector? input-vec)
@@ -144,7 +144,7 @@
                                             (let [;_ (println xv)
                                                    length (count input-vec)
                                                   x (first xv)]
-                                               (if (vector? x) (recur (next xv) (conj result (traverseVector x length)))
+                                               (if (vector? x) (recur (next xv) (conj result (traverse-vector x length)))
                                                    (recur (next xv) (conj result (/ 1 length 1))))) result)))))
   ([input-array bl] (let [input-vec input-array
                                         ;_ (println bl)
@@ -155,11 +155,11 @@
                            (if xv
                              (let [length (count input-vec)
                                    x (first xv)]
-                               (if (vector? x) (recur (next xv) (conj result (traverseVector x (* bl length))))
+                               (if (vector? x) (recur (next xv) (conj result (traverse-vector x (* bl length))))
                                    (recur (next xv) (conj result (/ 1 length bl))))) result))))))
 
 
-(defn sumZeroDurs [idxs input-vector full-durs] (loop [xv (seq idxs)
+(defn sum-zero-durs [idxs input-vector full-durs] (loop [xv (seq idxs)
                                                        sum 0]
                                                   (if xv
                                                     (let [x       (first xv)
@@ -170,7 +170,7 @@
                                                       (if (= zero-x 0) (do (recur (next xv) (+ dur-x sum))) sum)) sum)))
 
 
-(defn adjustDuration [input-vector input-original] (let [length   (count input-vector)
+(defn adjust-duration [input-vector input-original] (let [length   (count input-vector)
                                                          full-durs input-vector
                                         ;_ (println full-durs)
                                                          input-vector (into [] (map * input-vector input-original))
@@ -185,13 +185,13 @@
                                                                 vec-ring  (flatten (conj (subvec idxs nidx) (subvec idxs 0 nidx )))
                                         ;_  (println (subvec input-vector nidx))
                                         ;_ (println (countZeros (subvec input-vector nidx)))
-                                                                op      (if (and (not= 0 op) ( = 0 opnext)) (+ op (sumZeroDurs vec-ring input-vector full-durs)) op)]
+                                                                op      (if (and (not= 0 op) ( = 0 opnext)) (+ op (sum-zero-durs vec-ring input-vector full-durs)) op)]
                                                             (recur (next xv) (conj result op))) result))))
 
-(defn generateDurations [input] (let [mod-input (vec (map triggerDur (vec (flatten input))))
-                                      durs  (traverseVector input)
+(defn generate-durations [input] (let [mod-input (vec (map trigger-dur (vec (flatten input))))
+                                      durs  (traverse-vector input)
                                       durs  (into [] (flatten durs))
-                                      durs  (adjustDuration durs (vec (flatten mod-input)))]
+                                      durs  (adjust-duration durs (vec (flatten mod-input)))]
                                         ;(println durs)
                                   durs) )
 
@@ -213,4 +213,20 @@
                                                   new-buf
                                                   ))
 
-(defn set-buffer3 [& new-buf-data])
+(defn generate-dur-buffer-vector [& new-buf-data] (let [size  (count new-buf-data)]
+                                                    (loop [xv new-buf-data
+                                                           result []]
+                                                      (if xv
+                                                        (let [x      (first xv)
+                                                              x-durs (generate-durations x)
+                                                              x-size (count x-durs)
+                                                              x-buf  (buffer x-size)
+                                                              _      (buffer-write-relay! x-buf (vec x-durs))]
+                                                          ;(println x)
+                                                          (recur (next xv) (conj result x-buf))) result))))
+
+;(def bub  (generate-dur-buffer-vector [1 0 1 0] [1 1 1 1] [3 3 3] ))
+
+                                        ;(doseq [x bub] (println (vec (buffer-data x))))
+
+(control-bus)
