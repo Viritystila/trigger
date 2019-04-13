@@ -18,7 +18,7 @@
 
 
                                         ;Synthdefs
-(defsynth base-trigger-synth [dur 1 out-bus 0] (out:kr out-bus (trig:kr (impulse:kr (/ 1 (in:kr dur))))))
+(defsynth base-trigger-synth [dur 1 out-bus 0] (out:kr out-bus (trig:kr (impulse:kr (/ 1  (dbufrd base-dur (dseries 0 1 INF) ))))))
 
 (defsynth base-trigger-counter [base-trigger-bus-in 0 base-trigger-count-bus-out 0]
   (out:kr base-trigger-count-bus-out (pulse-count:kr (in:kr base-trigger-bus-in))))
@@ -80,123 +80,15 @@
     (buffer-write! bps [5 3 4 17 9])
     (def tstbus (control-bus 1))))
 
-(defsynth tstsin [trig-in 0 f 200 out-bus 0] (let [trg (in:kr trig-in)
+(defsynth tstsin [in-trg 0 in-trg-val 0 f 200 out-bus 0] (let [trg (in:kr in-trg)
+                                                               val (in:kr in-trg-val)
                                          env (env-gen (perc 0.01 0.01 1 0) :gate trg)
-                                         src (* env (sin-osc f))]
+                                         src (* env (sin-osc (* f val)))]
                                      (out out-bus src)))
 
 
-;(def tsttriggen (triggerGenerator base-trigger-bus base-trigger-count-bus bp tstbus))
-
-                                        ;(def tstsin1 (tstsin tstbus))
-;(kill tstsin1)
-
-;(vec (buffer-data bp))
-;(control-bus-get base-trigger-count-bus)
-
-;(vec (buffer-data b1))
 
                                         ;Functions
-
-                                        ;Synth triggering generation
-
-(defprotocol synth-control
-  (kill-synth [this])
-  (kill-trg   [this])
-  (swap-synth [this synth-name])
-  (ctl-synth [this var value])
-  (set-trigger-bus [this trigger-bus-new])
-  (get-trigger-value-bus [this] ))
-
-(deftype synthContainer [pattern-name
-                         group
-                         ^:volatile-mutable trigger-bus
-                         ^:volatile-mutable trigger-value-bus
-                         ^:volatile-nutable out-bus
-                         ^:volatile-mutable trigger-synth
-                         ^:volatile-mutable play-synth
-                         ^:volatile-mutable pattern-id-buf]
-  synth-control
-  (kill-synth [this] (kill (. this play-synth)))
-  (kill-trg   [this] (kill (. this group)))
-  (swap-synth [this synth-name] (println "not implemented"))
-  (ctl-synth [this var value] (ctl (. this play-synth) var value))
-  (set-trigger-bus [this trigger-bus-new] (set! trigger-bus trigger-bus-new ) (ctl (. this play-synth) :trig-in trigger-bus-new))
-  (get-trigger-value-bus [this] (. this trigger-value-bus)))
-
-
-(defprotocol trigger-control
-  (kill-trg-group [this]))
-
-(deftype triggerContainer [control-name
-                           control-val-name
-                           group
-                           play-synth
-                           trigger-bus
-                           trigger-value-bus
-                           trigger-synth
-                           pattern-buf
-                           patter-value-buf]
-  trigger-control
-  (kill-trg-group [this] (do (kill (. this group)))))
-
-(defn create-synth-config [pattern-name synth-name pattern-id-buf] (let [trig-bus     (control-bus 1)
-                                                                       trig-val-bus (control-bus 1)
-                                                                       out-bus      0
-                                                                       synth-group  (group pattern-name :after main-g)
-                                                                       trig-synth   (trigger-generator [:tail synth-group]
-                                                                                                      base-trigger-bus
-                                                                                                      base-trigger-count-bus
-                                                                                                      pattern-id-buf
-                                                                                                      pattern-id-buf
-                                                                                                      trig-bus
-                                                                                                      trig-val-bus)
-                                                                       play-synth   (synth-name  [:tail synth-group]  :trig-in trig-bus )]
-                                                                   (synthContainer. pattern-name synth-group trig-bus trig-val-bus out-bus trig-synth play-synth pattern-id-buf)))
-
-
-(defn create-trigger [control-name
-                      control-val-name
-                      synth-name
-                      pattern-group
-                      pattern-vector
-                      pattern-value-vector]
-  (let [trig-bus             (control-bus 1)
-        trig-val-bus         (control-bus 1)
-        pattern-id-buf        (map (fn [x] (buffer-id x)) pattern-vector)
-        pattern-value-id-buf (map (fn [x] (buffer-id x)) pattern-vector)
-        trig-group           (group pattern-group :after main-g)
-        trig-synth           (trigger-generator [:tail trig-group]
-                                                base-trigger-bus
-                                                base-trigger-count-bus
-                                                pattern-id-buf
-                                                pattern-value-id-buf
-                                                trig-bus
-                                                trig-val-bus)]
-        (ctl synth-name  control-name trig-bus control-val-name  trig-val-bus  )
-    (triggerContainer. control-name control-val-name trig-group synth-name trig-bus
-                       trig-val-bus  trig-synth  pattern-vector pattern-value-vector)))
-
-
-
-(defn trg [pattern-name synth-name & pattern] (let [pattern-name-key       (keyword pattern-name)
-                                                    pattern-status    (pattern-name-key @synthConfig)
-                                                    trig-pattern      (generate-buffer-vector :dur pattern )
-                                                    val-pattern       (generate-buffer-vector :val pattern )
-                                                    pattern-id-buf    (map (fn [x] (buffer-id x)) trig-pattern)
-                                                    pidb              (buffer (count pattern-id-buf))
-                                                    _                 (buffer-write! pidb pattern-id-buf)]
-                                                (if  (= nil pattern-status)
-                                                  (do (println "Synth created") (swap! synthConfig assoc pattern-name-key (create-synth-config pattern-name
-                                                                                                                                               synth-name
-                                                                                                                                               pidb)) )
-                                                  (do (println "Synth exits")))))
-
-(defn stop-pattern [pattern-name] (let [pattern-name-key      (keyword pattern-name)
-                                    pattern-status        (pattern-name-key @synthConfig)]
-                                (println pattern-status)
-                                (if (some? pattern-status) (do (kill-trg pattern-status)
-                                                               (swap! synthConfig dissoc pattern-name-key) ) )))
 
                                         ;pattern generation functions
 (defn trigger-dur [dur] (if (= dur 0) 0 1) )
@@ -276,7 +168,7 @@
                                         ;- (println (keyword field))
                                                               x-item  (field x-out)
                                                               x-item (remove zero? x-item)
-                                                              x-item (concat [0] (vec x-item)) ;The triggering synth requires a single zero in the begininng to work as intended
+                                                              ;x-item (concat [0] (vec x-item)) ;The triggering synth requires a single zero in the begininng to work as intended
                                                               x-size (count x-item)
                                                               x-buf  (buffer x-size)
                                                               _      (buffer-write-relay! x-buf (vec x-item))]
@@ -286,23 +178,148 @@
 
 
 
-(trg "tstsin" tstsin [ 1 1 1 1 1 1 1 1 1 1 1 1] [1 1 1 1 1 [ 1 1 1 1 1 [ 1 1 1 1 ]]] [1 [1 1 1 1] 1 [1 1 1 1] 1 1 1 1 1 1 1 1])
+;(trg "tstsin" tstsin [0 1 1 0 11 1 1 1 1 11 1 1 1 1  1 1 1 1  1 1 1 [ 1 1 1 1  1 1 1]] [1 1 1 1 1 1 1 ])
 
 ;(generate-durations [1 0 1 5])
 
 
 ;(remove zero? [1 2 0.0 3])
 
-(apply identity ([1 1 1]))
+;(apply identity ([1 1 1]))
                                         ;
-(def bub  (generate-buffer-vector :val   ))
+;(def bub  (generate-buffer-vector :val   ))
 
-(doseq [x bub] (println (vec (buffer-data x))))
+;(doseq [x bub] (println (vec (buffer-data x))))
 
 ;(concat [0] (1 2 3))
                                         ;pattern timing adjustments
 (defn set-pattern-duration [dur] (control-bus-set! base-trigger-dur-bus 1)
                                   (buffer-write! base-dur [dur]))
+
+
+
+
+
+
+                                        ;Synth triggering generation
+
+(defprotocol synth-control
+  (kill-synth [this])
+  (kill-trg   [this])
+  (swap-synth [this synth-name])
+  (ctl-synth [this var value])
+  (get-trigger-value-bus [this] ))
+
+(defrecord synthContainer [pattern-name
+                         group
+                         out-bus
+                         play-synth
+                         triggers]
+  synth-control
+  (kill-synth [this] (kill (. this play-synth)))
+  (kill-trg   [this] (kill (. this group)))
+  (swap-synth [this synth-name] (println "not implemented"))
+  (ctl-synth [this var value] (ctl (. this play-synth) var value)))
+
+
+(defprotocol trigger-control
+  (kill-trg-group [this]))
+
+(defrecord triggerContainer [control-key
+                           control-val-key
+                           group
+                           play-synth
+                           trigger-bus
+                           trigger-value-bus
+                           trigger-synth
+                           pattern-buf
+                           patter-value-buf]
+  trigger-control
+  (kill-trg-group [this] (do (kill (. this group)))))
+
+(defn create-synth-config [pattern-name synth-name] (let [out-bus      0
+                                                          synth-group  (group pattern-name :after main-g)
+                                                          play-synth   (synth-name  [:tail synth-group] )
+                                                          triggers     {}]
+                                                      (synthContainer. pattern-name synth-group out-bus play-synth triggers)))
+
+
+(defn create-trigger [control-key
+                      control-val-key
+                      synth-name
+                      pattern-group
+                      pattern-vector
+                      pattern-value-vector]
+  (let [trig-bus             (control-bus 1)
+        trig-val-bus         (control-bus 1)
+        buf-size             (count pattern-vector)
+        pattern-id-buf       (buffer buf-size)
+        pattern-value-id-buf (buffer buf-size)
+        _                    (buffer-write! pattern-id-buf       (vec (map (fn [x] (buffer-id x)) pattern-vector)))
+        _                    (buffer-write! pattern-value-id-buf (vec (map (fn [x] (buffer-id x)) pattern-value-vector)))
+        trig-group           (group (str control-key) :after pattern-group)
+        trig-synth           (trigger-generator [:tail trig-group]
+                                                base-trigger-bus
+                                                base-trigger-count-bus
+                                                pattern-id-buf
+                                                pattern-value-id-buf
+                                                trig-bus
+                                                trig-val-bus)]
+        (ctl synth-name  control-key trig-bus control-val-key  trig-val-bus  )
+    (triggerContainer. control-key control-val-key trig-group synth-name trig-bus
+                       trig-val-bus  trig-synth  pattern-vector pattern-value-vector)))
+
+
+
+(defn t [input] (let [pattern-name      (:pn input)
+                      pattern-name-key  (keyword pattern-name)
+                      synth-name        (:sn input)
+                      control-pair      (first (dissoc (dissoc input :pn) :sn))
+                      control-key       (first control-pair)
+                      control-val-key   (keyword (str (name control-key) "-val"))
+                      control-pattern   [(last control-pair)]
+                      pattern-status    (pattern-name-key @synthConfig)
+                      trig-pattern      (generate-buffer-vector :dur control-pattern )
+                      val-pattern       (generate-buffer-vector :val control-pattern )
+                      synth-container   (pattern-name-key @synthConfig)
+                      pattern-group     (:group synth-container)
+                      triggers          (:triggers synth-container)
+                      play-synth        (:play-synth synth-container)
+                      trigger           (create-trigger control-key
+                                                        control-val-key
+                                                        play-synth
+                                                        pattern-group
+                                                        trig-pattern
+                                                        val-pattern
+                                                        )
+                      triggers          (assoc triggers control-key trigger)
+                      synth-container   (assoc synth-container :triggers triggers)
+                      ]
+                  (swap! synthConfig assoc pattern-name-key synth-container)
+                  (dissoc input control-key)))
+
+;input as hashmap {:pn :sn}
+(defn trg [input] (let [pattern-name      (:pn input)
+                        pattern-name-key  (keyword pattern-name)
+                        synth-name        (:sn input)
+                        pattern-status    (pattern-name-key @synthConfig)]
+                    (if  (= nil pattern-status)
+                      (do (println "Synth created") (swap! synthConfig assoc pattern-name-key (create-synth-config pattern-name  synth-name)))
+                      (do (println "Synth exits")))
+                    input ))
+
+
+(defn stop-pattern [pattern-name] (let [pattern-name-key      (keyword pattern-name)
+                                    pattern-status        (pattern-name-key @synthConfig)]
+                                (println pattern-status)
+                                (if (some? pattern-status) (do (kill-trg pattern-status)
+                                                               (swap! synthConfig dissoc pattern-name-key) ) )))
+
+
+
+
+
+
 
 
 (start)
