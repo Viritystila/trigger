@@ -46,6 +46,14 @@
     (out:kr trigger-value-bus-out pattern-item-value)))
 
 
+(defsynth tstsin [in-trg 0 in-trg-val 0 f 200 out-bus 0] (let [trg (in:kr in-trg)
+                                                               val (in:kr in-trg-val)
+                                         env (env-gen (perc 0.01 0.01 1 0) :gate trg)
+                                         src (* env (sin-osc (* f val)))]
+                                     (out out-bus src)))
+
+
+
                                         ;Start
 
 (defn start []
@@ -55,37 +63,7 @@
   (buffer-write! base-dur [1])
   (def base-trigger (base-trigger-synth [:tail main-g] base-trigger-dur-bus base-trigger-bus))
   (def base-trigger-count-bus (control-bus 1))
-  (def base-trigger-count (base-trigger-counter [:tail main-g] base-trigger-bus base-trigger-count-bus))
-
-
-
-
-                                        ;pattern testing
-
-  (do
-    (def b1 (buffer 9))
-    (buffer-write! b1 [0 1/8 1/8 1/8 1/8 1/8 1/8 1/8 1/8])
-    (def b2 (buffer 5))
-    (buffer-write! b2 [0 1/4 1/4 1/4 1/4])
-    (def b3 (buffer 3))
-    (buffer-write! b3 [0 1/2 1/2])
-    (def b4 (buffer 4))
-    (buffer-write! b4 [0 1/3 1/3 1/3] )
-    (def b5 (buffer 17))
-    (buffer-write! b5 [0 1/16 1/16 1/16 1/16 1/16 1/16 1/16 1/16 1/16 1/16 1/16 1/16 1/16 1/16 1/16 1/16])
-
-
-    (def bp (buffer 5))
-    (buffer-write! bp [(buffer-id b1) (buffer-id b2) (buffer-id b3) (buffer-id b4) (buffer-id b5)])
-    (def bps (buffer 5))
-    (buffer-write! bps [5 3 4 17 9])
-    (def tstbus (control-bus 1))))
-
-(defsynth tstsin [in-trg 0 in-trg-val 0 f 200 out-bus 0] (let [trg (in:kr in-trg)
-                                                               val (in:kr in-trg-val)
-                                         env (env-gen (perc 0.01 0.01 1 0) :gate trg)
-                                         src (* env (sin-osc (* f val)))]
-                                     (out out-bus src)))
+  (def base-trigger-count (base-trigger-counter [:tail main-g] base-trigger-bus base-trigger-count-bus)) )
 
 
 
@@ -95,20 +73,16 @@
 (defn trigger-dur [dur] (if (= dur 0) 0 1) )
 
 (defn traverse-vector ([input-array] (let [input-vec input-array
-                                        ;_ (println input-vec)
                                            result []]
-                                      (if true ;(vector? input-vec)
+                                      (if true
                                         (loop [xv (seq input-vec)
                                                result []]
                                           (if xv
-                                            (let [;_ (println xv)
-                                                   length (count input-vec)
+                                            (let [ length (count input-vec)
                                                   x (first xv)]
                                                (if (vector? x) (recur (next xv) (conj result (traverse-vector x length)))
                                                    (recur (next xv) (conj result (/ 1 length 1))))) result)))))
-  ([input-array bl] (let [input-vec input-array
-                                        ;_ (println bl)
-                          ]
+  ([input-array bl] (let [input-vec input-array]
                       (if (vector? input-vec)
                          (loop [xv (seq input-vec)
                                 result []]
@@ -132,7 +106,6 @@
 
 (defn adjust-duration [input-vector input-original] (let [length   (count input-vector)
                                                          full-durs input-vector
-                                        ;_ (println full-durs)
                                                          input-vector (into [] (map * input-vector input-original))
                                                          idxs (vec (range length))]
                                                      (loop [xv (seq idxs)
@@ -142,10 +115,7 @@
                                                                 nidx      (mod (+ 1 xidx) length)
                                                                 opnext    (nth input-vector nidx)
                                                                 op        (nth input-vector xidx)
-                                                                ;vec-ring  (flatten (conj (subvec idxs nidx) (subvec idxs 0 nidx )))
                                                                 vec-ring  (vec (subvec idxs nidx))
-                                        ;_  (println (subvec input-vector nidx))
-                                        ;_ (println (countZeros (subvec input-vector nidx)))
                                                                 op      (if (and (not= 0 op) ( = 0 opnext)) (+ op (sum-zero-durs vec-ring input-vector full-durs)) op)]
                                                             (recur (next xv) (conj result op))) result))))
 
@@ -171,9 +141,6 @@
                                   ;pattern timing adjustments
 (defn set-pattern-duration [dur] (control-bus-set! base-trigger-dur-bus 1)
                                   (buffer-write! base-dur [dur]))
-
-
-
 
 
 
@@ -320,13 +287,4 @@
 
 
 
-
-
-
-
-
 (start)
-
-;(map (fn [x] (buffer-id x)) [b1 b2])
-
-;(buffer-id b1)
