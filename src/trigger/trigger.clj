@@ -11,6 +11,12 @@
   (do
     (defonce main-g (group "main group")))
 
+                                        ;base duration
+(do
+  (def base-dur (buffer 1))
+  (buffer-write! base-dur [1]))
+
+
                                         ;Synthdefs
 (defsynth baseTrigger [dur 1 out-bus 0] (out:kr out-bus (trig:kr (impulse:kr (/ 1 (in:kr dur))))))
 
@@ -18,29 +24,37 @@
   (out:kr base-trigger-count-bus-out (pulse-count:kr (in:kr base-trigger-bus-in))))
 
 
+
 (defsynth triggerGenerator [base-trigger-bus-in 0
                             base-counter-bus-in 0
                             base-pattern-buffer-in 0
-                            trigger-bus-out 0]
-  (let [base-trigger        (in:kr base-trigger-bus-in)
-            base-counter        (in:kr base-counter-bus-in)
-        pattern-buffer-id   (dbufrd base-pattern-buffer-in base-counter)
-        pattern_item        (dbufrd pattern-buffer-id (dseries 0 1 INF) 0)
-        trg                 (t-duty:kr  (dbufrd pattern-buffer-id (dseries 0 1 INF) 0)  base-trigger  pattern_item)]
-    (out:kr trigger-bus-out trg)))
+                            base-pattern-value-buffer-in 0
+                            trigger-bus-out 0
+                            trigger-value-bus-out 0]
+  (let [base-trigger            (in:kr base-trigger-bus-in)
+        base-counter            (in:kr base-counter-bus-in)
+        pattern-buffer-id       (dbufrd base-pattern-buffer-in base-counter)
+        pattern-value-buffer-id (dbufrd base-pattern-value-buffer-in base-counter)
+        trg                     (t-duty:kr (* (dbufrd base-dur (dseries 0 1 INF) ) (dbufrd pattern-buffer-id (dseries 0 1 INF) 0))
+                                           base-trigger
+                                           (dbufrd pattern-buffer-id (dseries 0 1 INF) 0))
+        pattern-item-value      (demand:kr trg base-trigger (dbufrd pattern-value-buffer-id (dseries 0 1 INF)))
+        pattern-trg-value       (demand:kr trg base-trigger (dbufrd pattern-buffer-id (dseries 0 1 INF)))
+        pattern-item-value      (select:kr (= 0.0 pattern-trg-value) [pattern-item-value (in:kr trigger-value-bus-out)])]
+    (out:kr trigger-bus-out trg)
+    (out:kr trigger-value-bus-out pattern-item-value)))
 
+
+                                        ;Start
 
 (defn start []
   (defonce base-trigger-bus (control-bus 1))
   (defonce base-trigger-dur-bus (control-bus 1))
-  (control-bus-set! base-trigger-dur-bus 1)
+   (control-bus-set! base-trigger-dur-bus 1)
+  (buffer-write! base-dur [1])
   (def base-trigger (baseTrigger [:tail main-g] base-trigger-dur-bus base-trigger-bus))
   (defonce base-trigger-count-bus (control-bus 1))
-  (def base-trigger-count (baseTriggerCounter [:tail main-g] base-trigger-bus base-trigger-count-bus))
-
-
-  )
-
+  (def base-trigger-count (baseTriggerCounter [:tail main-g] base-trigger-bus base-trigger-count-bus)))
 
 
 
@@ -88,11 +102,13 @@
   (kill-trg   [this])
   (swap-synth [this synth-name])
   (ctl-synth [this var value])
-  (set-trigger-bus [thus trigger-bus-new]))
+  (set-trigger-bus [this trigger-bus-new])
+  (get-trigger-value-bus [this] ))
 
 (deftype synthContainer [pattern-name
                          group
                          ^:volatile-mutable trigger-bus
+                         ^:volatile-mutable trigger-value-bus
                          ^:volatile-nutable out-bus
                          ^:volatile-mutable trigger-synth
                          ^:volatile-mutable play-synth
@@ -102,15 +118,23 @@
   (kill-trg   [this] (kill (. this group)))
   (swap-synth [this synth-name] (println "not implemented"))
   (ctl-synth [this var value] (ctl (. this play-synth) var value))
-  (set-trigger-bus [this trigger-bus-new] (set! trigger-bus trigger-bus-new ) (ctl (. this play-synth) :trig-in trigger-bus-new)))
+  (set-trigger-bus [this trigger-bus-new] (set! trigger-bus trigger-bus-new ) (ctl (. this play-synth) :trig-in trigger-bus-new))
+  (get-trigger-value-bus [this] (. this trigger-value-bus)))
 
 
 (defn createSynthConfig [pattern-name synth-name pattern-id-buf] (let [trig-bus     (control-bus 1)
+                                                                       trig-val-bus (control-bus 1)
                                                                        out-bus      0
-                                                                       synth-group  (group pattern-name)
-                                                                       trig-synth   (triggerGenerator [:tail synth-group] base-trigger-bus base-trigger-count-bus pattern-id-buf trig-bus)
-                                                                       play-synth   (synth-name  [:tail synth-group]  :trig-in trig-bus)]
-                                                                   (synthContainer. pattern-name synth-group trig-bus out-bus trig-synth play-synth pattern-id-buf)))
+                                                                       synth-group  (group pattern-name :after main-g)
+                                                                       trig-synth   (triggerGenerator [:tail synth-group]
+                                                                                                      base-trigger-bus
+                                                                                                      base-trigger-count-bus
+                                                                                                      pattern-id-buf
+                                                                                                      pattern-id-buf
+                                                                                                      trig-bus
+                                                                                                      trig-val-bus)
+                                                                       play-synth   (synth-name  [:tail synth-group]  :trig-in trig-bus )]
+                                                                   (synthContainer. pattern-name synth-group trig-bus trig-val-bus out-bus trig-synth play-synth pattern-id-buf)))
 
 
 
@@ -229,4 +253,10 @@
 
                                         ;(doseq [x bub] (println (vec (buffer-data x))))
 
-(control-bus)
+
+                                        ;pattern timing adjustments
+(defn set-pattern-duration [dur] (control-bus-set! base-trigger-dur-bus 1)
+                                  (buffer-write! base-dur [dur]))
+
+
+(start)
