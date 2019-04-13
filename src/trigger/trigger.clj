@@ -45,12 +45,13 @@
     (out:kr trigger-bus-out trg)
     (out:kr trigger-value-bus-out pattern-item-value)))
 
-
-(defsynth tstsin [in-trg 0 in-trg-val 0 f 200 out-bus 0] (let [trg (in:kr in-trg)
-                                                               val (in:kr in-trg-val)
-                                         env (env-gen (perc 0.01 0.01 1 0) :gate trg)
-                                         src (* env (sin-osc (* f val)))]
-                                     (out out-bus src)))
+(def dbg (control-bus 1))
+(defsynth tstsin [in-trg 0 in-trg-val 0 in-attack 0 in-attack-val 0 f 200 out-bus 0] (let [trg (in:kr in-trg)
+                                                                                           val (in:kr in-trg-val)
+                                                                                           env (env-gen (perc (in:kr in-attack-val) 0.01 1 0) :gate trg)
+                                                                                           src (* env (sin-osc (* f val)))]
+                                                                                       (out:kr dbg (in:kr in-attack-val))
+                                                                                       (out out-bus src)))
 
 
 
@@ -99,8 +100,6 @@
                                                     (let [x       (first xv)
                                                           zero-x  (nth input-vector x )
                                                           dur-x   (nth full-durs x)]
-                                                      (println zero-x)
-                                                      (println dur-x)
                                                       (if (= zero-x 0) (do (recur (next xv) (+ dur-x sum))) sum)) sum)))
 
 
@@ -243,7 +242,7 @@
 (defn t [input] (let [pattern-name      (:pn input)
                       pattern-name-key  (keyword pattern-name)
                       synth-name        (:sn input)
-                      control-pair      (first (dissoc (dissoc input :pn) :sn))
+                      control-pair      (first (dissoc input :pn))
                       control-key       (first control-pair)
                       control-val-key   (keyword (str (name control-key) "-val"))
                       control-pattern   (last control-pair)
@@ -272,6 +271,7 @@
 (defn trg [input] (let [pattern-name      (:pn input)
                         pattern-name-key  (keyword pattern-name)
                         synth-name        (:sn input)
+                        input             (dissoc input :sn)
                         pattern-status    (pattern-name-key @synthConfig)]
                     (if  (= nil pattern-status)
                       (do (println "Synth created") (swap! synthConfig assoc pattern-name-key (create-synth-config pattern-name  synth-name)))
