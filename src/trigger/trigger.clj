@@ -18,11 +18,12 @@
 
 
                                         ;Synthdefs
-(defsynth base-trigger-synth [dur 1 out-bus 0] (out:kr out-bus (trig:kr (impulse:kr (/ 1  (dbufrd base-dur (dseries 0 1 INF) ))))))
+
+(defsynth base-trigger-synth [dur 1 out-bus 0] (out:kr out-bus (t-duty:kr  (dbufrd base-dur (dseries 0 1 INF) ) 0 10 )))
+
 
 (defsynth base-trigger-counter [base-trigger-bus-in 0 base-trigger-count-bus-out 0]
   (out:kr base-trigger-count-bus-out (pulse-count:kr (in:kr base-trigger-bus-in))))
-
 
 
 (defsynth trigger-generator [base-trigger-bus-in 0
@@ -48,12 +49,12 @@
                                         ;Start
 
 (defn start []
-  (defonce base-trigger-bus (control-bus 1))
-  (defonce base-trigger-dur-bus (control-bus 1))
+  (def base-trigger-bus (control-bus 1))
+  (def base-trigger-dur-bus (control-bus 1))
    (control-bus-set! base-trigger-dur-bus 1)
   (buffer-write! base-dur [1])
   (def base-trigger (base-trigger-synth [:tail main-g] base-trigger-dur-bus base-trigger-bus))
-  (defonce base-trigger-count-bus (control-bus 1))
+  (def base-trigger-count-bus (control-bus 1))
   (def base-trigger-count (base-trigger-counter [:tail main-g] base-trigger-bus base-trigger-count-bus))
 
 
@@ -141,7 +142,8 @@
                                                                 nidx      (mod (+ 1 xidx) length)
                                                                 opnext    (nth input-vector nidx)
                                                                 op        (nth input-vector xidx)
-                                                                vec-ring  (flatten (conj (subvec idxs nidx) (subvec idxs 0 nidx )))
+                                                                ;vec-ring  (flatten (conj (subvec idxs nidx) (subvec idxs 0 nidx )))
+                                                                vec-ring  (vec (subvec idxs nidx))
                                         ;_  (println (subvec input-vector nidx))
                                         ;_ (println (countZeros (subvec input-vector nidx)))
                                                                 op      (if (and (not= 0 op) ( = 0 opnext)) (+ op (sum-zero-durs vec-ring input-vector full-durs)) op)]
@@ -151,48 +153,22 @@
                                       durs  (traverse-vector input)
                                       durs  (into [] (flatten durs))
                                       durs  (adjust-duration durs (vec (flatten mod-input)))]
-                                      ;(println durs)
                                    {:dur durs :val (flatten input)}) )
 
 
-(defn generate-buffer-vector [field & new-buf-data] (let [size  (count new-buf-data)
-                                                          new-buf-data (if (= 1 (count new-buf-data)) (nth new-buf-data 0) new-buf-data )
-                                                          ;_ (println "gnb" (count new-buf-data))
-                                                          ]
+(defn generate-buffer-vector [field  new-buf-data] (let [ new-buf-data (map clojure.edn/read-string new-buf-data) ]
                                                     (loop [xv new-buf-data
                                                            result []]
                                                       (if xv
                                                         (let [x      (first xv)
                                                               x-out  (generate-durations x)
-                                                              ;_ (println x-out)
-                                        ;- (println (keyword field))
                                                               x-item  (field x-out)
-                                                              x-item (remove zero? x-item)
-                                                              ;x-item (concat [0] (vec x-item)) ;The triggering synth requires a single zero in the begininng to work as intended
                                                               x-size (count x-item)
                                                               x-buf  (buffer x-size)
                                                               _      (buffer-write-relay! x-buf (vec x-item))]
-                                                          ;(println x)
-                                                          (recur (next xv) (conj result x-buf))) result))))
-
-
-
-
-;(trg "tstsin" tstsin [0 1 1 0 11 1 1 1 1 11 1 1 1 1  1 1 1 1  1 1 1 [ 1 1 1 1  1 1 1]] [1 1 1 1 1 1 1 ])
-
-;(generate-durations [1 0 1 5])
-
-
-;(remove zero? [1 2 0.0 3])
-
-;(apply identity ([1 1 1]))
-                                        ;
-;(def bub  (generate-buffer-vector :val   ))
-
-;(doseq [x bub] (println (vec (buffer-data x))))
-
-;(concat [0] (1 2 3))
-                                        ;pattern timing adjustments
+                                                          (recur (next xv) (conj result x-buf))) result))
+                                                    ))
+                                  ;pattern timing adjustments
 (defn set-pattern-duration [dur] (control-bus-set! base-trigger-dur-bus 1)
                                   (buffer-write! base-dur [dur]))
 
@@ -217,7 +193,7 @@
                          triggers]
   synth-control
   (kill-synth [this] (kill (. this play-synth)))
-  (kill-trg   [this] (kill (. this group)))
+  (kill-trg   [this] (group-free (. this group)))
   (swap-synth [this synth-name] (println "not implemented"))
   (ctl-synth [this var value] (ctl (. this play-synth) var value)))
 
@@ -226,14 +202,16 @@
   (kill-trg-group [this]))
 
 (defrecord triggerContainer [control-key
-                           control-val-key
-                           group
-                           play-synth
-                           trigger-bus
-                           trigger-value-bus
-                           trigger-synth
-                           pattern-buf
-                           patter-value-buf]
+                             control-val-key
+                             group
+                             play-synth
+                             trigger-bus
+                             trigger-value-bus
+                             trigger-synth
+                             pattern-vector
+                             patter-value-vector
+                             pattern-buf
+                             patter-value-buf]
   trigger-control
   (kill-trg-group [this] (do (kill (. this group)))))
 
@@ -257,7 +235,7 @@
         pattern-value-id-buf (buffer buf-size)
         _                    (buffer-write! pattern-id-buf       (vec (map (fn [x] (buffer-id x)) pattern-vector)))
         _                    (buffer-write! pattern-value-id-buf (vec (map (fn [x] (buffer-id x)) pattern-value-vector)))
-        trig-group           (group (str control-key) :after pattern-group)
+        trig-group           (group (str control-key) :tail pattern-group)
         trig-synth           (trigger-generator [:tail trig-group]
                                                 base-trigger-bus
                                                 base-trigger-count-bus
@@ -267,7 +245,31 @@
                                                 trig-val-bus)]
         (ctl synth-name  control-key trig-bus control-val-key  trig-val-bus  )
     (triggerContainer. control-key control-val-key trig-group synth-name trig-bus
-                       trig-val-bus  trig-synth  pattern-vector pattern-value-vector)))
+                       trig-val-bus  trig-synth  pattern-vector pattern-value-vector pattern-id-buf pattern-value-id-buf)))
+
+                                        ;base-trigger-bus-in 0
+                                        ;base-counter-bus-in 0
+                                        ;base-pattern-buffer-in 0
+                                        ;base-pattern-value-buffer-in 0
+                                        ;trigger-bus-out 0
+                                        ;trigger-value-bus-out 0
+(defn update-trigger [trigger
+                      pattern-vector
+                      pattern-value-vector]
+  (let [buf-size             (count pattern-vector)
+        pattern-id-buf       (buffer buf-size)
+        pattern-value-id-buf (buffer buf-size)
+        _                    (buffer-write! pattern-id-buf       (vec (map (fn [x] (buffer-id x)) pattern-vector)))
+        _                    (buffer-write! pattern-value-id-buf (vec (map (fn [x] (buffer-id x)) pattern-value-vector)))
+        trigger              (assoc trigger :pattern-vector pattern-vector)
+        trigger              (assoc trigger  :pattern-value-vector pattern-value-vector)
+        trigger              (assoc trigger :pattern-buf pattern-id-buf)
+        trigger              (assoc trigger  :pattern-value-buf pattern-value-id-buf)
+        trig-synth           (:trigger-synth trigger)]
+    (ctl trig-synth :base-pattern-buffer-in pattern-id-buf :base-pattern-value-buffer-in pattern-value-id-buf)
+    trigger))
+
+
 
 
 
@@ -277,21 +279,22 @@
                       control-pair      (first (dissoc (dissoc input :pn) :sn))
                       control-key       (first control-pair)
                       control-val-key   (keyword (str (name control-key) "-val"))
-                      control-pattern   [(last control-pair)]
-                      pattern-status    (pattern-name-key @synthConfig)
+                      control-pattern   (last control-pair)
                       trig-pattern      (generate-buffer-vector :dur control-pattern )
                       val-pattern       (generate-buffer-vector :val control-pattern )
                       synth-container   (pattern-name-key @synthConfig)
                       pattern-group     (:group synth-container)
                       triggers          (:triggers synth-container)
+                      trigger-status    (control-key triggers)
                       play-synth        (:play-synth synth-container)
-                      trigger           (create-trigger control-key
-                                                        control-val-key
-                                                        play-synth
-                                                        pattern-group
-                                                        trig-pattern
-                                                        val-pattern
-                                                        )
+                      trigger           (if (some? trigger-status) (update-trigger trigger-status trig-pattern val-pattern)
+                                            (create-trigger control-key
+                                                            control-val-key
+                                                            play-synth
+                                                            pattern-group
+                                                            trig-pattern
+                                                            val-pattern
+                                                            ))
                       triggers          (assoc triggers control-key trigger)
                       synth-container   (assoc synth-container :triggers triggers)
                       ]
