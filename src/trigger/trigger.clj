@@ -116,6 +116,7 @@
                                                                 nidx      (mod (+ 1 xidx) length)
                                                                 opnext    (nth input-vector nidx)
                                                                 op        (nth input-vector xidx)
+                                                                ;vec-ring  (flatten (conj (subvec idxs nidx) (subvec idxs 0 nidx )))
                                                                 vec-ring  (vec (subvec idxs nidx))
                                                                 op      (if (and (not= 0 op) ( = 0 opnext)) (+ op (sum-zero-durs vec-ring input-vector full-durs)) op)]
                                                             (recur (next xv) (conj result op))) result))))
@@ -137,8 +138,7 @@
                                                               x-size (count x-item)
                                                               x-buf  (buffer x-size)
                                                               _      (buffer-write-relay! x-buf (vec x-item))]
-                                                          (recur (next xv) (conj result x-buf))) result))
-                                                    ))
+                                                          (recur (next xv) (conj result x-buf)))result))))
                                   ;pattern timing adjustments
 (defn set-pattern-duration [dur] (control-bus-set! base-trigger-dur-bus 1)
                                   (buffer-write! base-dur [dur]))
@@ -155,10 +155,11 @@
   (get-trigger-value-bus [this] ))
 
 (defrecord synthContainer [pattern-name
-                         group
-                         out-bus
-                         play-synth
-                         triggers]
+                           group
+                           out-bus
+                           play-synth
+                           triggers
+                           synth-name]
   synth-control
   (kill-synth [this] (kill (. this play-synth)))
   (kill-trg   [this] (group-free (. this group)))
@@ -187,7 +188,7 @@
                                                           synth-group  (group pattern-name :after main-g)
                                                           play-synth   (synth-name  [:tail synth-group] )
                                                           triggers     {}]
-                                                      (synthContainer. pattern-name synth-group out-bus play-synth triggers)))
+                                                      (synthContainer. pattern-name synth-group out-bus play-synth triggers synth-name)))
 
 
 (defn create-trigger [control-key
@@ -240,10 +241,9 @@
 ; (kill-trg-group trigger)
 ;(defn remove-triggers [intial-control-keys ] (kill-trg-group trigger) )
 
-
+;Create or update trigger corrensponding to a specific control-key
 (defn t [input] (let [pattern-name      (:pn input)
                       pattern-name-key  (keyword pattern-name)
-                      synth-name        (:sn input)
                       control-pair      (first (dissoc input :pn))
                       control-key       (first control-pair)
                       control-val-key   (keyword (str (name control-key) "-val"))
@@ -253,8 +253,10 @@
                       synth-container   (pattern-name-key @synthConfig)
                       pattern-group     (:group synth-container)
                       triggers          (:triggers synth-container)
-                      trigger-status    (control-key triggers)
                       play-synth        (:play-synth synth-container)
+                      synth-name        (:synth-name synth-container)
+                      synth-arg-list    (synth-args synth-name)
+                      trigger-status    (control-key triggers)
                       trigger           (if (some? trigger-status) (update-trigger trigger-status trig-pattern val-pattern)
                                             (create-trigger control-key
                                                             control-val-key
@@ -272,11 +274,15 @@
 
 
 
-;input as hashmap {:pn :sn}
+                                        ;input as hashmap {:pn :sn ...:controls...}
+                                        ; Initial input parser, needs attention, not so well though at the moment.
 (defn trg ([input]
            (let [pattern-name          (:pn input)
                  pattern-name-key      (keyword pattern-name)
                  synth-name            (:sn input)
+                 original-input        input
+                 valid-keys            (concat [:pn :sn]  (vec (synth-args synth-name)))
+                 input                 (select-keys input (vec valid-keys)) ; Make input valid, meaning remove control keys that are not present in the synth
                  input                 (dissoc input :sn)
                  input-controls-only   (dissoc input :pn)
                  initial-controls-only input-controls-only
@@ -295,7 +301,7 @@
          initial-controls-only original-input
          input-check           (some? (not-empty input-controls-only))
          pattern-status        (pattern-name-key @synthConfig)]
-     (if input-check
+     (if input-check ; If more control keys exists, make a correspnding trigger, if not, remove any running triggers not on the list
        (trg (t input) initial-controls-only)
        (do  (let [synth-container                              pattern-status
                   triggers                                     (:triggers synth-container)
