@@ -120,7 +120,7 @@
                                                                 vec-ring  (vec (subvec idxs nidx))
                                                                 op      (if (and (not= 0 op) ( = 0 opnext)) (+ op (sum-zero-durs vec-ring input-vector full-durs)) op)]
                                                             (recur (next xv) (conj result op))) result))))
-
+ ;adjust duration has to be applied to the final patterns, now the pattern borders and the transition from the last pattern top the first is nor handled correctly
 (defn generate-durations [input] (let [mod-input (vec (map trigger-dur (vec (flatten input))))
                                       durs  (traverse-vector input)
                                       durs  (into [] (flatten durs))
