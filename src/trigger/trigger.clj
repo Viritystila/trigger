@@ -1,6 +1,7 @@
 (ns #^{:author "Mikael Reponen"}
   trigger.trigger
-  (:use [overtone.live])
+  (:use [overtone.live]
+        [clojure.data])
   (:require [clojure.tools.namespace.repl :refer [refresh]]))
 
 
@@ -46,6 +47,7 @@
     (out:kr trigger-value-bus-out pattern-item-value)))
 
 (def dbg (control-bus 1))
+
 (defsynth tstsin [in-trg 0 in-trg-val 0 in-attack 0 in-attack-val 0 f 200 out-bus 0] (let [trg (in:kr in-trg)
                                                                                            val (in:kr in-trg-val)
                                                                                            env (env-gen (perc (in:kr in-attack-val) 0.01 1 0) :gate trg)
@@ -175,11 +177,11 @@
                              trigger-value-bus
                              trigger-synth
                              pattern-vector
-                             patter-value-vector
+                             pattern-value-vector
                              pattern-buf
-                             patter-value-buf]
+                             pattern-value-buf]
   trigger-control
-  (kill-trg-group [this] (do (kill (. this group)))))
+  (kill-trg-group [this] (do (group-free (. this group)))))
 
 (defn create-synth-config [pattern-name synth-name] (let [out-bus      0
                                                           synth-group  (group pattern-name :after main-g)
@@ -235,8 +237,8 @@
     (ctl trig-synth :base-pattern-buffer-in pattern-id-buf :base-pattern-value-buffer-in pattern-value-id-buf)
     trigger))
 
-
-
+; (kill-trg-group trigger)
+;(defn remove-triggers [intial-control-keys ] (kill-trg-group trigger) )
 
 
 (defn t [input] (let [pattern-name      (:pn input)
@@ -267,16 +269,44 @@
                   (swap! synthConfig assoc pattern-name-key synth-container)
                   (dissoc input control-key)))
 
+
+
+
 ;input as hashmap {:pn :sn}
-(defn trg [input] (let [pattern-name      (:pn input)
-                        pattern-name-key  (keyword pattern-name)
-                        synth-name        (:sn input)
-                        input             (dissoc input :sn)
-                        pattern-status    (pattern-name-key @synthConfig)]
-                    (if  (= nil pattern-status)
-                      (do (println "Synth created") (swap! synthConfig assoc pattern-name-key (create-synth-config pattern-name  synth-name)))
-                      (do (println "Synth exits")))
-                    input ))
+(defn trg ([input]
+           (let [pattern-name          (:pn input)
+                 pattern-name-key      (keyword pattern-name)
+                 synth-name            (:sn input)
+                 input                 (dissoc input :sn)
+                 input-controls-only   (dissoc input :pn)
+                 initial-controls-only input-controls-only
+                 input-check           (some? (not-empty input-controls-only))
+                 pattern-status        (pattern-name-key @synthConfig)]
+             (if  (= nil pattern-status)
+               (do (println "Synth created") (swap! synthConfig assoc pattern-name-key (create-synth-config pattern-name  synth-name)) input)
+               (do (println "Synth exists")))
+             (if input-check (trg (t input) initial-controls-only) input) ))
+  ([input original-input]
+   (let [pattern-name          (:pn input)
+         pattern-name-key      (keyword pattern-name)
+         synth-name            (:sn input)
+         input                 (dissoc input :sn)
+         input-controls-only   (dissoc input :pn)
+         initial-controls-only original-input
+         input-check           (some? (not-empty input-controls-only))
+         pattern-status        (pattern-name-key @synthConfig)]
+     (if input-check
+       (trg (t input) initial-controls-only)
+       (do  (let [synth-container                              pattern-status
+                  triggers                                     (:triggers synth-container)
+                  running-trigger-keys                         (keys triggers)
+                  input-trigger-keys                           (keys initial-controls-only)
+                  triggers-running-but-not-renewd              (first (diff running-trigger-keys input-trigger-keys))
+                  _                                            (doseq [x triggers-running-but-not-renewd] (if (some? x) (kill-trg-group (x triggers))))
+                  triggers                                     (apply dissoc triggers triggers-running-but-not-renewd)
+                  synth-container                              (assoc synth-container :triggers triggers)]
+              (swap! synthConfig assoc pattern-name-key synth-container)) input)))) )
+
 
 
 (defn stop-pattern [pattern-name] (let [pattern-name-key      (keyword pattern-name)
