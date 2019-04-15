@@ -127,7 +127,7 @@
                                       durs  (adjust-duration durs (vec (flatten mod-input)))]
                                    {:dur durs :val (flatten input)}) )
 
-
+; The creation of buffers is slow, this function may need to be paralleisez at some point in some way.
 (defn generate-buffer-vector [field  new-buf-data] (let [ new-buf-data (map clojure.edn/read-string new-buf-data) ]
                                                     (loop [xv new-buf-data
                                                            result []]
@@ -276,6 +276,8 @@
 
                                         ;input as hashmap {:pn :sn ...:controls...}
                                         ; Initial input parser, needs attention, not so well though at the moment.
+                                        ; The creation of buffers is slow (~80 ms per bufefr on my current machine)
+                                        ; Maybe need to parallelize the creation of control synths to reduce this time a bit when many control values are in use
 (defn trg ([input]
            (let [pattern-name          (:pn input)
                  pattern-name-key      (keyword pattern-name)
