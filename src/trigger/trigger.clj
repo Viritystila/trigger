@@ -42,7 +42,8 @@
                                            (dbufrd pattern-buffer-id (dseries 0 1 INF) 0))
         pattern-item-value      (demand:kr trg base-trigger (dbufrd pattern-value-buffer-id (dseries 0 1 INF)))
         pattern-trg-value       (demand:kr trg base-trigger (dbufrd pattern-buffer-id (dseries 0 1 INF)))
-        pattern-item-value      (select:kr (= 0.0 pattern-trg-value) [pattern-item-value (in:kr trigger-value-bus-out)])]
+        pattern-item-value      (select:kr (= 0.0 pattern-trg-value) [pattern-item-value (in:kr trigger-value-bus-out)])
+        ]
     (out:kr trigger-bus-out trg)
     (out:kr trigger-value-bus-out pattern-item-value)))
 
@@ -116,25 +117,59 @@
                                                                 nidx      (mod (+ 1 xidx) length)
                                                                 opnext    (nth input-vector nidx)
                                                                 op        (nth input-vector xidx)
-                                                                ;vec-ring  (flatten (conj (subvec idxs nidx) (subvec idxs 0 nidx )))
-                                                                vec-ring  (vec (subvec idxs nidx))
+                                                                vec-ring  (flatten (conj (subvec idxs nidx) (subvec idxs 0 nidx )))
+                                                                ;vec-ring  (vec (subvec idxs nidx))
                                                                 op      (if (and (not= 0 op) ( = 0 opnext)) (+ op (sum-zero-durs vec-ring input-vector full-durs)) op)]
                                                             (recur (next xv) (conj result op))) result))))
  ;adjust duration has to be applied to the final patterns, now the pattern borders and the transition from the last pattern top the first is nor handled correctly
 (defn generate-durations [input] (let [mod-input (vec (map trigger-dur (vec (flatten input))))
-                                      durs  (traverse-vector input)
-                                      durs  (into [] (flatten durs))
-                                      durs  (adjust-duration durs (vec (flatten mod-input)))]
-                                   {:dur durs :val (flatten input)}) )
+                                       durs  (traverse-vector input)
+                                       durs  (into [] (flatten durs))
+                                       ;_ (println "ba" durs)
+                                       durs  (adjust-duration durs (vec (flatten mod-input)))
+                                       ;_ (println "aa" durs)
+                                       ;_ (println "oi" input)
+                                       ;_ (println "mi" (vec (flatten mod-input)))
+                                       ]
+                                   {:dur durs :val (flatten input) :mod-input (vec (flatten mod-input)) }))
 
-; The creation of buffers is slow, this function may need to be paralleisez at some point in some way.
-(defn generate-buffer-vector [field  new-buf-data] (let [ new-buf-data (map clojure.edn/read-string new-buf-data) ]
+
+
+(defn split-to-sizes [input sizes] (let [s input]
+                                     (apply concat (reduce
+                                                    (fn [[s xs] len]
+                                                      [(subvec s len)
+                                                       (conj xs (subvec s 0 len))])
+                                                    [s []]
+                                                    sizes))))
+
+
+; The creation of buffers is slow, this function may need to be parallelised at some point in some way.
+(defn generate-buffer-vector [field  new-buf-data] (let [new-buf-data       (map clojure.edn/read-string new-buf-data)
+
+                                                         ;adjusted-duration   (adjust-durations )
+                                        ;_ (println  (map count new-buf-data))
+                                                         input-flat         (map flatten new-buf-data)
+                                                         input-sizes        (map count  input-flat)
+                                                         input-joined       (vec (apply concat (vec new-buf-data)))
+                                                         input-joined-size  (count input-joined)
+                                                         durations          (generate-durations input-joined)
+                                                         _ (println field "input joined" input-joined)
+                                                         out-val            (field durations)
+                                                         _ (println field "out-val " out-val)
+                                                         input-split        (split-to-sizes (vec out-val) (vec input-sizes))
+                                                         _ (println field "input-split" input-split)
+                                                         _ (println "duraion" (doseq [x input-split] (println (reduce + x))))
+
+                                                         ]
                                                     (loop [xv new-buf-data
                                                            result []]
                                                       (if xv
                                                         (let [x      (first xv)
                                                               x-out  (generate-durations x)
+                                                              ;_ (println x-out)
                                                               x-item  (field x-out)
+                                                              x-item (remove zero? x-item)
                                                               x-size (count x-item)
                                                               x-buf  (buffer x-size)
                                                               _      (buffer-write-relay! x-buf (vec x-item))]
