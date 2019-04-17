@@ -42,7 +42,7 @@
                                            (dbufrd pattern-buffer-id (dseries 0 1 INF) 0))
         pattern-item-value      (demand:kr trg base-trigger (dbufrd pattern-value-buffer-id (dseries 0 1 INF)))
         pattern-trg-value       (demand:kr trg base-trigger (dbufrd pattern-buffer-id (dseries 0 1 INF)))
-        pattern-item-value      (select:kr (= 0.0 pattern-trg-value) [pattern-item-value (in:kr trigger-value-bus-out)])
+        ;pattern-item-value      (select:kr (= 0.0 pattern-trg-value) [pattern-item-value (in:kr trigger-value-bus-out)])
         ]
     (out:kr trigger-bus-out trg)
     (out:kr trigger-value-bus-out pattern-item-value)))
@@ -122,16 +122,20 @@
                                                                 op      (if (and (not= 0 op) ( = 0 opnext)) (+ op (sum-zero-durs vec-ring input-vector full-durs)) op)]
                                                             (recur (next xv) (conj result op))) result))))
  ;adjust duration has to be applied to the final patterns, now the pattern borders and the transition from the last pattern top the first is nor handled correctly
-(defn generate-durations [input] (let [mod-input (vec (map trigger-dur (vec (flatten input))))
-                                       durs  (traverse-vector input)
-                                       durs  (into [] (flatten durs))
-                                       ;_ (println "ba" durs)
-                                       durs  (adjust-duration durs (vec (flatten mod-input)))
-                                       ;_ (println "aa" durs)
-                                       ;_ (println "oi" input)
-                                       ;_ (println "mi" (vec (flatten mod-input)))
-                                       ]
-                                   {:dur durs :val (flatten input) :mod-input (vec (flatten mod-input)) }))
+(defn generate-durations [input base-durs] (let [mod-input (vec (map trigger-dur (vec (flatten input))))
+                                                 durs  (traverse-vector input)
+                                                 durs  (into [] (flatten durs))
+                                                 ;_ (println "durs" durs)
+                                                 ;_ (println "base-durs" base-durs)
+                                                 durs  (mapv (fn [x y] (* x y)) durs (flatten base-durs))
+                                                 ;_ (println "ba" durs)
+                                                 ;- (println "modin" mod-input)
+                                                 durs  (adjust-duration durs (vec (flatten mod-input)))
+                                        ;_ (println "aa" durs)
+                                        ;_ (println "oi" input)
+                                        ;_ (println "mi" (vec (flatten mod-input)))
+                                                 ]
+                                             {:dur durs :val (flatten input) :mod-input (vec (flatten mod-input)) }))
 
 
 
@@ -144,6 +148,8 @@
                                                     sizes))))
 
 
+;(defn normalize-timing [x] (mapv ( fn[x y z] (/ (* x y) z)) (vec input-split) (vec (repeat 3 input-joined-size)) (vec input-sizes)) )
+
 ; The creation of buffers is slow, this function may need to be parallelised at some point in some way.
 (defn generate-buffer-vector [field  new-buf-data] (let [new-buf-data       (map clojure.edn/read-string new-buf-data)
 
@@ -151,24 +157,38 @@
                                         ;_ (println  (map count new-buf-data))
                                                          input-flat         (map flatten new-buf-data)
                                                          input-sizes        (map count  input-flat)
+                                                         input-base-durs    (map count new-buf-data)
                                                          input-joined       (vec (apply concat (vec new-buf-data)))
                                                          input-joined-size  (count input-joined)
-                                                         durations          (generate-durations input-joined)
-                                                         _ (println field "input joined" input-joined)
+                                                         input-base-dursv   (into [] (mapv (fn [x y] (let [fv (vec (repeat x y))
+                                                                                                          fv (map (fn [x] (/ input-joined-size x)) fv)] (vec fv))) input-sizes input-base-durs))
+
+                                                         ;_ (println "inpus-base-durs" (flatten input-base-dursv))
+                                                         ;_ (println "input-base-dursv" input-base-dursv)
+                                                         durations          (generate-durations input-joined input-base-dursv)
+                                                         ;_ (println "input joined size" input-joined-size)
+                                                         ;_ (println field "input joined" input-joined)
+                                                         ;_ (println "input sizes" input-sizes)
+                                                         ;_ (println "base durs" input-base-durs)
                                                          out-val            (field durations)
-                                                         _ (println field "out-val " out-val)
+                                                         ;_ (println "full dur"  (reduce + out-val))
                                                          input-split        (split-to-sizes (vec out-val) (vec input-sizes))
+                                                         ;_ (println "input-split  " input-split)
+                                                         ;_ (println "alls size"  (vec (repeat input-joined-size input-joined-size)))
+                                                         ;_ (println "input sizes"  (vec input-sizes))
+                                        ;input-split        (mapv ( fn[x y z] (/ (* x y) z)) (into [] input-split) (vec (repeat 3 input-joined-size)) (vec input-sizes))
+                                                         ;input-split (for [x (range (count input-base-dursv))] (mapv (fn [x y] (* x y)) (nth input-base-dursv x) (nth input-split x)))
                                                          _ (println field "input-split" input-split)
                                                          _ (println "duraion" (doseq [x input-split] (println (reduce + x))))
 
                                                          ]
-                                                    (loop [xv new-buf-data
-                                                           result []]
+                                                     (loop [xv (seq input-split)
+                                                            result []]
                                                       (if xv
-                                                        (let [x      (first xv)
-                                                              x-out  (generate-durations x)
+                                                        (let [x-item      (first xv)
+                                                              ;x-out  (generate-durations x x)
                                                               ;_ (println x-out)
-                                                              x-item  (field x-out)
+                                                              ;x-item  (field x-out)
                                                               x-item (remove zero? x-item)
                                                               x-size (count x-item)
                                                               x-buf  (buffer x-size)
