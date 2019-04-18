@@ -27,7 +27,7 @@
   (out:kr base-trigger-count-bus-out (pulse-count:kr (in:kr base-trigger-bus-in))))
 
 (def dbg (control-bus 1))
-
+(def dgb2 (control-bus 1))
 
 (defsynth trigger-generator [base-trigger-bus-in 0
                             base-counter-bus-in 0
@@ -39,28 +39,31 @@
         base-counter            (in:kr base-counter-bus-in)
         pattern-buffer-id       (dbufrd base-pattern-buffer-in base-counter)
         pattern-value-buffer-id (dbufrd base-pattern-value-buffer-in base-counter)
+        pattern-first-value     (demand:kr base-trigger base-trigger (dbufrd pattern-buffer-id (dseries 0 1 1) 0) )
+        pattern-value-start-idx (select:kr (= 0.0 pattern-first-value) [0 1])
         trg                     (t-duty:kr (* (dbufrd base-dur (dseries 0 1 INF) ) (dbufrd pattern-buffer-id (dseries 0 1 INF) 0))
                                            base-trigger
-                                           (dbufrd pattern-buffer-id (dseries 0 1 INF) 0))
-        pattern-item-value      (demand:kr trg base-trigger (dbufrd pattern-value-buffer-id (dseries 0 1 INF)))
+                                           (dbufrd pattern-buffer-id (dseries 0 1 INF) 0)
+                                           )
+        pattern-item-value      (demand:kr trg base-trigger (dbufrd pattern-value-buffer-id (dseries pattern-value-start-idx 1 INF)))
         pattern-trg-value       (demand:kr trg base-trigger (dbufrd pattern-buffer-id (dseries 0 1 INF)))
         cntr  (pulse-count:kr trg base-trigger)
-        ;_ (out:kr dbg cntr)
-        trg  (select:kr (= 0.0 cntr) [trg (in:kr trigger-bus-out)])
-        _ (out:kr dbg trg)
-                                        ;pattern-item-value      (select:kr (= 0.0 pattern-trg-value) [pattern-item-value (in:kr trigger-value-bus-out)])
+        trg  (select:kr (= 0.0 cntr) [trg 0 ])  ; (in:kr trigger-bus-out)
+        ;pattern-item-value      (select:kr (= 0.0 cntr) [pattern-item-value (in:kr trigger-value-bus-out)])
+        _ (out:kr dbg pattern-value-start-idx)
+        _ (out:kr dgb2 pattern-item-value)
         ]
-    (out:kr trigger-bus-out trg)
-    (out:kr trigger-value-bus-out pattern-item-value)))
+    ;(out:kr trigger-bus-out trg)
+    (out:kr trigger-value-bus-out pattern-item-value)
+    (out:kr trigger-bus-out trg)))
 
 ;(remove-watch dm :dm)
-
 
 (defsynth tstsin [in-trg 0 in-trg-val 0 in-attack 0 in-attack-val 0 f 200 out-bus 0] (let [trg (in:kr in-trg)
                                                                                            val (in:kr in-trg-val)
                                                                                            env (env-gen (perc (in:kr in-attack-val) 0.01 1 0) :gate trg)
-                                                                                           src (* env (sin-osc (* f 1)))]
-                                                                                       (out:kr dbg (in:kr in-attack-val))
+                                                                                           src (* env (sin-osc (* f val)))]
+                                                                                       ;(out:kr dbg (in:kr in-attack-val))
                                                                                        (out out-bus src)))
 
 
@@ -121,20 +124,21 @@
                                                             result []]
                                                          (if xv
                                                           (let [xidx      (first xv)
-                                                                nidx      (mod (+ 1 xidx) length)
+                                                                nidx      (if (< (+ 1 xidx) length) (+ 1 xidx) (- length 1));   (mod (+ 1 xidx) length)
                                                                 opnext    (nth input-vector nidx)
                                                                 op        (nth input-vector xidx)
-                                                                vec-ring  (flatten (conj (subvec idxs nidx) (subvec idxs 0 nidx )))
-                                                                ;vec-ring  (vec (subvec idxs nidx))
+                                                                ;vec-ring  (flatten (conj (subvec idxs nidx) (subvec idxs 0 nidx )))
+                                                                vec-ring  (vec (subvec idxs nidx))
+                                                                _ (println "vec-ring" vec-ring)
                                                                 op      (if (and (not= 0 op) ( = 0 opnext)) (+ op (sum-zero-durs vec-ring input-vector full-durs)) op)]
                                                             (recur (next xv) (conj result op))) result))))
  ;adjust duration has to be applied to the final patterns, now the pattern borders and the transition from the last pattern top the first is nor handled correctly
-(defn generate-durations [input base-durs] (let [mod-input (vec (map trigger-dur (vec (flatten input))))
+(defn generate-durations [input] (let [mod-input (vec (map trigger-dur (vec (flatten input))))
                                                  durs  (traverse-vector input)
                                                  durs  (into [] (flatten durs))
                                                  ;_ (println "durs" durs)
                                                  ;_ (println "base-durs" base-durs)
-                                                 durs  (mapv (fn [x y] (* x y)) durs (flatten base-durs))
+                                                 ;durs  (mapv (fn [x y] (* x y)) durs (flatten base-durs))
                                                  ;_ (println "ba" durs)
                                                  ;- (println "modin" mod-input)
                                                  durs  (adjust-duration durs (vec (flatten mod-input)))
@@ -163,43 +167,48 @@
 
                                                          ;adjusted-duration   (adjust-durations )
                                         ;_ (println  (map count new-buf-data))
-                                                         input-flat         (map flatten new-buf-data)
-                                                         input-sizes        (map count  input-flat)
-                                                         input-base-durs    (map count new-buf-data)
-                                                         input-joined       (vec (apply concat (vec new-buf-data)))
-                                                         input-joined-size  (count input-joined)
-                                                         input-base-dursv   (into [] (mapv (fn [x y] (let [fv (vec (repeat x y))
-                                                                                                          fv (map (fn [x] (/ input-joined-size x)) fv)] (vec fv))) input-sizes input-base-durs))
+                                                         ;input-flat         (map flatten new-buf-data)
+                                                         ;input-sizes        (map count  input-flat)
+                                                         ;input-base-durs    (map count new-buf-data)
+                                                         ;input-joined       (vec (apply concat (vec new-buf-data)))
+                                                         ;input-joined-size  (count input-joined)
+                                                         ;input-base-dursv   (into [] (mapv (fn [x y] (let [fv (vec (repeat x y))  fv (map (fn [x] (/ input-joined-size x)) fv)] (vec fv))) input-sizes input-base-durs))
 
                                                          ;_ (println "inpus-base-durs" (flatten input-base-dursv))
                                                          ;_ (println "input-base-dursv" input-base-dursv)
-                                                         durations          (generate-durations input-joined input-base-dursv)
+                                                         ;durations          (generate-durations input-joined input-base-dursv)
                                                          ;_ (println "input joined size" input-joined-size)
                                                          ;_ (println field "input joined" input-joined)
                                                          ;_ (println "input sizes" input-sizes)
                                                          ;_ (println "base durs" input-base-durs)
-                                                         out-val            (field durations)
+                                                         ;out-val            (field durations)
                                                          ;_ (println "full dur"  (reduce + out-val))
-                                                         input-split        (split-to-sizes (vec out-val) (vec input-sizes))
+                                                         ;input-split        (split-to-sizes (vec out-val) (vec input-sizes))
                                                          ;_ (println "input-split  " input-split)
                                                          ;_ (println "alls size"  (vec (repeat input-joined-size input-joined-size)))
                                                          ;_ (println "input sizes"  (vec input-sizes))
                                         ;input-split        (mapv ( fn[x y z] (/ (* x y) z)) (into [] input-split) (vec (repeat 3 input-joined-size)) (vec input-sizes))
                                                          ;input-split (for [x (range (count input-base-dursv))] (mapv (fn [x y] (* x y)) (nth input-base-dursv x) (nth input-split x)))
-                                                         _ (println field "input-split" input-split)
-                                                         _ (println "duration" (doseq [x input-split] (println (reduce + x))))
+                                                         ;_ (println field "input-split" input-split)
+                                                         ;_ (println "duration" (doseq [x input-split] (println (reduce + x))))
 
                                                          ]
-                                                     (loop [xv (seq input-split)
+                                                     (loop [xv new-buf-data
                                                             result []]
                                                       (if xv
                                                         (let [x-item      (first xv)
-                                                              ;x-out  (generate-durations x x)
-                                                              ;_ (println x-out)
-                                                              ;x-item  (field x-out)
+                                                              x-out  (generate-durations x-item)
+                                                              _ (println "x -out" x-out)
+                                                              x-item  (field x-out)
+                                                              size    (count x-item)
+                                                              x-item-base-dur  (/ 1 size)
+                                                              x-item-leading-zeros (count (filter #{0} (first (partition-by identity x-item))))
+                                                              x-item-lead-dur      (* x-item-base-dur x-item-leading-zeros)
+                                                              _ (println "x-item-lead-dur" field x-item-lead-dur)
                                                               x-item (remove zero? x-item)
-                                                              x-item (vec (concat [1/4] x-item)) ; Start making a dummy trigger on the beginning of each pattern?
+                                                              x-item (vec (concat [x-item-lead-dur] x-item)) ; Start making a dummy trigger on the beginning of each pattern?
                                                               x-size (count x-item)
+                                                              _ (println "x-item" field  x-item)
                                                               x-buf  (buffer x-size)
                                                               _      (buffer-write-relay! x-buf (vec x-item))]
                                                           (recur (next xv) (conj result x-buf)))result))))
