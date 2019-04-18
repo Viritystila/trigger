@@ -52,7 +52,7 @@
 (defsynth tstsin [in-trg 0 in-trg-val 0 in-attack 0 in-attack-val 0 f 200 out-bus 0] (let [trg (in:kr in-trg)
                                                                                            val (in:kr in-trg-val)
                                                                                            env (env-gen (perc (in:kr in-attack-val) 0.01 1 0) :gate trg)
-                                                                                           src (* env (sin-osc (* f val)))]
+                                                                                           src (* env (sin-osc (* f 1)))]
                                                                                        (out:kr dbg (in:kr in-attack-val))
                                                                                        (out out-bus src)))
 
@@ -148,6 +148,7 @@
                                                     sizes))))
 
 
+
 ;(defn normalize-timing [x] (mapv ( fn[x y z] (/ (* x y) z)) (vec input-split) (vec (repeat 3 input-joined-size)) (vec input-sizes)) )
 
 ; The creation of buffers is slow, this function may need to be parallelised at some point in some way.
@@ -179,7 +180,7 @@
                                         ;input-split        (mapv ( fn[x y z] (/ (* x y) z)) (into [] input-split) (vec (repeat 3 input-joined-size)) (vec input-sizes))
                                                          ;input-split (for [x (range (count input-base-dursv))] (mapv (fn [x y] (* x y)) (nth input-base-dursv x) (nth input-split x)))
                                                          _ (println field "input-split" input-split)
-                                                         _ (println "duraion" (doseq [x input-split] (println (reduce + x))))
+                                                         _ (println "duration" (doseq [x input-split] (println (reduce + x))))
 
                                                          ]
                                                      (loop [xv (seq input-split)
@@ -190,6 +191,7 @@
                                                               ;_ (println x-out)
                                                               ;x-item  (field x-out)
                                                               x-item (remove zero? x-item)
+                                                              x-item (vec (concat [0] x-item)) ; Start making a dummy trigger on the beginning of each pattern?
                                                               x-size (count x-item)
                                                               x-buf  (buffer x-size)
                                                               _      (buffer-write-relay! x-buf (vec x-item))]
