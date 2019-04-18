@@ -41,6 +41,8 @@
         pattern-value-buffer-id (dbufrd base-pattern-value-buffer-in base-counter)
         pattern-first-value     (demand:kr base-trigger base-trigger (dbufrd pattern-buffer-id (dseries 0 1 1) 0) )
         pattern-value-start-idx (select:kr (= 0.0 pattern-first-value) [0 1])
+                                        ; Depending on if a spacer trigger exists or not in the first index of a buffer,
+                                        ;this value needs to be either 1 or 0 in order to play the buffer as intended.
         trg                     (t-duty:kr (* (dbufrd base-dur (dseries 0 1 INF) ) (dbufrd pattern-buffer-id (dseries 0 1 INF) 0))
                                            base-trigger
                                            (dbufrd pattern-buffer-id (dseries 0 1 INF) 0)
@@ -71,7 +73,7 @@
 (defn start []
   (def base-trigger-bus (control-bus 1))
   (def base-trigger-dur-bus (control-bus 1))
-   (control-bus-set! base-trigger-dur-bus 1)
+  (control-bus-set! base-trigger-dur-bus 1)
   (buffer-write! base-dur [1])
   (def base-trigger (base-trigger-synth [:tail main-g] base-trigger-dur-bus base-trigger-bus))
   (def base-trigger-count-bus (control-bus 1))
