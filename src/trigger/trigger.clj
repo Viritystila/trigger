@@ -26,6 +26,8 @@
 (defsynth base-trigger-counter [base-trigger-bus-in 0 base-trigger-count-bus-out 0]
   (out:kr base-trigger-count-bus-out (pulse-count:kr (in:kr base-trigger-bus-in))))
 
+(def dbg (control-bus 1))
+
 
 (defsynth trigger-generator [base-trigger-bus-in 0
                             base-counter-bus-in 0
@@ -42,12 +44,17 @@
                                            (dbufrd pattern-buffer-id (dseries 0 1 INF) 0))
         pattern-item-value      (demand:kr trg base-trigger (dbufrd pattern-value-buffer-id (dseries 0 1 INF)))
         pattern-trg-value       (demand:kr trg base-trigger (dbufrd pattern-buffer-id (dseries 0 1 INF)))
-        ;pattern-item-value      (select:kr (= 0.0 pattern-trg-value) [pattern-item-value (in:kr trigger-value-bus-out)])
+        cntr  (pulse-count:kr trg base-trigger)
+        ;_ (out:kr dbg cntr)
+        trg  (select:kr (= 0.0 cntr) [trg (in:kr trigger-bus-out)])
+        _ (out:kr dbg trg)
+                                        ;pattern-item-value      (select:kr (= 0.0 pattern-trg-value) [pattern-item-value (in:kr trigger-value-bus-out)])
         ]
     (out:kr trigger-bus-out trg)
     (out:kr trigger-value-bus-out pattern-item-value)))
 
-(def dbg (control-bus 1))
+;(remove-watch dm :dm)
+
 
 (defsynth tstsin [in-trg 0 in-trg-val 0 in-attack 0 in-attack-val 0 f 200 out-bus 0] (let [trg (in:kr in-trg)
                                                                                            val (in:kr in-trg-val)
@@ -191,7 +198,7 @@
                                                               ;_ (println x-out)
                                                               ;x-item  (field x-out)
                                                               x-item (remove zero? x-item)
-                                                              x-item (vec (concat [0] x-item)) ; Start making a dummy trigger on the beginning of each pattern?
+                                                              x-item (vec (concat [1/4] x-item)) ; Start making a dummy trigger on the beginning of each pattern?
                                                               x-size (count x-item)
                                                               x-buf  (buffer x-size)
                                                               _      (buffer-write-relay! x-buf (vec x-item))]
