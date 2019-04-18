@@ -11,13 +11,13 @@ A Clojure library designed to create control patterns to Overtone synths. The li
                                                                                            src (* env (sin-osc (* f val)))]
                                                                                                                                                                                          (out out-bus src)))
 
-Here, in-trg and in-attack are specified as control values in trigger. The software also connects automatically to in-trg-val and in-attack-val. 
+Here, in-trg and in-attack are specified as control values in trigger. The software also connects automatically to in-trg-val and in-attack-val. No trigger is created if no corresponding arguemnt is found in the synthdef.
 
 ##### start the pattern
 
-(-> {:pn "tstsin2" :sn tstsin :in-trg ["[1 1 1 1]"] :in-attack ["[0.05]"] } trg t t)
+(-> {:pn "tstsin2" :sn tstsin :in-trg ["[1 1 1 1]"] :in-attack ["[0.05]"] } trg)
 
-:pn = Pattern name. The pattern and the trigger synths are storded under the name
+:pn = Pattern name. The pattern and the trigger synths are stored under the name
 :sn = Name of the synth to be used
 
 Pattern structure
@@ -39,6 +39,7 @@ The patterns are structured similary as in TidalCycles, meaning the duration of 
   - Managing unused buffers. New buffers are created during every instantiation of the pattern and the old ones are not freed yet.
   - Managing output bus and synth arguments
   - Output effects
+  - Buffer creation is slow, se we need various solutions such as parallelism, bufer pool to mitigate the effect
 ## License
 
 Copyright © 2019 Mikael Reponen
