@@ -196,6 +196,9 @@
 (defprotocol trigger-control
   (kill-trg-group [this]))
 
+                                        ; TODO: Implement buffer management
+                                        ; -buffer reuse
+                                        ; -Freeing unneeded buffers
 (defrecord triggerContainer [control-key
                              control-val-key
                              group
@@ -248,6 +251,7 @@
                                         ;base-pattern-value-buffer-in 0
                                         ;trigger-bus-out 0
                                         ;trigger-value-bus-out 0
+; TODO: reuse buffers if possible
 (defn update-trigger [trigger
                       pattern-vector
                       pattern-value-vector]
