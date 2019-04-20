@@ -281,7 +281,7 @@
     trigger))
 
 ;Create or update trigger corrensponding to a specific control-key
-(defn t [input] (let [pattern-name      (:pn input)
+(defn t_deprecated [input] (let [pattern-name      (:pn input)
                       pattern-name-key  (keyword pattern-name)
                       control-pair      (first (dissoc input :pn))
                       control-key       (first control-pair)
@@ -311,13 +311,46 @@
                   (dissoc input control-key)))
 
 
+(defn t [synth-container control-pair] (let [;pattern-name      (:pn input)
+                                             ;pattern-name-key  (keyword pattern-name)
+                                             ;control-pair      (first (dissoc input :pn))
+                                             control-key       (first control-pair)
+                                             control-val-key   (keyword (str (name control-key) "-val"))
+                                             control-pattern   (last control-pair)
+                                             trig-pattern      (generate-buffer-vector :dur control-pattern )
+                                             val-pattern       (generate-buffer-vector :val control-pattern )
+                                        ;synth-container   (pattern-name-key @synthConfig)
+                                             pattern-group     (:group synth-container)
+                                             triggers          (:triggers synth-container)
+                                             play-synth        (:play-synth synth-container)
+                                             ;synth-name        (:synth-name synth-container)
+                                             ;synth-arg-list    (synth-args synth-name)
+                                             trigger-status    (control-key triggers)
+                                             trigger           (if (some? trigger-status) (update-trigger trigger-status trig-pattern val-pattern)
+                                                                   (create-trigger control-key
+                                                                                   control-val-key
+                                                                                   play-synth
+                                                                                   pattern-group
+                                                                                   trig-pattern
+                                                                                   val-pattern
+                                                                                   ))
+                                             ;triggers          (assoc triggers control-key trigger)
+                                             ;synth-container   (assoc synth-container :triggers triggers)
+                                              ]
+                                          trigger
+
+                                         ;(swap! synthConfig assoc pattern-name-key synth-container)
+                                         ;(dissoc input control-key)
+                                         ))
+
+
 
 
                                         ;input as hashmap {:pn :sn ...:controls...}
                                         ; Initial input parser, needs attention, not so well though at the moment.
                                         ; The creation of buffers is slow (~80 ms per bufefr on my current machine)
                                         ; Maybe need to parallelize the creation of control synths to reduce this time a bit when many control values are in use
-(defn trg ([input]
+(defn trg_deprecated ([input]
            (let [pattern-name          (:pn input)
                  pattern-name-key      (keyword pattern-name)
                  synth-name            (:sn input)
@@ -332,7 +365,7 @@
              (if  (= nil pattern-status)
                (do (println "Synth created") (swap! synthConfig assoc pattern-name-key (create-synth-config pattern-name  synth-name)) input)
                (do (println "Synth exists")))
-             (if input-check (trg (t input) initial-controls-only) input) ))
+             (if input-check (trg_deprecated (t_deprecated input) initial-controls-only) input) ))
   ([input original-input]
    (let [pattern-name          (:pn input)
          pattern-name-key      (keyword pattern-name)
@@ -343,7 +376,7 @@
          input-check           (some? (not-empty input-controls-only))
          pattern-status        (pattern-name-key @synthConfig)]
      (if input-check ; If more control keys exists, make a correspnding trigger, if not, remove any running triggers not on the list
-       (trg (t input) initial-controls-only)
+       (trg_deprecated (t_deprecated input) initial-controls-only)
        (do  (let [synth-container                              pattern-status
                   triggers                                     (:triggers synth-container)
                   running-trigger-keys                         (keys triggers)
@@ -353,6 +386,35 @@
                   triggers                                     (apply dissoc triggers triggers-running-but-not-renewd)
                   synth-container                              (assoc synth-container :triggers triggers)]
               (swap! synthConfig assoc pattern-name-key synth-container)) input)))) )
+
+
+(defn trg ([input]
+           (let [pattern-name          (:pn input)
+                 pattern-name-key      (keyword pattern-name)
+                 synth-name            (:sn input)
+                 original-input        input
+                 valid-keys            (concat [:pn :sn]  (vec (synth-args synth-name)))
+                 input                 (select-keys input (vec valid-keys)) ; Make input valid, meaning remove control keys that are not present in the synth args
+                 input                 (dissoc input :sn)
+                 input-controls-only   (dissoc input :pn)
+                 initial-controls-only input-controls-only
+                 input-check           (some? (not-empty input-controls-only))
+                 synth-container        (pattern-name-key @synthConfig)]
+             (if  (= nil synth-container)
+               (do (println "Synth created") (swap! synthConfig assoc pattern-name-key (create-synth-config pattern-name  synth-name)))
+               (do (println "Synth exists")))
+             (do  (let [synth-container                              (pattern-name-key @synthConfig)
+                        triggers                                     (:triggers synth-container)
+                        running-trigger-keys                         (keys triggers)
+                        input-trigger-keys                           (keys initial-controls-only)
+                        triggers-running-but-not-renewd              (first (diff running-trigger-keys input-trigger-keys))
+                        _                                            (doseq [x triggers-running-but-not-renewd] (if (some? x) (kill-trg-group (x triggers))))
+                        triggers                                     (apply dissoc triggers triggers-running-but-not-renewd)
+                        synth-container                              (assoc synth-container :triggers triggers)]
+                    (swap! synthConfig assoc pattern-name-key synth-container)))
+             (swap! synthConfig assoc pattern-name-key
+                    (assoc (pattern-name-key @synthConfig) :triggers
+                           (zipmap (keys input-controls-only)   (pmap (partial t (pattern-name-key @synthConfig)) input-controls-only)))) )))
 
 
 
