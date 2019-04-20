@@ -45,8 +45,7 @@
                                         ;this value needs to be either 1 or 0 in order to play the buffer as intended.
         trg                     (t-duty:kr (* (dbufrd base-dur (dseries 0 1 INF) ) (dbufrd pattern-buffer-id (dseries 0 1 INF) 0))
                                            base-trigger
-                                           (dbufrd pattern-buffer-id (dseries 0 1 INF) 0)
-                                           )
+                                           (dbufrd pattern-buffer-id (dseries 0 1 INF) 0))
         pattern-item-value      (demand:kr trg base-trigger (dbufrd pattern-value-buffer-id (dseries pattern-value-start-idx 1 INF)))
         pattern-trg-value       (demand:kr trg base-trigger (dbufrd pattern-buffer-id (dseries 0 1 INF)))
         cntr  (pulse-count:kr trg base-trigger)
@@ -194,11 +193,14 @@
 
 
 (defprotocol trigger-control
-  (kill-trg-group [this]))
+  (kill-trg-group [this])
+  (get-or-create-pattern-buf [this new-size])
+  (get-or-create-pattern-value-buf [this new-size]))
 
                                         ; TODO: Implement buffer management
                                         ; -buffer reuse
                                         ; -Freeing unneeded buffers
+                                        ; -Freeing control buses
 (defrecord triggerContainer [control-key
                              control-val-key
                              group
@@ -211,7 +213,17 @@
                              pattern-buf
                              pattern-value-buf]
   trigger-control
-  (kill-trg-group [this] (do (group-free (. this group)))))
+  (kill-trg-group [this] (do (group-free (. this group))
+                             (free-bus trigger-bus)
+                             (free-bus trigger-value-bus)
+                             (doseq [x pattern-vector] (buffer-free x))
+                             (doseq [x pattern-value-vector] (buffer-free x))
+                             (buffer-free pattern-buf)
+                             (buffer-free pattern-value-buf)))
+  (get-or-create-pattern-buf [this new-size] (let [old-size (count (. this pattern-vector))]
+                                               (if (= old-size new-size) (. this pattern-buf) (buffer new-size) )))
+  (get-or-create-pattern-value-buf [this new-size] (let [old-size (count (. this pattern-value-vector))]
+                                                     (if (= old-size new-size) (. this pattern-value-buf) (buffer new-size) ))))
 
 (defn create-synth-config [pattern-name synth-name] (let [out-bus      0
                                                           synth-group  (group pattern-name :after main-g)
@@ -256,8 +268,8 @@
                       pattern-vector
                       pattern-value-vector]
   (let [buf-size             (count pattern-vector)
-        pattern-id-buf       (buffer buf-size)
-        pattern-value-id-buf (buffer buf-size)
+        pattern-id-buf       (get-or-create-pattern-buf trigger buf-size)         ;(buffer buf-size)
+        pattern-value-id-buf (get-or-create-pattern-value-buf trigger buf-size)         ;(buffer buf-size)
         _                    (buffer-write! pattern-id-buf       (vec (map (fn [x] (buffer-id x)) pattern-vector)))
         _                    (buffer-write! pattern-value-id-buf (vec (map (fn [x] (buffer-id x)) pattern-value-vector)))
         trigger              (assoc trigger :pattern-vector pattern-vector)
