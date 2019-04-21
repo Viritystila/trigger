@@ -65,22 +65,6 @@
                                                                                        ;(out:kr dbg (in:kr in-attack-val))
                                                                                        (out out-bus src)))
 
-
-
-                                        ;Start
-
-(defn start []
-  (def base-trigger-bus (control-bus 1))
-  (def base-trigger-dur-bus (control-bus 1))
-  (control-bus-set! base-trigger-dur-bus 1)
-  (buffer-write! base-dur [1])
-  (def base-trigger (base-trigger-synth [:tail main-g] base-trigger-dur-bus base-trigger-bus))
-  (def base-trigger-count-bus (control-bus 1))
-  (def base-trigger-count (base-trigger-counter [:tail main-g] base-trigger-bus base-trigger-count-bus)) )
-
-
-
-                                        ;Functions
                                         ;Buffer pool functions
 (defn store-buffer [buf] (let [size      (buffer-size buf)
                                size-key  (keyword (str size))
@@ -97,6 +81,23 @@
                                (if buffers-left
                                  (do (reset! bufferPool pool) first-buf)
                                  (do (buffer size)))))
+
+
+                                        ;Start
+
+
+
+(defn start []
+  (def base-trigger-bus (control-bus 1))
+  (def base-trigger-dur-bus (control-bus 1))
+  (control-bus-set! base-trigger-dur-bus 1)
+  (buffer-write! base-dur [1])
+  (def base-trigger (base-trigger-synth [:tail main-g] base-trigger-dur-bus base-trigger-bus))
+  (def base-trigger-count-bus (control-bus 1))
+  (def base-trigger-count (base-trigger-counter [:tail main-g] base-trigger-bus base-trigger-count-bus))
+  (pmap (fn [x] (pmap (fn [y] (store-buffer (buffer (+ x 1))) ) (range 20) )) (range 20))
+  (println "trigger initialized"))
+
 
                                         ;Pattern generation functions
 (defn trigger-dur [dur] (if (= dur 0) 0 1) )
@@ -186,18 +187,13 @@
 
 
 (defn conditional-remove-zero [cond inputvec] (let [size      (count inputvec)
-                                                    idxs      (range size)
-                                                    ;_ (println "cond " cond)
-                                                    ;_ (println "inputvec" inputvec)
-                                                    ]
+                                                    idxs      (range size)]
                                                 (loop [xv     (seq idxs)
                                                        result []]
                                                   (if xv
                                                     (let [idx     (first xv)
                                                           cond-i  (nth cond idx )
-                                                          ;_ (println "cond" cond-i)
                                                           value-i (nth inputvec idx)
-                                                          ;_ (println "value" value-i)
                                                           ]
                                                       (if (= cond-i false) (do (recur (next xv) (conj result value-i))) (do (recur (next xv) result )) )) result))))
 
@@ -225,21 +221,7 @@
                                                                                      prev-vec           (nth vals prev-idx)
                                                                                      prev-vec-last-item (nth prev-vec (mod -1 (count prev-vec)))
                                                                                      ]
-                                                                                 (concat [0] cur-vec))) (range (count vals)) )
-                                                   ;dur-buffers         (mapv (fn [x] (buffer (count x))) durs)
-                                                   ;val-buffers         (mapv (fn [x] (buffer (count x))) durs)
-
-                                                   ;_ (println "durs " durs)
-                                                   ;_ (println "vals"  vals)
-                                                   ;_ (println "mod-beat" mod-beat)
-                                                   ;_ (println "base-durations" base-durations)
-                                                   ;_ (println "leading-zeros"  leading-zeros)
-                                                   ;_ (println "silent-trigger-durs" silent-trigger-durs)
-                                                   ;_ (println "durs and vals zero" durs-and-vals-zero)
-                                                   ;_ (println "new-durs-and vals" new-durs-and-vals)
-                                                   ]
-                                               ;(mapv (fn [x y] (buffer-write-relay! x y)) dur-buffers durs )
-                                               ;(mapv (fn [x y] (buffer-write-relay! x y)) val-buffers vals)
+                                                                                 (concat [0] cur-vec))) (range (count vals)))]
                                                {:dur durs :val vals}
 
                                                ))
@@ -352,16 +334,12 @@
   (let [buf-size             (count pattern-vector)
         old-dur-buffers      (vec (map (fn [x] (store-buffer x)) (vec (:pattern-vector trigger))))
         old-var-buffers      (vec (map (fn [x] (store-buffer x)) (vec (:pattern-value-vector trigger))))
-        ;_ (println "old-dur-buffers" old-dur-buffers)
-        ;_ (println "pattern-vector" pattern-vector)
-        ;dur-buffers          (mapv (fn [x] (buffer (count x))) pattern-vector)
         dur-buffers          (vec (map (fn [x] (reuse-or-create-buffer x)) pattern-vector))
-        ;val-buffers          (mapv (fn [x] (buffer (count x))) pattern-value-vector)
         val-buffers          (vec (map (fn [x] (reuse-or-create-buffer x)) pattern-value-vector))
         _                    (vec (mapv (fn [x y] (buffer-write-relay! x y)) dur-buffers pattern-vector ))
         _                    (vec (mapv (fn [x y] (buffer-write-relay! x y)) val-buffers pattern-value-vector))
-        pattern-id-buf       (get-or-create-pattern-buf trigger buf-size)         ;(buffer buf-size)
-        pattern-value-id-buf (get-or-create-pattern-value-buf trigger buf-size)         ;(buffer buf-size)
+        pattern-id-buf       (get-or-create-pattern-buf trigger buf-size)
+        pattern-value-id-buf (get-or-create-pattern-value-buf trigger buf-size)
         _                    (buffer-write! pattern-id-buf       (vec (map (fn [x] (buffer-id x)) dur-buffers)))
         _                    (buffer-write! pattern-value-id-buf (vec (map (fn [x] (buffer-id x)) val-buffers)))
         trigger              (assoc trigger :pattern-vector dur-buffers)
@@ -377,8 +355,8 @@
                                              control-val-key   (keyword (str (name control-key) "-val"))
                                              control-pattern   (last control-pair)
                                              pattern-vectors   (generate-pattern-vector control-pattern)
-                                             trig-pattern      (:dur pattern-vectors) ;(generate-buffer-vector :dur control-pattern )
-                                             val-pattern       (:val pattern-vectors) ;(generate-buffer-vector :val control-pattern )
+                                             trig-pattern      (:dur pattern-vectors)
+                                             val-pattern       (:val pattern-vectors)
                                              pattern-group     (:group synth-container)
                                              triggers          (:triggers synth-container)
                                              play-synth        (:play-synth synth-container)
