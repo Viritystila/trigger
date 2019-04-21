@@ -95,7 +95,7 @@
   (def base-trigger (base-trigger-synth [:tail main-g] base-trigger-dur-bus base-trigger-bus))
   (def base-trigger-count-bus (control-bus 1))
   (def base-trigger-count (base-trigger-counter [:tail main-g] base-trigger-bus base-trigger-count-bus))
-  (pmap (fn [x] (pmap (fn [y] (store-buffer (buffer (+ x 1))) ) (range 20) )) (range 20))
+  (pmap (fn [x] (pmap (fn [y] (store-buffer (buffer (+ x 1))) ) (range 20) )) (range 30))
   (println "trigger initialized"))
 
 

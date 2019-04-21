@@ -26,9 +26,8 @@ Pattern structure
 example:
 ["[1]"] plays one whole note
 ["[1 1 1 1]"] plays four quarter notes per second.
-["[1 1 1 1]" "[2]"] plays four quarter note and then one  whole note with an value of 2.
+["[1 1 1 1]" "[2]"] plays a pattern with four quarter note and then a pattern with a one whole note with an value of 2.
 
-New
 
 ####
 The patterns are structured similary as in TidalCycles, meaning the duration of each pattern  [p] is one second.  The value in the pattern structure is passed in the "*-val" control-bus.  
@@ -36,10 +35,8 @@ The patterns are structured similary as in TidalCycles, meaning the duration of 
 
 ### Things to chnage in the near future
   - Improved pattern syntax
-  - Managing unused buffers. New buffers are created during every instantiation of the pattern and the old ones are not freed yet.
-  - Managing output bus and synth arguments
+  - Managing the output bus and the intial synth arguments
   - Output effects
-  - Buffer creation is slow, se we need various solutions such as parallelism, bufer pool to mitigate the effect
 ## License
 
 Copyright © 2019 Mikael Reponen
