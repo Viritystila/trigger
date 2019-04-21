@@ -30,11 +30,11 @@
 (def dgb2 (control-bus 1))
 
 (defsynth trigger-generator [base-trigger-bus-in 0
-                            base-counter-bus-in 0
-                            base-pattern-buffer-in 0
-                            base-pattern-value-buffer-in 0
-                            trigger-bus-out 0
-                            trigger-value-bus-out 0]
+                             base-counter-bus-in 0
+                             base-pattern-buffer-in 0
+                             base-pattern-value-buffer-in 0
+                             trigger-bus-out 0
+                             trigger-value-bus-out 0]
   (let [base-trigger            (in:kr base-trigger-bus-in)
         base-counter            (in:kr base-counter-bus-in)
         pattern-buffer-id       (dbufrd base-pattern-buffer-in base-counter)
@@ -81,8 +81,24 @@
 
 
                                         ;Functions
+                                        ;Buffer pool functions
+(defn store-buffer [buf] (let [size      (buffer-size buf)
+                               size-key  (keyword (str size))
+                               pool      @bufferPool
+                               pool      (update pool size-key (fnil concat []) [buf])]
+                           (reset! bufferPool pool)))
 
-                                        ;pattern generation functions
+(defn retrieve-buffer [size] (let [size-key      (keyword (str size))
+                                   pool          @bufferPool
+                                   buffers-left  (and (contains? pool size-key) (< 0 (count (size-key pool))))
+                                   first-buf     (first (size-key pool))
+                                   rest-buf      (rest  (size-key pool))
+                                   pool          (assoc pool size-key  rest-buf )]
+                               (if buffers-left
+                                 (do (reset! bufferPool pool) first-buf)
+                                 (buffer size))))
+
+                                        ;Pattern generation functions
 (defn trigger-dur [dur] (if (= dur 0) 0 1) )
 
 (defn traverse-vector ([input-array] (let [input-vec input-array
@@ -280,14 +296,14 @@
   (kill-trg-group [this] (do (group-free (. this group))
                              (free-bus trigger-bus)
                              (free-bus trigger-value-bus)
-                             (doseq [x pattern-vector] (buffer-free x))
-                             (doseq [x pattern-value-vector] (buffer-free x))
-                             (buffer-free pattern-buf)
-                             (buffer-free pattern-value-buf)))
+                             (doseq [x pattern-vector] (store-buffer x))
+                             (doseq [x pattern-value-vector] (store-buffer x))
+                             (store-buffer pattern-buf)
+                             (store-buffer pattern-value-buf)))
   (get-or-create-pattern-buf [this new-size] (let [old-size (count (. this pattern-vector))]
-                                               (if (= old-size new-size) (. this pattern-buf) (do (buffer-free (. this pattern-buf))  (buffer new-size)) )))
+                                               (if (= old-size new-size) (. this pattern-buf) (do (store-buffer (. this pattern-buf))  (retrieve-buffer new-size)) )))
   (get-or-create-pattern-value-buf [this new-size] (let [old-size (count (. this pattern-value-vector))]
-                                                     (if (= old-size new-size) (. this pattern-value-buf) (do (buffer-free (. this pattern-value-buf ))  (buffer new-size)) ))))
+                                                     (if (= old-size new-size) (. this pattern-value-buf) (do (store-buffer (. this pattern-value-buf ))  (retrieve-buffer new-size)) ))))
 
 (defn create-synth-config [pattern-name synth-name] (let [out-bus      0
                                                           synth-group  (group pattern-name :after main-g)
@@ -305,12 +321,12 @@
   (let [trig-bus             (control-bus 1)
         trig-val-bus         (control-bus 1)
         buf-size             (count pattern-vector)
-        dur-buffers          (mapv (fn [x] (buffer (count x))) pattern-vector)
-        val-buffers          (mapv (fn [x] (buffer (count x))) pattern-value-vector)
+        dur-buffers          (mapv (fn [x] (retrieve-buffer (count x))) pattern-vector)
+        val-buffers          (mapv (fn [x] (retrieve-buffer (count x))) pattern-value-vector)
         _                    (mapv (fn [x y] (buffer-write-relay! x y)) dur-buffers pattern-vector )
         _                    (mapv (fn [x y] (buffer-write-relay! x y)) val-buffers pattern-value-vector)
-        pattern-id-buf       (buffer buf-size)
-        pattern-value-id-buf (buffer buf-size)
+        pattern-id-buf       (retrieve-buffer buf-size)
+        pattern-value-id-buf (retrieve-buffer buf-size)
         _                    (buffer-write! pattern-id-buf       (vec (map (fn [x] (buffer-id x)) dur-buffers)))
         _                    (buffer-write! pattern-value-id-buf (vec (map (fn [x] (buffer-id x)) val-buffers)))
         trig-group           (group (str control-key) :tail pattern-group)
@@ -325,19 +341,23 @@
     (triggerContainer. control-key control-val-key trig-group synth-name trig-bus
                        trig-val-bus  trig-synth  dur-buffers val-buffers pattern-id-buf pattern-value-id-buf)))
 
-                                        ;base-trigger-bus-in 0
-                                        ;base-counter-bus-in 0
-                                        ;base-pattern-buffer-in 0
-                                        ;base-pattern-value-buffer-in 0
-                                        ;trigger-bus-out 0
-                                        ;trigger-value-bus-out 0
+
+(defn reuse-or-create-buffer [new-buf-vec] (let  [new-size    (count new-buf-vec)]
+                                             (retrieve-buffer new-size)))
+
 ; TODO: reuse buffers if possible
 (defn update-trigger [trigger
                       pattern-vector
                       pattern-value-vector]
   (let [buf-size             (count pattern-vector)
-        dur-buffers          (mapv (fn [x] (buffer (count x))) pattern-vector)
-        val-buffers          (mapv (fn [x] (buffer (count x))) pattern-value-vector)
+        old-dur-buffers      (map (fn [x] (store-buffer x)) (:pattern-vector trigger))
+        old-var-buffers      (map (fn [x] (store-buffer x)) (:pattern-value-vector trigger))
+        ;_ (println "old-dur-buffers" old-dur-buffers)
+        ;_ (println "pattern-vector" pattern-vector)
+        ;dur-buffers          (mapv (fn [x] (buffer (count x))) pattern-vector)
+        dur-buffers          (map (fn [x] (reuse-or-create-buffer x)) pattern-vector)
+        ;val-buffers          (mapv (fn [x] (buffer (count x))) pattern-value-vector)
+        val-buffers          (map (fn [x] (reuse-or-create-buffer x)) pattern-value-vector)
         _                    (mapv (fn [x y] (buffer-write-relay! x y)) dur-buffers pattern-vector )
         _                    (mapv (fn [x y] (buffer-write-relay! x y)) val-buffers pattern-value-vector)
         pattern-id-buf       (get-or-create-pattern-buf trigger buf-size)         ;(buffer buf-size)
@@ -404,7 +424,7 @@
                     (swap! synthConfig assoc pattern-name-key synth-container)))
              (swap! synthConfig assoc pattern-name-key
                     (assoc (pattern-name-key @synthConfig) :triggers
-                           (zipmap (keys input-controls-only)   (pmap (partial t (pattern-name-key @synthConfig)) input-controls-only)))) pattern-name)))
+                           (zipmap (keys input-controls-only)   (map (partial t (pattern-name-key @synthConfig)) input-controls-only)))) pattern-name)))
 
 
 
