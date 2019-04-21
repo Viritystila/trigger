@@ -7,7 +7,7 @@
 
                                         ;State atoms
 (defonce synthConfig (atom {}))
-
+(defonce bufferPool (atom {}))
                                         ;groups
   (do
     (defonce main-g (group "main group")))
@@ -321,9 +321,9 @@
                                                 pattern-value-id-buf
                                                 trig-bus
                                                 trig-val-bus)]
-        (ctl synth-name  control-key trig-bus control-val-key  trig-val-bus  )
+    (ctl synth-name  control-key trig-bus control-val-key  trig-val-bus  )
     (triggerContainer. control-key control-val-key trig-group synth-name trig-bus
-                       trig-val-bus  trig-synth  pattern-vector pattern-value-vector pattern-id-buf pattern-value-id-buf)))
+                       trig-val-bus  trig-synth  dur-buffers val-buffers pattern-id-buf pattern-value-id-buf)))
 
                                         ;base-trigger-bus-in 0
                                         ;base-counter-bus-in 0
@@ -344,8 +344,8 @@
         pattern-value-id-buf (get-or-create-pattern-value-buf trigger buf-size)         ;(buffer buf-size)
         _                    (buffer-write! pattern-id-buf       (vec (map (fn [x] (buffer-id x)) dur-buffers)))
         _                    (buffer-write! pattern-value-id-buf (vec (map (fn [x] (buffer-id x)) val-buffers)))
-        trigger              (assoc trigger :pattern-vector pattern-vector)
-        trigger              (assoc trigger  :pattern-value-vector pattern-value-vector)
+        trigger              (assoc trigger :pattern-vector dur-buffers)
+        trigger              (assoc trigger  :pattern-value-vector val-buffers)
         trigger              (assoc trigger :pattern-buf pattern-id-buf)
         trigger              (assoc trigger  :pattern-value-buf pattern-value-id-buf)
         trig-synth           (:trigger-synth trigger)]
