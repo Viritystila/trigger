@@ -188,7 +188,7 @@
 
 (defn dur-and-val-zero [durs vals] (map (fn [x y] (= x y 0)) durs vals))
 
-(defn generate-buffer-vector2 [new-buf-data] (let [new-buf-data        (map clojure.edn/read-string new-buf-data)
+(defn generate-pattern-vector [new-buf-data] (let [new-buf-data        (map clojure.edn/read-string new-buf-data)
                                                    new-durs-and-vals   (map generate-durations new-buf-data)
                                                    durs                (map :dur new-durs-and-vals)
                                                    vals                (map :val new-durs-and-vals)
@@ -201,7 +201,7 @@
                                                    durs                (mapv (fn [x y] (conditional-remove-zero x y)) durs-and-vals-zero durs)
                                                    vals                (map (fn [x y] (conditional-remove-zero x y)) durs-and-vals-zero vals)
                                                    durs                (mapv (fn [x y] (concat [x] y)) silent-trigger-durs durs)
-                                                   vals                (mapv (fn [x]
+                                                   vals                (mapv (fn [x] ; Note, this map is a bit too much, needs simplification
                                                                                (let [size               (count vals)
                                                                                      cur-idx            x
                                                                                      prev-idx           (mod (- x 1) size)
@@ -210,21 +210,21 @@
                                                                                      prev-vec-last-item (nth prev-vec (mod -1 (count prev-vec)))
                                                                                      ]
                                                                                  (concat [0] cur-vec))) (range (count vals)) )
-                                                   dur-buffers         (mapv (fn [x] (buffer (count x))) durs)
-                                                   val-buffers         (mapv (fn [x] (buffer (count x))) durs)
+                                                   ;dur-buffers         (mapv (fn [x] (buffer (count x))) durs)
+                                                   ;val-buffers         (mapv (fn [x] (buffer (count x))) durs)
 
-                                                   _ (println "durs " durs)
-                                                   _ (println "vals"  vals)
-                                                   _ (println "mod-beat" mod-beat)
-                                                   _ (println "base-durations" base-durations)
-                                                   _ (println "leading-zeros"  leading-zeros)
-                                                   _ (println "silent-trigger-durs" silent-trigger-durs)
-                                                   _ (println "durs and vals zero" durs-and-vals-zero)
+                                                   ;_ (println "durs " durs)
+                                                   ;_ (println "vals"  vals)
+                                                   ;_ (println "mod-beat" mod-beat)
+                                                   ;_ (println "base-durations" base-durations)
+                                                   ;_ (println "leading-zeros"  leading-zeros)
+                                                   ;_ (println "silent-trigger-durs" silent-trigger-durs)
+                                                   ;_ (println "durs and vals zero" durs-and-vals-zero)
                                                    ;_ (println "new-durs-and vals" new-durs-and-vals)
                                                    ]
-                                               (mapv (fn [x y] (buffer-write-relay! x y)) dur-buffers durs )
-                                               (mapv (fn [x y] (buffer-write-relay! x y)) val-buffers vals)
-                                               {:dur dur-buffers :val val-buffers}
+                                               ;(mapv (fn [x y] (buffer-write-relay! x y)) dur-buffers durs )
+                                               ;(mapv (fn [x y] (buffer-write-relay! x y)) val-buffers vals)
+                                               {:dur durs :val vals}
 
                                                ))
 
@@ -305,10 +305,14 @@
   (let [trig-bus             (control-bus 1)
         trig-val-bus         (control-bus 1)
         buf-size             (count pattern-vector)
+        dur-buffers          (mapv (fn [x] (buffer (count x))) pattern-vector)
+        val-buffers          (mapv (fn [x] (buffer (count x))) pattern-value-vector)
+        _                    (mapv (fn [x y] (buffer-write-relay! x y)) dur-buffers pattern-vector )
+        _                    (mapv (fn [x y] (buffer-write-relay! x y)) val-buffers pattern-value-vector)
         pattern-id-buf       (buffer buf-size)
         pattern-value-id-buf (buffer buf-size)
-        _                    (buffer-write! pattern-id-buf       (vec (map (fn [x] (buffer-id x)) pattern-vector)))
-        _                    (buffer-write! pattern-value-id-buf (vec (map (fn [x] (buffer-id x)) pattern-value-vector)))
+        _                    (buffer-write! pattern-id-buf       (vec (map (fn [x] (buffer-id x)) dur-buffers)))
+        _                    (buffer-write! pattern-value-id-buf (vec (map (fn [x] (buffer-id x)) val-buffers)))
         trig-group           (group (str control-key) :tail pattern-group)
         trig-synth           (trigger-generator [:tail trig-group]
                                                 base-trigger-bus
@@ -332,10 +336,14 @@
                       pattern-vector
                       pattern-value-vector]
   (let [buf-size             (count pattern-vector)
+        dur-buffers          (mapv (fn [x] (buffer (count x))) pattern-vector)
+        val-buffers          (mapv (fn [x] (buffer (count x))) pattern-value-vector)
+        _                    (mapv (fn [x y] (buffer-write-relay! x y)) dur-buffers pattern-vector )
+        _                    (mapv (fn [x y] (buffer-write-relay! x y)) val-buffers pattern-value-vector)
         pattern-id-buf       (get-or-create-pattern-buf trigger buf-size)         ;(buffer buf-size)
         pattern-value-id-buf (get-or-create-pattern-value-buf trigger buf-size)         ;(buffer buf-size)
-        _                    (buffer-write! pattern-id-buf       (vec (map (fn [x] (buffer-id x)) pattern-vector)))
-        _                    (buffer-write! pattern-value-id-buf (vec (map (fn [x] (buffer-id x)) pattern-value-vector)))
+        _                    (buffer-write! pattern-id-buf       (vec (map (fn [x] (buffer-id x)) dur-buffers)))
+        _                    (buffer-write! pattern-value-id-buf (vec (map (fn [x] (buffer-id x)) val-buffers)))
         trigger              (assoc trigger :pattern-vector pattern-vector)
         trigger              (assoc trigger  :pattern-value-vector pattern-value-vector)
         trigger              (assoc trigger :pattern-buf pattern-id-buf)
@@ -348,7 +356,7 @@
 (defn t [synth-container control-pair] (let [control-key       (first control-pair)
                                              control-val-key   (keyword (str (name control-key) "-val"))
                                              control-pattern   (last control-pair)
-                                             pattern-vectors   (generate-buffer-vector2 control-pattern)
+                                             pattern-vectors   (generate-pattern-vector control-pattern)
                                              trig-pattern      (:dur pattern-vectors) ;(generate-buffer-vector :dur control-pattern )
                                              val-pattern       (:val pattern-vectors) ;(generate-buffer-vector :val control-pattern )
                                              pattern-group     (:group synth-container)
