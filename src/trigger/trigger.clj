@@ -45,11 +45,11 @@
                                         ;this value needs to be either 1 or 0 in order to play the buffer as intended.
         trg                     (t-duty:kr (* (dbufrd base-dur (dseries 0 1 INF) ) (dbufrd pattern-buffer-id (dseries 0 1 INF) 0))
                                            base-trigger
-                                           (dbufrd pattern-buffer-id (dseries 0 1 INF) 0))
+                                           (dbufrd pattern-value-buffer-id (dseries 0 1 INF) 0))
         pattern-item-value      (demand:kr trg base-trigger (dbufrd pattern-value-buffer-id (dseries pattern-value-start-idx 1 INF)))
         pattern-trg-value       (demand:kr trg base-trigger (dbufrd pattern-buffer-id (dseries 0 1 INF)))
         cntr  (pulse-count:kr trg base-trigger)
-        trg  (select:kr (= 0.0 cntr) [trg 0 ])
+        trg  (select:kr (= 0 cntr) [trg 0])
         ;_ (out:kr dbg pattern-value-start-idx)
         ;_ (out:kr dgb2 pattern-item-value)
         ]
@@ -134,7 +134,7 @@
                                                  durs  (traverse-vector input)
                                                  durs  (into [] (flatten durs))
                                                  durs  (adjust-duration durs (vec (flatten mod-input)))  ]
-                                             {:dur durs :val (flatten input) :mod-input (vec (flatten mod-input)) }))
+                                             {:dur durs :val (flatten input) :mod-input (vec mod-input) }))
 
 (defn split-to-sizes [input sizes] (let [s input]
                                      (apply concat (reduce
@@ -143,6 +143,7 @@
                                                        (conj xs (subvec s 0 len))])
                                                     [s []]
                                                     sizes))))
+
 
                                         ; The creation of buffers is slow, this function may need to be parallelised at some point in some way.
                                         ; A more feature rich input parser is needed
@@ -159,11 +160,78 @@
                                                               x-item-leading-zeros (count (filter #{0} (first (partition-by identity x-item))))
                                                               x-item-lead-dur      (* x-item-base-dur x-item-leading-zeros)
                                                               x-item (remove zero? x-item)
-                                                              x-item (vec (concat [x-item-lead-dur] x-item)) ; Start making a dummy trigger on the beginning of each pattern?
+                                                              x-item (vec (concat [x-item-lead-dur] x-item)) ; A silent trigger at the beginning of each pattern
                                                               x-size (count x-item)
                                                               x-buf  (buffer x-size)
                                                               _      (buffer-write-relay! x-buf (vec x-item))]
                                                           (recur (next xv) (conj result x-buf)))result))))
+
+                                        ; fields, :dur, :val
+
+
+(defn conditional-remove-zero [cond inputvec] (let [size      (count inputvec)
+                                                    idxs      (range size)
+                                                    ;_ (println "cond " cond)
+                                                    ;_ (println "inputvec" inputvec)
+                                                    ]
+                                                (loop [xv     (seq idxs)
+                                                       result []]
+                                                  (if xv
+                                                    (let [idx     (first xv)
+                                                          cond-i  (nth cond idx )
+                                                          ;_ (println "cond" cond-i)
+                                                          value-i (nth inputvec idx)
+                                                          ;_ (println "value" value-i)
+                                                          ]
+                                                      (if (= cond-i false) (do (recur (next xv) (conj result value-i))) (do (recur (next xv) result )) )) result))))
+
+
+(defn dur-and-val-zero [durs vals] (map (fn [x y] (= x y 0)) durs vals))
+
+(defn generate-buffer-vector2 [new-buf-data] (let [new-buf-data        (map clojure.edn/read-string new-buf-data)
+                                                   new-durs-and-vals   (map generate-durations new-buf-data)
+                                                   durs                (map :dur new-durs-and-vals)
+                                                   vals                (map :val new-durs-and-vals)
+                                                   mod-beat            (map :mod-input new-durs-and-vals)
+                                                   base-sizes          (map count new-buf-data)
+                                                   base-durations      (map (fn [x] (/ 1 x) ) base-sizes)
+                                                   leading-zeros       (map (fn [x]  (count (filter #{0} (first (partition-by identity x))))) durs)
+                                                   silent-trigger-durs (mapv  * base-durations leading-zeros)
+                                                   durs-and-vals-zero  (mapv (fn [x y] (vec (dur-and-val-zero x y))) durs vals)
+                                                   durs                (mapv (fn [x y] (conditional-remove-zero x y)) durs-and-vals-zero durs)
+                                                   vals                (map (fn [x y] (conditional-remove-zero x y)) durs-and-vals-zero vals)
+                                                   durs                (mapv (fn [x y] (concat [x] y)) silent-trigger-durs durs)
+                                                   _ (println "durs " durs)
+                                                   _ (println "vals"  vals)
+                                                   _ (println "mod-beat" mod-beat)
+                                                   _ (println "base-durations" base-durations)
+                                                   _ (println "leading-zeros"  leading-zeros)
+                                                   _ (println "silent-trigger-durs" silent-trigger-durs)
+                                                   _ (println "durs and vals zero" durs-and-vals-zero)
+                                                   ;_ (println "new-durs-and vals" new-durs-and-vals)
+                                                   ]
+                                                     (loop [xv new-buf-data
+                                                            result []]
+                                                      (if xv
+                                                        (let [x-item      (first xv)
+                                                              size       (count x-item)
+                                                              ;_ (println "x-item" x-item)
+                                                              x-out  (generate-durations x-item)
+                                                              ;_ (println "x-out" x-out)
+                                                              x-item  (:dur x-out)
+                                                              ;size    (count x-item)
+                                                              x-item-base-dur  (/ 1 size)
+                                                              x-item-leading-zeros (count (filter #{0} (first (partition-by identity x-item))))
+                                                              x-item-lead-dur      (* x-item-base-dur x-item-leading-zeros)
+                                                              ;_ (println "x-item-lead-dur" x-item-lead-dur)
+                                                              x-item (remove zero? x-item)
+                                                              x-item (vec (concat [x-item-lead-dur] x-item)) ; A silent trigger at the beginning of each pattern
+                                                              ;_ (println "dur" (reduce + x-item))
+                                                              x-size (count x-item)
+                                                              x-buf  (buffer x-size)
+                                                              _      (buffer-write-relay! x-buf (vec x-item))]
+                                                          (recur (next xv) (conj result x-buf)))result))))
+
                                   ;pattern timing adjustments
 (defn set-pattern-duration [dur] (control-bus-set! base-trigger-dur-bus 1)
                                   (buffer-write! base-dur [dur]))
@@ -199,7 +267,7 @@
 
                                         ; TODO: Implement buffer management
                                         ; -buffer reuse
-                                        ; -Freeing unneeded buffers
+                                        ; -Freeing unneeded buffers (note: buffer-free does not seem to work, at least not in a similar way as free-bus )
                                         ; -Freeing control buses
 (defrecord triggerContainer [control-key
                              control-val-key
@@ -284,6 +352,7 @@
 (defn t [synth-container control-pair] (let [control-key       (first control-pair)
                                              control-val-key   (keyword (str (name control-key) "-val"))
                                              control-pattern   (last control-pair)
+                                             _  (generate-buffer-vector2 control-pattern)
                                              trig-pattern      (generate-buffer-vector :dur control-pattern )
                                              val-pattern       (generate-buffer-vector :val control-pattern )
                                              pattern-group     (:group synth-container)
