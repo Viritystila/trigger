@@ -45,7 +45,7 @@
                                         ;this value needs to be either 1 or 0 in order to play the buffer as intended.
         trg                     (t-duty:kr (* (dbufrd base-dur (dseries 0 1 INF) ) (dbufrd pattern-buffer-id (dseries 0 1 INF) 0))
                                            base-trigger
-                                           (dbufrd pattern-value-buffer-id (dseries 0 1 INF) 0))
+                                           (dbufrd pattern-buffer-id (dseries 0 1 INF) 0))
         pattern-item-value      (demand:kr trg base-trigger (dbufrd pattern-value-buffer-id (dseries pattern-value-start-idx 1 INF)))
         pattern-trg-value       (demand:kr trg base-trigger (dbufrd pattern-buffer-id (dseries 0 1 INF)))
         cntr  (pulse-count:kr trg base-trigger)
@@ -201,6 +201,18 @@
                                                    durs                (mapv (fn [x y] (conditional-remove-zero x y)) durs-and-vals-zero durs)
                                                    vals                (map (fn [x y] (conditional-remove-zero x y)) durs-and-vals-zero vals)
                                                    durs                (mapv (fn [x y] (concat [x] y)) silent-trigger-durs durs)
+                                                   vals                (mapv (fn [x]
+                                                                               (let [size               (count vals)
+                                                                                     cur-idx            x
+                                                                                     prev-idx           (mod (- x 1) size)
+                                                                                     cur-vec            (nth vals cur-idx)
+                                                                                     prev-vec           (nth vals prev-idx)
+                                                                                     prev-vec-last-item (nth prev-vec (mod -1 (count prev-vec)))
+                                                                                     ]
+                                                                                 (concat [0] cur-vec))) (range (count vals)) )
+                                                   dur-buffers         (mapv (fn [x] (buffer (count x))) durs)
+                                                   val-buffers         (mapv (fn [x] (buffer (count x))) durs)
+
                                                    _ (println "durs " durs)
                                                    _ (println "vals"  vals)
                                                    _ (println "mod-beat" mod-beat)
@@ -210,27 +222,11 @@
                                                    _ (println "durs and vals zero" durs-and-vals-zero)
                                                    ;_ (println "new-durs-and vals" new-durs-and-vals)
                                                    ]
-                                                     (loop [xv new-buf-data
-                                                            result []]
-                                                      (if xv
-                                                        (let [x-item      (first xv)
-                                                              size       (count x-item)
-                                                              ;_ (println "x-item" x-item)
-                                                              x-out  (generate-durations x-item)
-                                                              ;_ (println "x-out" x-out)
-                                                              x-item  (:dur x-out)
-                                                              ;size    (count x-item)
-                                                              x-item-base-dur  (/ 1 size)
-                                                              x-item-leading-zeros (count (filter #{0} (first (partition-by identity x-item))))
-                                                              x-item-lead-dur      (* x-item-base-dur x-item-leading-zeros)
-                                                              ;_ (println "x-item-lead-dur" x-item-lead-dur)
-                                                              x-item (remove zero? x-item)
-                                                              x-item (vec (concat [x-item-lead-dur] x-item)) ; A silent trigger at the beginning of each pattern
-                                                              ;_ (println "dur" (reduce + x-item))
-                                                              x-size (count x-item)
-                                                              x-buf  (buffer x-size)
-                                                              _      (buffer-write-relay! x-buf (vec x-item))]
-                                                          (recur (next xv) (conj result x-buf)))result))))
+                                               (mapv (fn [x y] (buffer-write-relay! x y)) dur-buffers durs )
+                                               (mapv (fn [x y] (buffer-write-relay! x y)) val-buffers vals)
+                                               {:dur dur-buffers :val val-buffers}
+
+                                               ))
 
                                   ;pattern timing adjustments
 (defn set-pattern-duration [dur] (control-bus-set! base-trigger-dur-bus 1)
@@ -352,9 +348,9 @@
 (defn t [synth-container control-pair] (let [control-key       (first control-pair)
                                              control-val-key   (keyword (str (name control-key) "-val"))
                                              control-pattern   (last control-pair)
-                                             _  (generate-buffer-vector2 control-pattern)
-                                             trig-pattern      (generate-buffer-vector :dur control-pattern )
-                                             val-pattern       (generate-buffer-vector :val control-pattern )
+                                             pattern-vectors   (generate-buffer-vector2 control-pattern)
+                                             trig-pattern      (:dur pattern-vectors) ;(generate-buffer-vector :dur control-pattern )
+                                             val-pattern       (:val pattern-vectors) ;(generate-buffer-vector :val control-pattern )
                                              pattern-group     (:group synth-container)
                                              triggers          (:triggers synth-container)
                                              play-synth        (:play-synth synth-container)
