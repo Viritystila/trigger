@@ -96,7 +96,7 @@
                                    pool          (assoc pool size-key  rest-buf )]
                                (if buffers-left
                                  (do (reset! bufferPool pool) first-buf)
-                                 (buffer size))))
+                                 (do (buffer size)))))
 
                                         ;Pattern generation functions
 (defn trigger-dur [dur] (if (= dur 0) 0 1) )
@@ -321,10 +321,10 @@
   (let [trig-bus             (control-bus 1)
         trig-val-bus         (control-bus 1)
         buf-size             (count pattern-vector)
-        dur-buffers          (mapv (fn [x] (retrieve-buffer (count x))) pattern-vector)
-        val-buffers          (mapv (fn [x] (retrieve-buffer (count x))) pattern-value-vector)
-        _                    (mapv (fn [x y] (buffer-write-relay! x y)) dur-buffers pattern-vector )
-        _                    (mapv (fn [x y] (buffer-write-relay! x y)) val-buffers pattern-value-vector)
+        dur-buffers          (vec (mapv (fn [x] (retrieve-buffer (count x))) pattern-vector))
+        val-buffers          (vec (mapv (fn [x] (retrieve-buffer (count x))) pattern-value-vector))
+        _                    (vec (mapv (fn [x y] (buffer-write-relay! x y)) dur-buffers pattern-vector ))
+        _                    (vec (mapv (fn [x y] (buffer-write-relay! x y)) val-buffers pattern-value-vector))
         pattern-id-buf       (retrieve-buffer buf-size)
         pattern-value-id-buf (retrieve-buffer buf-size)
         _                    (buffer-write! pattern-id-buf       (vec (map (fn [x] (buffer-id x)) dur-buffers)))
@@ -350,16 +350,16 @@
                       pattern-vector
                       pattern-value-vector]
   (let [buf-size             (count pattern-vector)
-        old-dur-buffers      (map (fn [x] (store-buffer x)) (:pattern-vector trigger))
-        old-var-buffers      (map (fn [x] (store-buffer x)) (:pattern-value-vector trigger))
+        old-dur-buffers      (vec (map (fn [x] (store-buffer x)) (vec (:pattern-vector trigger))))
+        old-var-buffers      (vec (map (fn [x] (store-buffer x)) (vec (:pattern-value-vector trigger))))
         ;_ (println "old-dur-buffers" old-dur-buffers)
         ;_ (println "pattern-vector" pattern-vector)
         ;dur-buffers          (mapv (fn [x] (buffer (count x))) pattern-vector)
-        dur-buffers          (map (fn [x] (reuse-or-create-buffer x)) pattern-vector)
+        dur-buffers          (vec (map (fn [x] (reuse-or-create-buffer x)) pattern-vector))
         ;val-buffers          (mapv (fn [x] (buffer (count x))) pattern-value-vector)
-        val-buffers          (map (fn [x] (reuse-or-create-buffer x)) pattern-value-vector)
-        _                    (mapv (fn [x y] (buffer-write-relay! x y)) dur-buffers pattern-vector )
-        _                    (mapv (fn [x y] (buffer-write-relay! x y)) val-buffers pattern-value-vector)
+        val-buffers          (vec (map (fn [x] (reuse-or-create-buffer x)) pattern-value-vector))
+        _                    (vec (mapv (fn [x y] (buffer-write-relay! x y)) dur-buffers pattern-vector ))
+        _                    (vec (mapv (fn [x y] (buffer-write-relay! x y)) val-buffers pattern-value-vector))
         pattern-id-buf       (get-or-create-pattern-buf trigger buf-size)         ;(buffer buf-size)
         pattern-value-id-buf (get-or-create-pattern-value-buf trigger buf-size)         ;(buffer buf-size)
         _                    (buffer-write! pattern-id-buf       (vec (map (fn [x] (buffer-id x)) dur-buffers)))
