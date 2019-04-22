@@ -2,8 +2,9 @@
   trigger.trigger
   (:use [overtone.live]
         [clojure.data])
-  (:require [clojure.tools.namespace.repl :refer [refresh]]
-            [trigger.synths]))
+  (:require
+   [trigger.synths :refer :all]
+   [clojure.tools.namespace.repl :refer [refresh]]))
 
 
                                         ;State atoms
@@ -28,7 +29,7 @@
   (out:kr base-trigger-count-bus-out (pulse-count:kr (in:kr base-trigger-bus-in))))
 
 (def dbg (control-bus 1))
-(def dgb2 (control-bus 1))
+(def dbg2 (control-bus 1))
 
 (defsynth trigger-generator [base-trigger-bus-in 0
                              base-counter-bus-in 0
@@ -52,19 +53,12 @@
         cntr  (pulse-count:kr trg base-trigger)
         trg  (select:kr (= 0 cntr) [trg 0])
         ;_ (out:kr dbg pattern-value-start-idx)
-        ;_ (out:kr dgb2 pattern-item-value)
+        ;_ (out:kr dbg2 pattern-item-value)
         ]
     (out:kr trigger-value-bus-out pattern-item-value)
     (out:kr trigger-bus-out trg)))
 
 ;(remove-watch dm :dm)
-
-(defsynth tstsin [in-trg 0 in-trg-val 0 in-attack 0 in-attack-val 0 f 200 out-bus 0] (let [trg (in:kr in-trg)
-                                                                                           val (in:kr in-trg-val)
-                                                                                           env (env-gen (perc (in:kr in-attack-val) 0.01 1 0) :gate trg)
-                                                                                           src (* env (sin-osc (* f val)))]
-                                                                                       ;(out:kr dbg (in:kr in-attack-val))
-                                                                                       (out out-bus src)))
 
                                         ;Buffer pool functions
 (defn store-buffer [buf] (let [size      (buffer-size buf)
