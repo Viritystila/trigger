@@ -146,3 +146,54 @@
         snd    (sin-osc (midicps note))
         env    (env-gen (perc attack decay) :gate (in:kr in-trg))]
     (out out-bus (pan2 (* 0.8 env snd)))))
+
+
+(defsynth tb303
+  [in-trg 0
+   in-trg-val 0
+   in-wave 1
+   in-wave-val 1
+   in-r 0.8
+   in-r-val 0.8
+   in-note 60
+   in-note-val 60
+   in-attack 0.01
+   in-attack-val 0.01
+   in-decay 0.1
+   in-decay-val 0.1
+   in-sustain 0.6
+   in-sustain-val 0.6
+   in-release 0.01
+   in-release-val 0.01
+   in-cutoff 100
+   in-cutoff-val 100
+   in-env-amount 0.01
+   in-env-amount-val 0.01
+   in-amp 0.5
+   in-amp-val 0.5
+   out-bus 0]
+  (let [note       (in:kr in-note-val)
+        wave       (in:kr in-wave-val)
+        r          (in:kr in-r-val)
+        attack     (in:kr in-attack-val)
+        decay      (in:kr in-decay-val)
+        sustain    (in:kr in-sustain-val)
+        release    (in:kr in-release-val)
+        cutoff     (in:kr in-cutoff-val)
+        env-amount (in:kr in-env-amount-val)
+        amp        (in:kr in-amp-val)
+        freq       (midicps note)
+        freqs      [freq (* 1.01 freq)]
+        vol-env    (env-gen (adsr attack decay sustain release)
+                            (line:kr 1 0 (+ attack decay release))
+                            :gate (in:kr in-trg))
+        fil-env    (env-gen (perc))
+        fil-cutoff (+ cutoff (* env-amount fil-env))
+        waves      (* vol-env
+                      [(saw freqs)
+                       (pulse freqs 0.5)
+                       (lf-tri freqs)])
+        selector   (select wave waves)
+        filt       (rlpf selector fil-cutoff r)]
+    (out out-bus (pan2 (* amp filt))))
+  )
