@@ -2,7 +2,8 @@
   trigger.trigger
   (:use [overtone.live]
         [clojure.data])
-  (:require [clojure.tools.namespace.repl :refer [refresh]]))
+  (:require [clojure.tools.namespace.repl :refer [refresh]]
+            [trigger.synths]))
 
 
                                         ;State atoms
@@ -87,7 +88,7 @@
 
 
 
-(defn start []
+(defn start-trigger []
   (def base-trigger-bus (control-bus 1))
   (def base-trigger-dur-bus (control-bus 1))
   (control-bus-set! base-trigger-dur-bus 1)
@@ -414,4 +415,4 @@
 
 
 
-(start)
+(start-trigger)
