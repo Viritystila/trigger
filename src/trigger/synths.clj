@@ -27,7 +27,7 @@
                         in-release 1
                         in-release-val 1
                        out-bus 0]
-  (let [gate    (in:kr in-trg)
+  (let [gate    (in:kr in-trg-val)
         freq    (in:kr in-freq-val)
         amp     (in:kr in-amp-val)
         attack  (in:kr in-attack-val)
@@ -41,7 +41,7 @@
         sig (distort (* env (sin-osc [freq mod1])))
         sig (* amp sig mod2 mod3)]
     (out out-bus (pan2 sig))))
-;(-> {:pn "flute" :sn simple-flute :in-trg ["[1]" "[1 1 1 1]"] :in-freq ["[300 200 100 300 200 100 300 200 100]" "[100]" "[200 100]" "[50 150 200 25]"] :in-amp ["[10]"] :in-attack ["[0.04]"] :in-decay ["[0.5]"] :in-sustain ["[1]"] :in-release ["[0.8]"]} trg )
+;(-> {:pn "flute" :sn simple-flute :in-trg ["[1]" "[1 1 1 1]"] :in-freq ["[300 200 100 300 200 100 300 200 100]" "[100]" "[200 100]" "[50 150 200 25]"] :in-amp ["[1]"] :in-attack ["[0.04]"] :in-decay ["[0.5]"] :in-sustain ["[1]"] :in-release ["[0.8]"]} trg )
 
 
 (defsynth cs80lead
@@ -82,7 +82,7 @@
         freq-lag (in:kr in-fre-lag-val)
         freq     (lag freq freq-lag)
         amp      (in:kr in-amp-val)
-        gate     (in:kr in-trg)
+        gate     (in:kr in-trg-val)
         cuttoff  (in:kr in-cutoff-val)
         att      (in:kr in-attack-val)
         decay    (in:kr in-decay-val)
@@ -106,7 +106,8 @@
         freq    (* freq vib)
         sig     (mix (* env amp (saw [freq (* freq (+ dtune 1))])))]
 (out out-bus (pan2 sig))))
-;(-> {:pn "cs80lead" :sn cs80lead :in-trg ["[1]"] :in-freq ["[30 40]"] :in-amp ["[0.4]"] :in-attack ["[0.75]"] :in-vibdepth ["[1.0001]"] } trg )
+;(-> {:pn "cs80lead" :sn cs80lead :in-trg ["[1 1 1 1]"] :in-freq ["[30 40]"] :in-amp ["[0.4]"] :in-attack ["[0.075]"] :in-decay ["[0.1]"] :in-sustain ["[0.5]"] :in-release ["[0.7]"] :in-vibdepth ["[0.001]"] :in-vibrate ["[1]"] :in-dtune ["[0.00000001]"] :in-freq-lag ["[10]"] } trg )
+
 
 
 (defsynth supersaw [in-freq 440 in-freq-val 440 in-amp 1 in-amp-val 1 out-bus 0]
@@ -176,6 +177,8 @@
    in-env-amount-val 0.01
    in-amp 0.5
    in-amp-val 0.5
+   in-gate-select 0
+   in-gate-select-val 0
    out-bus 0]
   (let [note       (in:kr in-note-val)
         wave       (in:kr in-wave-val)
@@ -189,9 +192,12 @@
         amp        (in:kr in-amp-val)
         freq       (midicps note)
         freqs      [freq (* 1.01 freq)]
+        trig       (in:kr in-trg)
+        trig-val   (in:kr in-trg-val)
+        gate       (select:kr (in:kr in-gate-select-val)  [trig trig-val])
         vol-env    (env-gen (adsr attack decay sustain release)
                             (line:kr 1 0 (+ attack decay release))
-                            :gate (in:kr in-trg))
+                            :gate gate)
         fil-env    (env-gen (perc))
         fil-cutoff (+ cutoff (* env-amount fil-env))
         waves      (* vol-env
