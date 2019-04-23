@@ -41,6 +41,7 @@
         sig (distort (* env (sin-osc [freq mod1])))
         sig (* amp sig mod2 mod3)]
     (out out-bus (pan2 sig))))
+;(-> {:pn "flute" :sn simple-flute :in-trg ["[1]" "[1 1 1 1]"] :in-freq ["[300 200 100 300 200 100 300 200 100]" "[100]" "[200 100]" "[50 150 200 25]"] :in-amp ["[10]"] :in-attack ["[0.04]"] :in-decay ["[0.5]"] :in-sustain ["[1]"] :in-release ["[0.8]"]} trg )
 
 
 (defsynth cs80lead
@@ -105,6 +106,7 @@
         freq    (* freq vib)
         sig     (mix (* env amp (saw [freq (* freq (+ dtune 1))])))]
 (out out-bus (pan2 sig))))
+;(-> {:pn "cs80lead" :sn cs80lead :in-trg ["[1]"] :in-freq ["[30 40]"] :in-amp ["[0.4]"] :in-attack ["[0.75]"] :in-vibdepth ["[1.0001]"] } trg )
 
 
 (defsynth supersaw [in-freq 440 in-freq-val 440 in-amp 1 in-amp-val 1 out-bus 0]
@@ -123,12 +125,14 @@
         output (- output input)
         output (leak-dc:ar (* output 0.25))]
     (out out-bus (pan2 (* amp output)))))
+;(-> {:pn "supersaw " :sn supersaw :in-freq ["[51]" "[55 60 65 55]" "[50]"] :in-amp ["[0.4]" "[0.4 0.45 0.5 0.55 0.6 0.55 0.5 0.45 0.4]" "[0.4]"] } trg )
+
 
 (defsynth ticker
   [in-trg 880 in-trg-val 880 out-bus 0]
   (* (env-gen (perc 0.001 0.01) :gate (in:kr in-trg))
      (out out-bus (pan2 (sin-osc (in:kr in-trg-val))))))
-
+;(-> {:pn "ticker" :sn ticker :in-trg ["[51]" "[55 60 65 55]" "[50]"] } trg )
 
 (defsynth ping
   [in-trg 0
@@ -146,6 +150,7 @@
         snd    (sin-osc (midicps note))
         env    (env-gen (perc attack decay) :gate (in:kr in-trg))]
     (out out-bus (pan2 (* 0.8 env snd)))))
+;(-> {:pn "ping" :sn ping :in-trg ["[51 52 54 55 60 70 80 90]" "[1 1 1 1]"] :in-note ["[50]"] :in-decay ["[0.2]"]} trg)
 
 
 (defsynth tb303
@@ -197,6 +202,8 @@
         filt       (rlpf selector fil-cutoff r)]
     (out out-bus (pan2 (* amp filt))))
   )
+;(-> {:pn "tb303" :sn tb303 :in-trg ["[1 1 1 1]"] :in-note ["[40]"] :in-attack ["[0.001]"] :in-decay ["[0.008]"] :in-sustain ["[0.99]"] :in-release ["[1.05]"] :in-amp ["[0.35]"] :in-cutoff ["[402]"] :in-wave ["[2]"] } trg )
+
 
 
 (defsynth mooger
@@ -207,8 +214,8 @@
    in-note-val 60
    in-amp 0.3
    in-amp-val 0.3
-   in-osc1 0
-   in-osc1-val 0
+   in-osc1 1
+   in-osc1-val 1
    in-osc2 1
    in-osc2-val 1
    in-cutoff 500
@@ -229,29 +236,35 @@
    in-fsustain-val 0.999
    in-frelease 0.0001
    in-frelease-val 0.0001
-   note {:default 60 :min 0 :max 127 :step 1}
-   amp  {:default 0.3 :min 0 :max 1 :step 0.01}
-   osc1 {:default 0 :min 0 :max 2 :step 1}
-   osc2 {:default 1 :min 0 :max 2 :step 1}
-   osc1-level {:default 0.5 :min 0 :max 1 :step 0.01}
-   osc2-level {:default 0 :min 0 :max 1 :step 0.01}
-   cutoff {:default 500 :min 0 :max 20000 :step 1}
-   attack {:default 0.0001 :min 0.0001 :max 5 :step 0.001}
-   decay {:default 0.3 :min 0.0001 :max 5 :step 0.001}
-   sustain {:default 0.99 :min 0.0001 :max 1 :step 0.001}
-   release {:default 0.0001 :min 0.0001 :max 6 :step 0.001}
-   fattack {:default 0.0001 :min 0.0001 :max 6 :step 0.001}
-   fdecay {:default 0.3 :min 0.0001 :max 6 :step 0.001}
-   fsustain {:default 0.999 :min 0.0001 :max 1 :step 0.001}
-   frelease {:default 0.0001 :min 0.0001 :max 6 :step 0.001}
-   gate 1
+   in-osc1-level 0.5
+   in-osc1-level-val 0.5
+   in-osc2-level 0.5
+   in-osc2-level-val 0.5
    out-bus 0]
-  (let [freq       (midicps note)
+  (let [gate           (in:kr in-trg)
+        gate-val       (in:kr in-trg-val)
+        note           (in:kr in-note-val)
+        amp            (in:kr in-amp-val)
+        osc1           (in:kr in-osc1-val)
+        osc2           (in:kr in-osc2-val)
+        cutoff         (in:kr in-cutoff-val)
+        attack         (in:kr in-attack-val)
+        decay          (in:kr in-decay-val)
+        sustain        (in:kr in-sustain-val)
+        release        (in:kr in-release-val)
+        fattack        (in:kr in-fattack-val)
+        fdecay         (in:kr in-fdecay-val)
+        fsustain       (in:kr in-fsustain-val)
+        frelease       (in:kr in-frelease-val)
+        osc1-level     (in:kr in-osc1-level-val)
+        osc2-level     (in:kr in-osc2-level-val)
+        freq       (midicps note)
         osc-bank-1 [(saw freq) (sin-osc freq) (pulse freq)]
         osc-bank-2 [(saw freq) (sin-osc freq) (pulse freq)]
-        amp-env    (env-gen (adsr attack decay sustain release) gate :action FREE)
-        f-env      (env-gen (adsr fattack fdecay fsustain frelease) gate)
+        amp-env    (env-gen (adsr attack decay sustain release) :gate gate-val)
+        f-env      (env-gen (adsr fattack fdecay fsustain frelease) :gate gate-val)
         s1         (* osc1-level (select osc1 osc-bank-1))
         s2         (* osc2-level (select osc2 osc-bank-2))
         filt       (moog-ff (+ s1 s2) (* cutoff f-env) 3)]
-    (out out-bus (pan2 (* amp filt)))))
+    (out out-bus (pan2 (* amp amp-env filt)))))
+;(-> {:pn "mooger" :sn mooger :in-trg ["[1 1 1 [1 1 1 1]]" "[1 0 1 1 0 1 1 [1 1 1 1]]"] :in-note ["[40 45]"] :in-attack ["[0.0022]"] :in-decay ["[1.091]"] :in-sustain ["[0.0099]"] :in-release ["[1.0001]"] :in-amp ["[0.9]"] :in-cutoff ["[500 600]"] :in-osc1 ["[1 2]"] :in-osc2 ["[1 2]"] :in-osc1-level ["[0.95]"] :in-osc2-level ["[0.5]"] :in-fattack ["[0.022]"] :in-fdecay ["[0.091]"] :in-fsustain ["[0.099]"] :in-frelease ["[0.9 0.99]"] } trg )

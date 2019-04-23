@@ -346,6 +346,8 @@
     trigger))
 
 
+(defn changed? [trigger new-control-pattern] (let [old-control-pattern  (:pattern-value-vector trigger)] (= new-control-pattern old-control-pattern)) )
+
 (defn t [synth-container control-pair] (let [control-key       (first control-pair)
                                              control-val-key   (keyword (str (name control-key) "-val"))
                                              control-pattern   (last control-pair)
@@ -356,7 +358,8 @@
                                              triggers          (:triggers synth-container)
                                              play-synth        (:play-synth synth-container)
                                              trigger-status    (control-key triggers)
-                                             trigger           (if (some? trigger-status) (update-trigger trigger-status trig-pattern val-pattern)
+                                             has-changed       (if (some? trigger-status) (changed? trigger-status val-pattern) )
+                                             trigger           (if (some? trigger-status) (if has-changed trigger-status (update-trigger trigger-status trig-pattern val-pattern))
                                                                    (create-trigger control-key
                                                                                    control-val-key
                                                                                    play-synth
@@ -405,7 +408,8 @@
                                     pattern-status        (pattern-name-key @synthConfig)]
                                 (println pattern-status)
                                 (if (some? pattern-status) (do (kill-trg pattern-status)
-                                                               (swap! synthConfig dissoc pattern-name-key) ) )))
+                                                               (swap! synthConfig dissoc pattern-name-key) ) ))
+  (println "patter stopped"))
 
 
 
