@@ -197,3 +197,61 @@
         filt       (rlpf selector fil-cutoff r)]
     (out out-bus (pan2 (* amp filt))))
   )
+
+
+(defsynth mooger
+  "Choose 0, 1, or 2 for saw, sin, or pulse"
+  [in-trg 0
+   in-trg-val 0
+   in-note 60
+   in-note-val 60
+   in-amp 0.3
+   in-amp-val 0.3
+   in-osc1 0
+   in-osc1-val 0
+   in-osc2 1
+   in-osc2-val 1
+   in-cutoff 500
+   in-cutoff-val 500
+   in-attack 0.0001
+   in-attack-val 0.0001
+   in-decay 0.3
+   in-decay-val 0.3
+   in-sustain 0.99
+   in-sustain-val 0.99
+   in-release 0.0001
+   in-release-val 0.0001
+   in-fattack 0.0001
+   in-fattack-val 0.0001
+   in-fdecay 0.3
+   in-fdecay-val 0.3
+   in-fsustain 0.999
+   in-fsustain-val 0.999
+   in-frelease 0.0001
+   in-frelease-val 0.0001
+   note {:default 60 :min 0 :max 127 :step 1}
+   amp  {:default 0.3 :min 0 :max 1 :step 0.01}
+   osc1 {:default 0 :min 0 :max 2 :step 1}
+   osc2 {:default 1 :min 0 :max 2 :step 1}
+   osc1-level {:default 0.5 :min 0 :max 1 :step 0.01}
+   osc2-level {:default 0 :min 0 :max 1 :step 0.01}
+   cutoff {:default 500 :min 0 :max 20000 :step 1}
+   attack {:default 0.0001 :min 0.0001 :max 5 :step 0.001}
+   decay {:default 0.3 :min 0.0001 :max 5 :step 0.001}
+   sustain {:default 0.99 :min 0.0001 :max 1 :step 0.001}
+   release {:default 0.0001 :min 0.0001 :max 6 :step 0.001}
+   fattack {:default 0.0001 :min 0.0001 :max 6 :step 0.001}
+   fdecay {:default 0.3 :min 0.0001 :max 6 :step 0.001}
+   fsustain {:default 0.999 :min 0.0001 :max 1 :step 0.001}
+   frelease {:default 0.0001 :min 0.0001 :max 6 :step 0.001}
+   gate 1
+   out-bus 0]
+  (let [freq       (midicps note)
+        osc-bank-1 [(saw freq) (sin-osc freq) (pulse freq)]
+        osc-bank-2 [(saw freq) (sin-osc freq) (pulse freq)]
+        amp-env    (env-gen (adsr attack decay sustain release) gate :action FREE)
+        f-env      (env-gen (adsr fattack fdecay fsustain frelease) gate)
+        s1         (* osc1-level (select osc1 osc-bank-1))
+        s2         (* osc2-level (select osc2 osc-bank-2))
+        filt       (moog-ff (+ s1 s2) (* cutoff f-env) 3)]
+    (out out-bus (pan2 (* amp filt)))))
