@@ -30,12 +30,12 @@ example:
 
 
 ####
-The patterns are structured similary as in TidalCycles, meaning the duration of each pattern  [p] is one second.  The value in the pattern structure is passed in the "*-val" control-bus.  
+As in TidalCycles the duration of each pattern  [p] is one second, hence adding a pattern adds one second to the full cycle duration.  The value in the pattern structure is passed in the "*-val" control-bus.  
 
 
-### Things to chnage in the near future
-  - Improved pattern syntax
-  - Managing the output bus and the intial synth arguments
+### TODO:
+  - Monitor bus selection for visualizations
+  - Managing the output bus
   - Output effects
 ## License
 

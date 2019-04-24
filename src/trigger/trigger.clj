@@ -426,13 +426,16 @@
 
 
 
-(defn stop-pattern [pattern-name] (let [pattern-name-key      (keyword pattern-name)
+                                        ; Misc pattern related functions
+(defn stp [pattern-name] (let [pattern-name-key      (keyword pattern-name)
                                     pattern-status        (pattern-name-key @synthConfig)]
                                     (if (some? pattern-status) (do (free-default-buses pattern-status)
                                                                  (kill-trg pattern-status)
                                                                  (swap! synthConfig dissoc pattern-name-key)) ))
   (println "pattern stopped"))
 
+
+(defn lss [] (println (keys @synthConfig)))
 
 
 (start-trigger)
