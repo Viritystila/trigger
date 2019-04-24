@@ -162,10 +162,19 @@
                                                             (recur (next xv) (conj result op))) result))))
 
 (defn generate-durations [input] (let [mod-input (vec (map trigger-dur (vec (flatten input))))
-                                                 durs  (traverse-vector input)
-                                                 durs  (into [] (flatten durs))
-                                                 durs  (adjust-duration durs (vec (flatten mod-input)))  ]
-                                             {:dur durs :val (flatten input) :mod-input (vec mod-input) }))
+                                       durs  (traverse-vector input)
+                                       durs  (into [] (flatten durs))
+                                       durs  (adjust-duration durs (vec (flatten mod-input)))  ]
+                                   {:dur durs :val (flatten input) :mod-input (vec mod-input) }))
+
+
+
+(defn generate-durations2 [input input-val] (let [mod-input (vec (map trigger-dur (vec (flatten input))))
+                                       durs  (traverse-vector input)
+                                       durs  (into [] (flatten durs))
+                                       durs  (adjust-duration durs (vec (flatten mod-input)))  ]
+                                   {:dur durs :val (flatten input-val) :mod-input (vec mod-input) }))
+
 
 (defn split-to-sizes [input sizes] (let [s input]
                                      (apply concat (reduce
@@ -175,29 +184,6 @@
                                                     [s []]
                                                     sizes))))
 
-
-                                        ; The creation of buffers is slow, this function may need to be parallelised at some point in some way.
-                                        ; A more feature rich input parser is needed
-                                        ;Better separation of the trigger timing and trigger value functions
-(defn generate-buffer-vector [field  new-buf-data] (let [new-buf-data       (map clojure.edn/read-string new-buf-data)]
-                                                     (loop [xv new-buf-data
-                                                            result []]
-                                                      (if xv
-                                                        (let [x-item      (first xv)
-                                                              x-out  (generate-durations x-item)
-                                                              x-item  (field x-out)
-                                                              size    (count x-item)
-                                                              x-item-base-dur  (/ 1 size)
-                                                              x-item-leading-zeros (count (filter #{0} (first (partition-by identity x-item))))
-                                                              x-item-lead-dur      (* x-item-base-dur x-item-leading-zeros)
-                                                              x-item (remove zero? x-item)
-                                                              x-item (vec (concat [x-item-lead-dur] x-item)) ; A silent trigger at the beginning of each pattern
-                                                              x-size (count x-item)
-                                                              x-buf  (buffer x-size)
-                                                              _      (buffer-write-relay! x-buf (vec x-item))]
-                                                          (recur (next xv) (conj result x-buf)))result))))
-
-                                        ; fields, :dur, :val
 
 
 (defn conditional-remove-zero [cond inputvec] (let [size      (count inputvec)
@@ -214,12 +200,24 @@
 
 (defn dur-and-val-zero [durs vals] (map (fn [x y] (= x y 0)) durs vals))
 
-(defn generate-pattern-vector [new-buf-data] (let [new-buf-data        (map clojure.edn/read-string new-buf-data)
-                                                   new-durs-and-vals   (map generate-durations new-buf-data)
+(defn string-zero-to-one [str-in]  (clojure.string/replace  str-in #"0" "1") )
+
+(defn string-hyphen-to-zero [str-in]  (clojure.string/replace str-in #"-" "0") )
+
+(defn generate-pattern-vector [new-buf-data] (let [new-trig-data       (vec (map (fn [x] (string-zero-to-one x)) new-buf-data))
+                                                   new-trig-data       (map clojure.edn/read-string (vec (map (fn [x] (string-hyphen-to-zero x)) new-trig-data)))
+                                                   new-val-data        (map clojure.edn/read-string (vec (map (fn [x] (string-hyphen-to-zero x)) new-buf-data)))
+                                                   ;_ (println "new trig-data" new-trig-data)
+                                                   ;_ (println "new-val-data" new-val-data)
+                                                   ;_ (println "new-buf-data"  (type (nth new-buf-data 0)))
+                                                   ;new-buf-data        (map clojure.edn/read-string new-buf-data)
+                                                   ;_ (println "new-buf-data-string" (type (nth  new-buf-data 0)))
+                                                   new-durs-and-vals   (map generate-durations2 new-trig-data new-val-data)
+                                                   ;_ (println "new durs and vals" new-durs-and-vals)
                                                    durs                (map :dur new-durs-and-vals)
                                                    vals                (map :val new-durs-and-vals)
                                                    mod-beat            (map :mod-input new-durs-and-vals)
-                                                   base-sizes          (map count new-buf-data)
+                                                   base-sizes          (map count new-trig-data)
                                                    base-durations      (map (fn [x] (/ 1 x) ) base-sizes)
                                                    leading-zeros       (map (fn [x]  (count (filter #{0} (first (partition-by identity x))))) durs)
                                                    silent-trigger-durs (mapv  * base-durations leading-zeros)
