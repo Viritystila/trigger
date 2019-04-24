@@ -94,6 +94,25 @@
   (println "trigger initialized"))
 
 
+                                        ;Default value bus generation
+(defn is-in-arg [arg-key arg-val] (if (some? (re-find #"in" (str arg-key))) {(keyword arg-key) arg-val} nil ))
+
+(defn get-in-defaults [synth-name] (let [arg-names        (map :name (:params synth-name))
+                                         arg-keys         (map :default (:params synth-name))
+                                         arg-val-keys     (map (fn [x] (keyword (str (name x) "-val"))) arg-keys)
+                                         args-names-vals  (map (fn [x y] (is-in-arg x y)) arg-names arg-keys)
+                                         args-names-vals  (remove nil? args-names-vals)
+                                         args-names-vals  (apply conj args-names-vals)]
+                                     args-names-vals) )
+
+(defn generate-default-buses  [synth-name] (let [anv        (get-in-defaults synth-name)
+                                                 buses-def  (vec (map (fn [x]   (control-bus 1)) (vals anv)))
+                                                 set-buses  (vec (map (fn [x y] (control-bus-set! x y)) buses-def (vals anv )))
+                                                 buses      (vec (map (fn [x y] {x y}) (keys anv) buses-def))
+                                                 buses      (apply conj buses)]
+                                             buses))
+
+
                                         ;Pattern generation functions
 (defn trigger-dur [dur] (if (= dur 0) 0 1) )
 
@@ -234,19 +253,24 @@
   (kill-trg   [this])
   (swap-synth [this synth-name])
   (ctl-synth [this var value])
-  (get-trigger-value-bus [this] ))
+  (get-trigger-value-bus [this])
+  (free-default-buses [this])
+  (apply-default-buses [this]))
 
 (defrecord synthContainer [pattern-name
                            group
                            out-bus
                            play-synth
                            triggers
-                           synth-name]
+                           synth-name
+                           default-buses]
   synth-control
   (kill-synth [this] (kill (. this play-synth)))
   (kill-trg   [this] (group-free (. this group)))
   (swap-synth [this synth-name] (println "not implemented"))
-  (ctl-synth [this var value] (ctl (. this play-synth) var value)))
+  (ctl-synth [this var value] (ctl (. this play-synth) var value))
+  (free-default-buses [this] ( doseq [x (vals default-buses)] (free-bus x)))
+  (apply-default-buses [this] (doseq [x default-buses] (ctl (. this play-synth) (key x) (val x)))))
 
 
 (defprotocol trigger-control
@@ -282,11 +306,14 @@
   (get-or-create-pattern-value-buf [this new-size] (let [old-size (count (. this pattern-value-vector))]
                                                      (if (= old-size new-size) (. this pattern-value-buf) (do (store-buffer (. this pattern-value-buf ))  (retrieve-buffer new-size)) ))))
 
-(defn create-synth-config [pattern-name synth-name] (let [out-bus      0
-                                                          synth-group  (group pattern-name :after main-g)
-                                                          play-synth   (synth-name  [:tail synth-group] )
-                                                          triggers     {}]
-                                                      (synthContainer. pattern-name synth-group out-bus play-synth triggers synth-name)))
+(defn create-synth-config [pattern-name synth-name] (let [out-bus         0
+                                                          synth-group     (group pattern-name :after main-g)
+                                                          play-synth      (synth-name  [:tail synth-group] )
+                                                          default-buses   (generate-default-buses synth-name)
+                                                          triggers        {}
+                                                          synth-container  (synthContainer. pattern-name synth-group out-bus play-synth triggers synth-name default-buses)]
+                                                      (apply-default-buses synth-container)
+                                                      synth-container ))
 
 
 (defn create-trigger [control-key
@@ -403,8 +430,9 @@
 
 (defn stop-pattern [pattern-name] (let [pattern-name-key      (keyword pattern-name)
                                     pattern-status        (pattern-name-key @synthConfig)]
-                                (if (some? pattern-status) (do (kill-trg pattern-status)
-                                                               (swap! synthConfig dissoc pattern-name-key)) ))
+                                    (if (some? pattern-status) (do (free-default-buses pattern-status)
+                                                                 (kill-trg pattern-status)
+                                                                 (swap! synthConfig dissoc pattern-name-key)) ))
   (println "pattern stopped"))
 
 

@@ -31,7 +31,7 @@
                        out-bus 0]
   (let [gate     (in:kr in-trg)
         gate-val (in:kr in-trg-val)
-        gate     (select:kr (in:kr in-gate-select-val)  [gate gate-val])
+        gate     (select:kr (in:kr in-gate-select-val)  [gate-val gate])
         freq    (in:kr in-freq-val)
         amp     (in:kr in-amp-val)
         attack  (in:kr in-attack-val)
@@ -45,6 +45,7 @@
         sig (distort (* env (sin-osc [freq mod1])))
         sig (* amp sig mod2 mod3)]
     (out out-bus (pan2 sig))))
+;(-> {:pn "flute" :sn simple-flute :in-trg ["[1]"]} trg)
 
 ;(-> {:pn "flute" :sn simple-flute :in-trg ["[1]" "[1 1 1 -1]"] :in-freq ["[300 200 100 300 200 100 300 200 100]" "[100]" "[200 100]" "[50 150 200 25]"] :in-amp ["[1]"] :in-attack ["[0.04]"] :in-decay ["[0.05]"] :in-sustain ["[0.5]"] :in-release ["[0.08]"] :in-gate-select ["[1]"]} trg )
 
@@ -91,7 +92,7 @@
         amp      (in:kr in-amp-val)
         gate     (in:kr in-trg)
         gate-val (in:kr in-trg-val)
-        gate     (select:kr (in:kr in-gate-select-val)  [gate gate-val])
+        gate     (select:kr (in:kr in-gate-select-val)  [gate-val gate])
         cuttoff  (in:kr in-cutoff-val)
         att      (in:kr in-attack-val)
         decay    (in:kr in-decay-val)
@@ -115,6 +116,8 @@
         freq    (* freq vib)
         sig     (mix (* env amp (saw [freq (* freq (+ dtune 1))])))]
     (out out-bus (pan2 sig))))
+;(-> {:pn "cs80lead" :sn cs80lead :in-trg ["[1]"]} trg )
+
 ;(-> {:pn "cs80lead" :sn cs80lead :in-trg ["[1 1 1 1]"] :in-freq ["[30 40]"] :in-amp ["[0.4]"] :in-attack ["[0.75]"] :in-decay ["[0.1]"] :in-sustain ["[0.5]"] :in-release ["[0.7]"] :in-vibdepth ["[0.001]"] :in-vibrate ["[1]"] :in-dtune ["[0.00000001]"] :in-freq-lag ["[10]"] :in-gate-select ["[1]"] } trg )
 
 
@@ -136,6 +139,7 @@
         output (- output input)
         output (leak-dc:ar (* output 0.25))]
     (out out-bus (pan2 (* amp output)))))
+; (-> {:pn "ss" :sn supersaw} trg)
 ;(-> {:pn "supersaw " :sn supersaw :in-freq ["[51]" "[55 60 65 55]" "[50]"] :in-amp ["[0.4]" "[0.4 0.45 0.5 0.55 0.6 0.55 0.5 0.45 0.4]" "[0.4]"] } trg )
 
 
@@ -161,6 +165,7 @@
         snd    (sin-osc (midicps note))
         env    (env-gen (perc attack decay) :gate (in:kr in-trg))]
     (out out-bus (pan2 (* 0.8 env snd)))))
+;(-> {:pn "ping" :sn ping :in-trg ["[1]"]} trg)
 ;(-> {:pn "ping" :sn ping :in-trg ["[51 52 54 55 60 70 80 90]" "[1 1 1 1]"] :in-note ["[50]"] :in-decay ["[0.2]"]} trg)
 
 
@@ -204,7 +209,7 @@
         freqs      [freq (* 1.01 freq)]
         trig       (in:kr in-trg)
         trig-val   (in:kr in-trg-val)
-        gate       (select:kr (in:kr in-gate-select-val)  [trig trig-val])
+        gate       (select:kr (in:kr in-gate-select-val)  [trig-val trig])
         vol-env    (env-gen (adsr attack decay sustain release)
                             (line:kr 1 0 (+ attack decay release))
                             :gate gate)
@@ -218,6 +223,7 @@
         filt       (rlpf selector fil-cutoff r)]
     (out out-bus (pan2 (* amp filt))))
   )
+;(-> {:pn "tb303" :sn tb303 :in-trg ["[1]"]} trg )
 ;(-> {:pn "tb303" :sn tb303 :in-trg ["[1 1 0 [1 1]]"] :in-note ["[40]"] :in-attack ["[0.001]"] :in-decay ["[0.8]"] :in-sustain ["[0.99]"] :in-release ["[1.05]"] :in-amp ["[0.35]"] :in-cutoff ["[402]"] :in-wave ["[2]" "[1]"] :in-gate-select ["[1]"] } trg )
 
 
@@ -262,7 +268,7 @@
    out-bus 0]
   (let [gate           (in:kr in-trg)
         gate-val       (in:kr in-trg-val)
-        gate           (select:kr (in:kr in-gate-select-val)  [gate gate-val])
+        gate           (select:kr (in:kr in-gate-select-val)  [gate-val gate])
         note           (in:kr in-note-val)
         amp            (in:kr in-amp-val)
         osc1           (in:kr in-osc1-val)
@@ -287,4 +293,6 @@
         s2         (* osc2-level (select osc2 osc-bank-2))
         filt       (moog-ff (+ s1 s2) (* cutoff f-env) 3)]
     (out out-bus (pan2 (* amp amp-env filt)))))
+;(-> {:pn "mooger" :sn mooger :in-trg ["[1]"]} trg )
+
 ;(-> {:pn "mooger" :sn mooger :in-trg ["[1]" "[1 1 1 -2]"] :in-note ["[40]" "[50]"] :in-attack ["[0.022]"] :in-decay ["[0.091]"] :in-sustain ["[0.5]"] :in-release ["[0.01]"] :in-amp ["[0.9]"] :in-cutoff ["[3000 2000 1000 1500]"] :in-osc1 ["[1]"] :in-osc2 ["[2]"] :in-osc1-level ["[0.95]"] :in-osc2-level ["[0.5]"] :in-fattack ["[0.0022]"] :in-fdecay ["[0.91]"] :in-fsustain ["[0.099]"] :in-frelease ["[0.9 0.99]"] :in-gate-select ["[1]"] } trg )
