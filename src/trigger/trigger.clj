@@ -90,7 +90,7 @@
   (def base-trigger (base-trigger-synth [:tail main-g] base-trigger-dur-bus base-trigger-bus))
   (def base-trigger-count-bus (control-bus 1))
   (def base-trigger-count (base-trigger-counter [:tail main-g] base-trigger-bus base-trigger-count-bus))
-  (pmap (fn [x] (pmap (fn [y] (store-buffer (buffer (+ x 1))) ) (range 20) )) (range 30))
+  (pmap (fn [x] (pmap (fn [y] (store-buffer (buffer (+ x 1))) ) (range 50) )) (range 30))
   (println "trigger initialized"))
 
 
@@ -369,9 +369,6 @@
                                                                                    )) ]
                                          trigger))
 
-
-
-
                                         ;input as hashmap {:pn :sn ...:controls...}
 
 (defn trg ([input]
@@ -406,10 +403,9 @@
 
 (defn stop-pattern [pattern-name] (let [pattern-name-key      (keyword pattern-name)
                                     pattern-status        (pattern-name-key @synthConfig)]
-                                (println pattern-status)
                                 (if (some? pattern-status) (do (kill-trg pattern-status)
-                                                               (swap! synthConfig dissoc pattern-name-key) ) ))
-  (println "patter stopped"))
+                                                               (swap! synthConfig dissoc pattern-name-key)) ))
+  (println "pattern stopped"))
 
 
 
