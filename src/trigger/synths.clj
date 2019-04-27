@@ -296,3 +296,89 @@
 ;(-> {:pn "mooger" :sn mooger :in-trg ["[1]"]} trg )
 
 ;(-> {:pn "mooger" :sn mooger :in-trg ["[1]" "[1 1 1 -2]"] :in-note ["[40]" "[50]"] :in-attack ["[0.022]"] :in-decay ["[0.091]"] :in-sustain ["[0.5]"] :in-release ["[0.01]"] :in-amp ["[0.9]"] :in-cutoff ["[3000 2000 1000 1500]"] :in-osc1 ["[1]"] :in-osc2 ["[2]"] :in-osc1-level ["[0.95]"] :in-osc2-level ["[0.5]"] :in-fattack ["[0.0022]"] :in-fdecay ["[0.91]"] :in-fsustain ["[0.099]"] :in-frelease ["[0.9 0.99]"] :in-gate-select ["[1]"] } trg )
+
+(defsynth snare [in-trg 0
+                 in-trg-val 0
+                 in-amp 0.3
+                 in-amp-val 0.3
+                 in-fraction 1
+                 in-fraction-val 1
+                 in-attack 0.01
+                 in-attack-val 0.01
+                 in-sustain 0.01
+                 in-sustain-val 0.01
+                 in-release 0.1
+                 in-release-val 0.1
+                 in-cutoff 2000
+                 in-cutoff-val 2000
+                 out-bus 0]
+  (let [pls      (in:kr in-trg)
+        fraction (in:kr in-fraction-val)
+        amp      (in:kr in-amp-val)
+        attack   (in:kr in-attack-val)
+        sustain  (in:kr in-sustain-val)
+        release  (in:kr in-sustain-val)
+        cutoff   (in:kr in-cutoff-val)
+        adj  1
+        env (env-gen (lin attack sustain (* adj release) (* 0.1 adj)) :gate pls)
+        snare (* 3 (pink-noise) (apply + (* (decay env [attack release]) [1 release])))
+        snare (+ snare (bpf (* 4 snare) cutoff))
+        snare (clip2 snare 1)]
+    (out out-bus (pan2 (*  amp snare env)))))
+
+(defsynth kick [in-trg 0
+                in-trg-val 0
+                in-amp 1
+                in-amp-val 1
+                in-v1 0.1
+                in-v1-val 0.01
+                in-v2 0.01
+                in-v2-val 0.01
+                in-v3 0.01
+                in-v3-val 0.01
+                in-c1 -20
+                in-c1-val 20
+                in-c2 -8
+                in-c2-val -8
+                in-c3 -8
+                in-c3-val -8
+                in-d1 1
+                in-d1-val 1
+                in-d2 1
+                in-d2-val 1
+                in-d3 1
+                in-d3-val 1
+                in-f1 80
+                in-f1-val 80
+                in-f2 30
+                in-f2-val 30
+                in-f3 80
+                in-f3-val 80
+                in-clipv 0.3
+                in-clip-val 0.3
+                out-bus 0]
+  (let [pls       (in:kr in-trg)
+        amp       (in:kr in-amp-val)
+        v1        (in:kr in-v1-val)
+        d1        (in:kr in-d1-val)
+        f1        (in:kr in-f1-val)
+        c1        (in:kr in-c1-val)
+        v2        (in:kr in-v2-val)
+        d2        (in:kr in-d2-val)
+        f2        (in:kr in-f2-val)
+        c2        (in:kr in-c2-val)
+        v3        (in:kr in-v3-val)
+        d3        (in:kr in-d3-val)
+        f3        (in:kr in-f3-val)
+        c3        (in:kr in-c3-val)
+        clipv     (in:kr in-clip-val)
+        co-env    (perc v1 d1 f1 c1)
+        a-env     (perc v2 d2 f2 c2)
+        osc-env   (perc v3 d3 f3 c3)
+        cutoff    (lpf (pink-noise) (+ (env-gen co-env :gate pls) (* 1 20)))
+        sound     (lpf (sin-osc (+ 0 (env-gen osc-env :gate pls) 20)) (* 200 1))
+        env       (env-gen a-env :gate pls)
+        output    (*  amp (+ cutoff sound) env)
+        ;output    (free-verb output 0.1 0.3 0.1)
+        ]
+    (out out-bus (pan2 output))))

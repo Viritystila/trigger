@@ -225,14 +225,9 @@
                                                    durs                (mapv (fn [x y] (conditional-remove-zero x y)) durs-and-vals-zero durs)
                                                    vals                (map (fn [x y] (conditional-remove-zero x y)) durs-and-vals-zero vals)
                                                    durs                (mapv (fn [x y] (concat [x] y)) silent-trigger-durs durs)
-                                                   vals                (mapv (fn [x] ; Note, this map is a bit too much, needs simplification
-                                                                               (let [size               (count vals)
-                                                                                     cur-idx            x
-                                                                                     prev-idx           (mod (- x 1) size)
-                                                                                     cur-vec            (nth vals cur-idx)
-                                                                                     prev-vec           (nth vals prev-idx)
-                                                                                     prev-vec-last-item (nth prev-vec (mod -1 (count prev-vec)))
-                                                                                     ]
+                                                   vals                (mapv (fn [x]
+                                                                               (let [cur-idx            x
+                                                                                     cur-vec            (nth vals cur-idx)]
                                                                                  (concat [0] cur-vec))) (range (count vals)))]
                                                {:dur durs :val vals}
 
