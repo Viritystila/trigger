@@ -84,6 +84,7 @@
 
 (defn start-trigger []
   (def base-trigger-bus (control-bus 1))
+  (def external-trigger-bus (control-bus 1))
   (def base-trigger-dur-bus (control-bus 1))
   (control-bus-set! base-trigger-dur-bus 1)
   (buffer-write! base-dur [1])
@@ -438,5 +439,42 @@
 
 (defn lss [] (println (keys @synthConfig)))
 
-
 (start-trigger)
+
+                                        ; External OSC trigger
+(def oscserver (osc-server 3334 "osc-clj"))
+
+(def client (osc-client "localhost" 3334))
+
+(zero-conf-on)
+
+(java.net.InetAddress/getLocalHost)
+
+
+(defsynth single-trigger-synth [] (let [env  (env-gen (perc 1 1 1) :action FREE)] (out:kr base-trigger-bus (* env (trig:kr 1 0.0000001)))))
+
+(def timeatom (atom 0))
+(defn external-trigger
+ [val]
+  (let [val val
+        _ (single-trigger-synth)
+        _ (reset! timeatom (System/currentTimeMillis))
+        ]
+    (println val)
+    ))
+
+(defn null-trigger
+ [val]
+  (let [val val
+        ;_ (single-trigger-synth)
+        _ (reset! timeatom (System/currentTimeMillis))
+        ]
+    ;(println val)
+    ))
+
+(defn set-to-external-trigger [] (ctl base-trigger :out-bus external-trigger-bus)
+(osc-handle oscserver "/play2" (fn [msg] (external-trigger msg))))
+
+
+(defn set-to-internal-trigger [] (ctl base-trigger :out-bus base-trigger-bus)
+(osc-handle oscserver "/play2" (fn [msg] (null-trigger msg))))
