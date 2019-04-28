@@ -9,10 +9,12 @@
 
                                         ;boot eternal server
 (def port 57110)
-(boot-external-server port {:max-buffers 262144
-                            :max-control-bus 8096})
+;(boot-external-server port {:max-buffers 262144 :max-control-bus 8096})
 
 ;(connect-external-server port)
+
+(defn boot-ext [] (if (server-connected?) nil (boot-external-server port {:max-buffers 262144 :max-control-bus 8096}) ))
+(boot-ext)
 
                                         ;State atoms
 (defonce synthConfig (atom {}))
@@ -28,13 +30,15 @@
   (def base-dur (buffer 1))
   (buffer-write! base-dur [1]))
 
-
+;(remove-event-handler ::debug)
                                         ;Synthdefs
 
 (defsynth single-trigger-synth [out-bus 0] (let [env  (env-gen (perc 1 1 1) :action FREE)] (out:kr out-bus (* env (trig:kr 1 0.0000001)))))
 
 
-(defsynth base-trigger-synth [dur 1 out-bus 0] (out:kr out-bus (t-duty:kr  (dbufrd base-dur (dseries 0 1 INF) ) 0 10 )))
+(defsynth base-trigger-synth [dur 1 out-bus 0 trigger-id 0] (let [trg  (t-duty:kr  (dbufrd base-dur (dseries 0 1 INF)) 0 1)]
+                                                           (send-trig trg trigger-id trg)
+                                                           (out:kr out-bus trg)))
 
 
 (defsynth base-trigger-counter [base-trigger-bus-in 0 base-trigger-count-bus-out 0]
@@ -48,7 +52,9 @@
                              base-pattern-buffer-in 0
                              base-pattern-value-buffer-in 0
                              trigger-bus-out 0
-                             trigger-value-bus-out 0]
+                             trigger-value-bus-out 0
+                             trigger-id 0
+                             trigger-val-id 0]
   (let [base-trigger            (in:kr base-trigger-bus-in)
         base-counter            (in:kr base-counter-bus-in)
         pattern-buffer-id       (dbufrd base-pattern-buffer-in base-counter)
@@ -61,12 +67,14 @@
                                            base-trigger
                                            (dbufrd pattern-buffer-id (dseries 0 1 INF) 0))
         pattern-item-value      (demand:kr trg base-trigger (dbufrd pattern-value-buffer-id (dseries pattern-value-start-idx 1 INF)))
-        pattern-trg-value       (demand:kr trg base-trigger (dbufrd pattern-buffer-id (dseries 0 1 INF)))
+        pattern-trg-value       (demand:kr trg base-trigger (dbufrd pattern-buffer-id (dseries pattern-value-start-idx 1 INF)))
         cntr  (pulse-count:kr trg base-trigger)
         trg  (select:kr (= 0 cntr) [trg 0])
         ;_ (out:kr dbg pattern-value-start-idx)
         ;_ (out:kr dbg2 pattern-item-value)
         ]
+    (send-trig trg trigger-id pattern-trg-value)
+    (send-trig trg trigger-val-id pattern-item-value)
     (out:kr trigger-value-bus-out pattern-item-value)
     (out:kr trigger-bus-out trg)))
 
@@ -95,12 +103,13 @@
 
 
 (defn start-trigger []
+  (def base-trigger-id (trig-id))
   (def base-trigger-bus (control-bus 1))
   (def external-trigger-bus (control-bus 1))
   (def base-trigger-dur-bus (control-bus 1))
   (control-bus-set! base-trigger-dur-bus 1)
   (buffer-write! base-dur [1])
-  (def base-trigger (base-trigger-synth [:tail main-g] base-trigger-dur-bus base-trigger-bus))
+  (def base-trigger (base-trigger-synth [:tail main-g] base-trigger-dur-bus base-trigger-bus base-trigger-id))
   (def base-trigger-count-bus (control-bus 1))
   (def base-trigger-count (base-trigger-counter [:tail main-g] base-trigger-bus base-trigger-count-bus))
   (pmap (fn [x] (pmap (fn [y] (store-buffer (buffer (+ x 1))) ) (range 60) )) (range 40))
@@ -282,13 +291,19 @@
 (defprotocol trigger-control
   (kill-trg-group [this])
   (get-or-create-pattern-buf [this new-size])
-  (get-or-create-pattern-value-buf [this new-size]))
+  (get-or-create-pattern-value-buf [this new-size])
+  (get-trigger-bus [this])
+  (get-trigger-value-bus [this])
+  (get-trigger-id [this])
+  (get-trigger-val-id [this]))
 
                                         ; TODO: Implement buffer management
                                         ; -buffer reuse
                                         ; -Freeing unneeded buffers (note: buffer-free does not seem to work, at least not in a similar way as free-bus )
                                         ; -Freeing control buses
-(defrecord triggerContainer [control-key
+(defrecord triggerContainer [trigger-id
+                             trigger-val-id
+                             control-key
                              control-val-key
                              group
                              play-synth
@@ -312,7 +327,11 @@
   (get-or-create-pattern-buf [this new-size] (let [old-size (count (. this pattern-vector))]
                                                (if (= old-size new-size) (. this pattern-buf) (do (store-buffer (. this pattern-buf))  (retrieve-buffer new-size)) )))
   (get-or-create-pattern-value-buf [this new-size] (let [old-size (count (. this pattern-value-vector))]
-                                                     (if (= old-size new-size) (. this pattern-value-buf) (do (store-buffer (. this pattern-value-buf ))  (retrieve-buffer new-size)) ))))
+                                                     (if (= old-size new-size) (. this pattern-value-buf) (do (store-buffer (. this pattern-value-buf ))  (retrieve-buffer new-size)) )))
+  (get-trigger-bus [this] (. this trigger-bus))
+  (get-trigger-value-bus [this] (. this trigger-value-bus))
+  (get-trigger-id [this] (. this trigger-id))
+  (get-trigger-val-id [this] (. this trigger-val-id)))
 
 (defn create-synth-config [pattern-name synth-name] (let [out-bus         0
                                                           synth-group     (group pattern-name :after main-g)
@@ -329,7 +348,9 @@
                       pattern-group
                       pattern-vector
                       pattern-value-vector]
-  (let [trig-bus             (control-bus 1)
+  (let [trigger-id           (trig-id)
+        trigger-val-id       (trig-id)
+        trig-bus             (control-bus 1)
         trig-val-bus         (control-bus 1)
         buf-size             (count pattern-vector)
         dur-buffers          (vec (mapv (fn [x] (retrieve-buffer (count x))) pattern-vector))
@@ -347,9 +368,11 @@
                                                 pattern-id-buf
                                                 pattern-value-id-buf
                                                 trig-bus
-                                                trig-val-bus)]
+                                                trig-val-bus
+                                                trigger-id
+                                                trigger-val-id)]
     (ctl synth-name  control-key trig-bus control-val-key  trig-val-bus)
-    (triggerContainer. control-key control-val-key trig-group synth-name trig-bus
+    (triggerContainer. trigger-id trigger-val-id control-key control-val-key trig-group synth-name trig-bus
                        trig-val-bus  trig-synth  dur-buffers val-buffers pattern-id-buf pattern-value-id-buf pattern-vector pattern-value-vector)))
 
 
@@ -447,6 +470,15 @@
                                                           (kill-trg pattern-status)
                                                           (swap! synthConfig dissoc pattern-name-key)) ))
   (println "pattern stopped"))
+
+
+(defn get-trigger-bus [pattern-name trig-name] (:trigger-bus (trig-name (:triggers (pattern-name @synthConfig)))))
+
+(defn get-trigger-val-bus [pattern-name trig-name] (:trigger-val-bus (trig-name (:triggers (pattern-name @synthConfig)))))
+
+(defn get-trigger-id [pattern-name trig-name] (:trigger-id (trig-name (:triggers (pattern-name @synthConfig)))))
+
+(defn get-trigger-val-id [pattern-name trig-name] (:trigger-val-id (trig-name (:triggers (pattern-name @synthConfig)))))
 
 
 (defn lss [] (println (keys @synthConfig)))
