@@ -1,15 +1,24 @@
 (ns #^{:author "Mikael Reponen"}
   trigger.trigger
-  (:use [overtone.live]
+  (:use [overtone.core]
         [clojure.data])
   (:require
    [trigger.synths :refer :all]
    [clojure.tools.namespace.repl :refer [refresh]]))
 
 
+                                        ;boot eternal server
+(def port 57110)
+(boot-external-server port {:max-buffers 262144
+                            :max-control-bus 8096})
+
+;(connect-external-server port)
+
                                         ;State atoms
 (defonce synthConfig (atom {}))
 (defonce bufferPool (atom {}))
+(def timeatom (atom 0))
+
                                         ;groups
   (do
     (defonce main-g (group "main group")))
@@ -21,6 +30,9 @@
 
 
                                         ;Synthdefs
+
+(defsynth single-trigger-synth [out-bus 0] (let [env  (env-gen (perc 1 1 1) :action FREE)] (out:kr out-bus (* env (trig:kr 1 0.0000001)))))
+
 
 (defsynth base-trigger-synth [dur 1 out-bus 0] (out:kr out-bus (t-duty:kr  (dbufrd base-dur (dseries 0 1 INF) ) 0 10 )))
 
@@ -91,7 +103,7 @@
   (def base-trigger (base-trigger-synth [:tail main-g] base-trigger-dur-bus base-trigger-bus))
   (def base-trigger-count-bus (control-bus 1))
   (def base-trigger-count (base-trigger-counter [:tail main-g] base-trigger-bus base-trigger-count-bus))
-  (pmap (fn [x] (pmap (fn [y] (store-buffer (buffer (+ x 1))) ) (range 50) )) (range 30))
+  (pmap (fn [x] (pmap (fn [y] (store-buffer (buffer (+ x 1))) ) (range 60) )) (range 40))
   (println "trigger initialized"))
 
 
@@ -442,23 +454,19 @@
 (start-trigger)
 
                                         ; External OSC trigger
-(def oscserver (osc-server 3334 "osc-clj"))
 
-(def client (osc-client "localhost" 3334))
+(defn init-osc [port]
+  (def oscserver (osc-server 3334 "osc-clj"))
+  (def client (osc-client "localhost" 3334))
+  (zero-conf-on)
+  (java.net.InetAddress/getLocalHost))
 
-(zero-conf-on)
 
-(java.net.InetAddress/getLocalHost)
-
-
-(defsynth single-trigger-synth [] (let [env  (env-gen (perc 1 1 1) :action FREE)] (out:kr base-trigger-bus (* env (trig:kr 1 0.0000001)))))
-
-(def timeatom (atom 0))
 (defn external-trigger
- [val]
+  [val]
   (let [val val
-        _ (single-trigger-synth)
-        _ (reset! timeatom (System/currentTimeMillis))
+        _ (single-trigger-synth base-trigger-bus)
+        ;_ (reset! timeatom (System/currentTimeMillis))
         ]
     (println val)
     ))
@@ -466,15 +474,11 @@
 (defn null-trigger
  [val]
   (let [val val
-        ;_ (single-trigger-synth)
-        _ (reset! timeatom (System/currentTimeMillis))
+        _ (single-trigger-synth)
+        ;_ (reset! timeatom (System/currentTimeMillis))
         ]
     ;(println val)
     ))
+(defn set-to-external-trigger [] (ctl base-trigger :out-bus external-trigger-bus) (osc-handle oscserver "/play2" (fn [msg] (external-trigger msg))))
 
-(defn set-to-external-trigger [] (ctl base-trigger :out-bus external-trigger-bus)
-(osc-handle oscserver "/play2" (fn [msg] (external-trigger msg))))
-
-
-(defn set-to-internal-trigger [] (ctl base-trigger :out-bus base-trigger-bus)
-(osc-handle oscserver "/play2" (fn [msg] (null-trigger msg))))
+(defn set-to-internal-trigger [] (ctl base-trigger :out-bus base-trigger-bus) (osc-handle oscserver "/play2" (fn [msg] (null-trigger msg))))
