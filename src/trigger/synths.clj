@@ -28,7 +28,10 @@
                         in-release-val 1
                         in-gate-select 0
                         in-gate-select-val 0
-                       out-bus 0]
+                        in-ctrl-select 0
+                        in-ctrl-select-val 0
+                        out-bus 0
+                        ctrl-out 0]
   (let [gate     (in:kr in-trg)
         gate-val (in:kr in-trg-val)
         gate     (select:kr (in:kr in-gate-select-val)  [gate-val gate])
@@ -43,8 +46,11 @@
         mod2 (lin-lin:kr (lf-noise2:kr 1) -1 1 0.2 1)
         mod3 (lin-lin:kr (sin-osc:kr (ranged-rand 4 6)) -1 1 0.5 1)
         sig (distort (* env (sin-osc [freq mod1])))
-        sig (* amp sig mod2 mod3)]
+        sig (* amp sig mod2 mod3)
+        ctrl-out-sel (select:kr (in:kr in-ctrl-select-val) [(a2k sig) (a2k env)] )]
+    (out:kr ctrl-out (a2k ctrl-out-sel))
     (out out-bus (pan2 sig))))
+
 ;(-> {:pn "flute" :sn simple-flute :in-trg ["[1]"]} trg)
 
 ;(-> {:pn "flute" :sn simple-flute :in-trg ["[1]" "[1 1 1 -1]"] :in-freq ["[300 200 100 300 200 100 300 200 100]" "[100]" "[200 100]" "[50 150 200 25]"] :in-amp ["[1]"] :in-attack ["[0.04]"] :in-decay ["[0.05]"] :in-sustain ["[0.5]"] :in-release ["[0.08]"] :in-gate-select ["[1]"]} trg )

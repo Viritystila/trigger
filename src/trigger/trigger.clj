@@ -461,7 +461,8 @@
                         running-trigger-keys                         (keys triggers)
                         input-trigger-keys                           (keys initial-controls-only)
                         triggers-running-but-not-renewd              (first (diff running-trigger-keys input-trigger-keys))
-                        _                                            (doseq [x triggers-running-but-not-renewd] (if (some? x) (kill-trg-group (x triggers))))
+                        _                                            (doseq [x triggers-running-but-not-renewd] (if (some? x) (do (kill-trg-group (x triggers))
+                                                                                                                                  (apply-default-bus synth-container x))))
                         triggers                                     (apply dissoc triggers triggers-running-but-not-renewd)
                         synth-container                              (assoc synth-container :triggers triggers)]
                     (swap! synthConfig assoc pattern-name-key synth-container)))
@@ -482,6 +483,9 @@
                                                           (swap! synthConfig dissoc pattern-name-key)) ))
   (println "pattern stopped"))
 
+
+
+(defn get-ctrl-bus [pattern-name] (:control-out-bus (pattern-name @synthConfig)))
 
 (defn get-trigger-bus [pattern-name trig-name] (:trigger-bus (trig-name (:triggers (pattern-name @synthConfig)))))
 
