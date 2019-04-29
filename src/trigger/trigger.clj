@@ -389,7 +389,7 @@
 (defn reuse-or-create-buffer [new-buf-vec] (let  [new-size    (count new-buf-vec)]
                                              (retrieve-buffer new-size)))
 
-; TODO: reuse buffers if possible
+
 (defn update-trigger [trigger
                       pattern-vector
                       pattern-value-vector]
@@ -441,6 +441,54 @@
 
                                         ;input as hashmap {:pn :sn ...:controls...}
 
+(def r "-")
+
+(defn parse-input-vector [input] (let []
+                                   (loop [xv     (seq input)
+                                          result []]
+                                     (if xv
+                                       (let [fst     (first xv) ]
+                                         (if (vector? fst) (recur (next xv) (conj result (vec (parse-input-vector fst))))
+                                             (if (seq? fst) (recur (next xv) (apply conj result  (vec (parse-input-vector fst))))
+                                                 (recur (next xv) (conj result fst))))) result ))))
+
+
+(defn split-input [input] (let [ ip  (into (sorted-map) (map (fn [x] {(first (first x))  (vec (parse-input-vector (last x)))})   (partition 2 (partition-by keyword? input))))]
+                            (apply conj (map (fn [x] {(key x)  (vec (map (fn [x] (clojure.string/replace x #"\"-\"" "-") )  (map str (val x))))}) ip))))
+
+
+;New trigger input function, allows more terse an powerfull way to create patterns. Now clojure functions such as repeat can be used directly in the input.
+(defn trg2 ([pn sn & input]
+           (let [pattern-name          pn
+                 pattern-name-key      (keyword pattern-name)
+                 synth-name            sn
+                 input                 (split-input input)
+                 original-input        input
+                 valid-keys            (concat [:pn :sn]  (vec (synth-args synth-name)))
+                 input                 (select-keys input (vec valid-keys)) ; Make input valid, meaning remove control keys that are not present in the synth args
+                 input-controls-only   input
+                 initial-controls-only input-controls-only
+                 input-check           (some? (not-empty input-controls-only))
+                 synth-container       (pattern-name-key @synthConfig)]
+             (if  (= nil synth-container)
+               (do (println "Synth created") (swap! synthConfig assoc pattern-name-key (create-synth-config pattern-name synth-name)))
+               (do (println "Synth exists"))) ;TODO: if a tigger group is removed, restore the default value bus
+             (do  (let [synth-container                              (pattern-name-key @synthConfig)
+                        triggers                                     (:triggers synth-container)
+                        running-trigger-keys                         (keys triggers)
+                        input-trigger-keys                           (keys initial-controls-only)
+                        triggers-running-but-not-renewd              (first (diff running-trigger-keys input-trigger-keys))
+                        _                                            (doseq [x triggers-running-but-not-renewd] (if (some? x) (do (kill-trg-group (x triggers))
+                                                                                                                                  (apply-default-bus synth-container x))))
+                        triggers                                     (apply dissoc triggers triggers-running-but-not-renewd)
+                        synth-container                              (assoc synth-container :triggers triggers)]
+                    (swap! synthConfig assoc pattern-name-key synth-container)))
+             (swap! synthConfig assoc pattern-name-key
+                    (assoc (pattern-name-key @synthConfig) :triggers
+                           (zipmap (keys input-controls-only) (map (partial t (pattern-name-key @synthConfig)) input-controls-only)))) pattern-name)))
+
+
+
 (defn trg ([input]
            (let [pattern-name          (:pn input)
                  pattern-name-key      (keyword pattern-name)
@@ -452,7 +500,7 @@
                  input-controls-only   (dissoc input :pn)
                  initial-controls-only input-controls-only
                  input-check           (some? (not-empty input-controls-only))
-                 synth-container        (pattern-name-key @synthConfig)]
+                 synth-container       (pattern-name-key @synthConfig)]
              (if  (= nil synth-container)
                (do (println "Synth created") (swap! synthConfig assoc pattern-name-key (create-synth-config pattern-name synth-name)))
                (do (println "Synth exists"))) ;TODO: if a tigger group is removed, restore the default value bus
