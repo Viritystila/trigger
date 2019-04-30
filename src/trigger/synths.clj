@@ -5,11 +5,12 @@
                                         ;Synths
                                         ;Some of the definitions adapted from
                                         ;https://github.com/overtone/overtone/blob/master/src/overtone/inst/synth.clj
-(defsynth testsin [in-trg 0 in-trg-val 0 in-attack 0 in-attack-val 0 f 200 out-bus 0] (let [trg (in:kr in-trg)
+(defsynth testsin [in-trg 0 in-trg-val 0 in-attack 0.0001 in-attack-val 0.0001 f 200 out-bus 0 ctrl-out 0] (let [trg (in:kr in-trg)
                                                                                            val (in:kr in-trg-val)
                                                                                            env (env-gen (perc (in:kr in-attack-val) 0.01 1 0) :gate trg)
-                                                                                           src (* env (sin-osc (* f val)))]
+                                                                                           src (* 1 (sin-osc (* f val)))]
                                                                                        (out out-bus src)))
+
 
 
 (defsynth simple-flute [in-trg 0
@@ -129,7 +130,7 @@
 
 
 
-(defsynth supersaw [in-freq 440 in-freq-val 440 in-amp 1 in-amp-val 1 out-bus 0]
+(defsynth supersaw [in-freq 440 in-freq-val 440 in-amp 1 in-amp-val 1 out-bus 0 ctrl-out 0]
   (let [freq   (in:kr in-freq-val)
         amp    (in:kr in-amp-val)
         input  (lf-saw freq)
@@ -145,6 +146,7 @@
         output (- output input)
         output (leak-dc:ar (* output 0.25))]
     (out out-bus (pan2 (* amp output)))))
+
 ; (-> {:pn "ss" :sn supersaw} trg)
 ;(-> {:pn "supersaw " :sn supersaw :in-freq ["[51]" "[55 60 65 55]" "[50]"] :in-amp ["[0.4]" "[0.4 0.45 0.5 0.55 0.6 0.55 0.5 0.45 0.4]" "[0.4]"] } trg )
 

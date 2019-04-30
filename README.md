@@ -5,36 +5,57 @@ A Clojure library designed to create control patterns to Overtone synths. The li
 ## Usage
 
 #### Define synth with control-bus inputs
-(defsynth tstsin [in-trg 0 in-trg-val 0 in-attack 0 in-attack-val 0 f 200 out-bus 0] (let [trg (in:kr in-trg)
-                                                                                           val (in:kr in-trg-val)
-                                                                                           env (env-gen (perc (in:kr in-attack-val) 0.01 1 0) :gate trg)
-                                                                                           src (* env (sin-osc (* f val)))]
-                                                                                                                                                                                         (out out-bus src)))
+``` 
+
+(defsynth ping
+  [in-trg 0
+   in-trg-val 0
+   in-note 72
+   in-note-val 72
+   in-attack 0.02
+   in-attack-val 0.02
+   in-decay 0.3
+   in-decay-val 0.3
+   out-bus 0]
+  (let [note   (in:kr in-note-val)
+        attack (in:kr in-attack-val)
+        decay  (in:kr in-decay-val)
+        snd    (sin-osc (midicps note))
+        env    (env-gen (perc attack decay) :gate (in:kr in-trg))]
+    (out out-bus (pan2 (* 0.8 env snd)))))
+``` 
 
 Here, in-trg and in-attack are specified as control values in trigger. The software also connects automatically to in-trg-val and in-attack-val. No trigger is created if no corresponding arguemnt is found in the synthdef.
 
 ##### start the pattern
 
-(-> {:pn "tstsin2" :sn tstsin :in-trg ["[1 1 1 1]"] :in-attack ["[0.05]"] } trg)
+(trg "png" ping :in-trg [1] :in-note [72])
 
-:pn = Pattern name. The pattern and the trigger synths are stored under the name
-:sn = Name of the synth to be used
+
+"png" = Pattern name. The pattern and the trigger synths are stored under the name
+ping = Name of the synth to be used
 
 Pattern structure
-["[p1]"  "[p2]"  "[p3]" .. . ]
-
-example:
-["[1]"] plays one whole note
-["[1 1 1 1]"] plays four quarter notes per second.
-["[1 1 1 1]" "[2]"] plays a pattern with four quarter note and then a pattern with a one whole note with an value of 2.
+:in-trg [p1] [p2] [p3] ... [pn]
+The patterns accept clojure functions as input, for example (repeat 4 1). If the function returns a seq, the seq is joined into the containing pattern. For example:
+[1 1 (repeat 2 1)] = [1 1 1 1]
 
 
-####
-As in TidalCycles the duration of each pattern  [p] is one second, hence adding a pattern adds one second to the full cycle duration.  The value in the pattern structure is passed in the "*-val" control-bus.  
+Ping example:
+(trg "png" ping :in-trg [1] :in-note [72]) ,   plays one whole note with note 72.
+
+(trg "png" ping :in-trg [1 1 1 1] :in-note [77]) plays four quarter notes per second with note 77..
+
+In,
+(trg "png" ping :in-trg [1 1] [(repeat 4 1)] [r] [1 [r 1]] :in-note [ 72 75] [72] [72] [70 [72 72]])
+
+
+the in:trg and in:note loop 4 patterns, each 1 second long. Here, 'r' denotes a rest. 
+
+The duration of each pattern  [p] is one second, hence adding a pattern adds one second to the full cycle duration.  The value in the pattern structure is passed in the "*-val" control-bus.  
 
 
 ### TODO:
-  - Monitor bus selection for visualizations
   - Managing the output bus
   - Output effects
 ## License
