@@ -8,7 +8,6 @@ A Clojure library designed to create control patterns to Overtone synths. The li
 Trigger includex some built in synths already, with more added form time to time (see synths.clj under src/). An example of the basic synth arg structure is:
 
 ``` 
-
 (defsynth ping
   [in-trg 0
    in-trg-val 0
@@ -31,9 +30,7 @@ Here, in-trg and in-attack are specified as control values in trigger. The softw
 
 ##### start the pattern
 ```
-
 (trg "png" ping :in-trg [1] :in-note [72])
-
 ```
 
 "png" = Pattern name. The pattern and the trigger synths are stored under the name
@@ -41,48 +38,36 @@ ping = Name of the synth to be used
 
 Pattern structure
 ```
-
 :in-trg [p1] [p2] [p3] ... [pn]
-
 ```
 The patterns accept clojure functions as input, for example (repeat 4 1). If the function returns a seq, the seq is joined into the containing pattern. For example:
 ```
-
 [1 1 (repeat 2 1)] = [1 1 1 1]
-
 ```
 
 Ping example:
 ```
-
 (trg "png" ping :in-trg [1] :in-note [72]) 
-
 ```
 ,   plays one whole note with note 72.
 ```
-
 (trg "png" ping :in-trg [1 1 1 1] :in-note [77]) 
-
 ```
 plays four quarter notes per second with note 77..
 
 In,
 
 ```
-
 (trg "png" ping :in-trg [1 1] [(repeat 4 1)] [r] [1 [r 1]] :in-note [ 72 75] [72] [72] [70 [72 72]])
-
 ```
 the in:trg and in:note loop 4 patterns, each 1 second long. Here, 'r' denotes a rest. 
 
 The duration of each pattern  [p] is one second, hence adding a pattern adds one second to the full cycle duration.  The value in the pattern structure is passed in the "*-val" control-bus.  
 
-Each pattern is controlled by its own trigger-generator synth which sends two trigger /tr signal on each beat. One of these contains the time untole the next trigger, and the xecond the value of the particular beat. Te id's for these triggers can be retreved with (get-trigger-id) and (get-trigger-val-id) functions. For example:
+Each pattern is controlled by its own trigger-generator synth which sends two trigger /tr signal on each beat. One of these contains the time untole the next trigger, and the second the value of the particular beat. The id's for these triggers can be retrieved with (get-trigger-id) and (get-trigger-val-id) functions. For example:
 
 ```
-
 (on-trigger (get-trigger-val-id :ping :in-trg) (fn [val] (println val)) ::ping-trig )
-
 ```
 
 
