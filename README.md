@@ -1,6 +1,6 @@
 # trigger
 
-A Clojure library designed to create control patterns to Overtone synths. The library is still in it early stages.
+A program designed to create control patterns for Overtone synths.
 
 ## Usage
 
