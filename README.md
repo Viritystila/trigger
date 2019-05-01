@@ -62,7 +62,7 @@ In,
 ```
 the in:trg and in:note loop 4 patterns, each 1 second long. Here, 'r' denotes a rest. 
 
-The duration of each pattern  [p] is one second, hence adding a pattern adds one second to the full cycle duration.  The value in the pattern structure is passed in the "*-val" control-bus.  
+The duration of each pattern  [p] is one second, hence adding a pattern adds one second to the full cycle duration. The duration of a single pattern can be adjusted with (set-pattern-duration) function.  The value in the pattern input is passed in the "*-val" control-bus.
 
 Each pattern is controlled by its own trigger-generator synth which sends two trigger /tr signal on each beat. One of these contains the time untole the next trigger, and the second the value of the particular beat. The id's for these triggers can be retrieved with (get-trigger-id) and (get-trigger-val-id) functions. For example:
 
@@ -74,6 +74,7 @@ Each pattern is controlled by its own trigger-generator synth which sends two tr
 
 ### TODO:
   - Managing the output bus
+  - Syncronizing with TidaCycles
   - Output effects
 ## License
 The MIT License
