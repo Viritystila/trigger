@@ -67,7 +67,7 @@ The duration of each pattern  [p] is one second, hence adding a pattern adds one
 Each pattern is controlled by its own trigger-generator synth which sends two trigger /tr signal on each beat. One of these contains the time untole the next trigger, and the second the value of the particular beat. The id's for these triggers can be retrieved with (get-trigger-id) and (get-trigger-val-id) functions. For example:
 
 ```
-(on-trigger (get-trigger-val-id :ping :in-trg) (fn [val] (println val)) ::ping-trig )
+(on-trigger (get-trigger-val-id :png :in-trg) (fn [val] (println val)) ::ping-trig )
 ```
 
 
