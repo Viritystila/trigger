@@ -433,54 +433,6 @@
     (out out-bus (pan2 (* amp echo)))))
 
 
-;Pad not working for some reason
-(defsynth pad
-  [in-trg 0
-   in-trg-val 0
-   in-note 60
-   in-note-val 60
-   in-t 10
-   in-t-val 10
-   in-amt 0.3
-   in-amt-val 0.3
-   in-amp 0.1
-   in-amp-val 0.1
-   in-a 0.4
-   in-a-val 0.4
-   in-d 0.5
-   in-d-val 0.5
-   in-s 0.8
-   in-s-val 0.8
-   in-r 2
-   in-r-val 2
-   in-gate-select 0
-   in-gate-select-val 0
-   ctrl-out 0
-   out-bus 0]
-  (let [gate       (in:kr in-trg)
-        gate-val   (in:kr in-trg-val)
-        gate       (select:kr (in:kr in-gate-select-val)  [gate-val gate])
-        note   (in:kr in-note-val)
-        t      (in:kr in-t-val)
-        amt    (in:kr in-amt-val)
-        amp    (in:kr in-amp-val)
-        a      (in:kr in-a-val)
-        d      (in:kr in-d-val)
-        s      (in:kr in-s-val)
-        r      (in:kr in-r-val)
-        freq   (midicps note)
-        lfo    (+ 2 (* 0.01 (sin-osc:kr 5 (rand 1.5))))
-        src    (apply + (saw [freq (* freq lfo)]))
-        env    (env-gen (adsr a d s r) :gate gate)
-        f-env  (x-line:kr 0.001 4 t)
-        src    (* env src)
-        signal (rlpf src (+ (* 0.3 freq) (* f-env 2 freq)) 0.5)
-        k      (/ (* 4 amt) (- 1 amt))
-        dist   (clip2 (/ (* (+ 1 k) signal) (+ 1 (* k (abs signal))))
-                      0.03)
-        snd    (* amp dist (line:kr 1 0 t))]
-    (out out-bus (pan2 snd))))
-
 
 (defsynth overpad
   [in-trg 0
@@ -491,18 +443,28 @@
    in-amp-val 0.7
    in-attack 0.001
    in-attack-val 0.001
+   in-decay 0.3
+   in-decay-val 0.3
+   in-sustain 0.99
+   in-sustain-val 0.99
    in-release 2
    in-release-val 2
+   in-gate-select 1
+   in-gate-select-val 1
    ctrl-out 0
    out-bus 0]
-  (let [gate    (in:kr in-trg)
-        note    (in:kr in-note-val)
-        amp     (in:kr in-amp-val)
-        attack  (in:kr in-attack-val)
+  (let [gate       (in:kr in-trg)
+        gate-val   (in:kr in-trg-val)
+        gate       (select:kr (in:kr in-gate-select-val)  [gate-val gate])
+        note       (in:kr in-note-val)
+        amp        (in:kr in-amp-val)
+        attack     (in:kr in-attack-val)
+        decay      (in:kr in-decay-val)
+        sustain    (in:kr in-sustain-val)
         release (in:kr in-release-val)
         freq    (midicps note)
-        env     (env-gen (perc attack release) :gate gate)
-        f-env (+ freq (* 3 freq (env-gen (perc 0.012 (- release 0.1)))))
+        env     (env-gen (adsr attack decay sustain release) :gate gate)
+        f-env (+ freq (* 3 freq (env-gen (perc 0.012 (- release 0.1)) :gate gate)))
         bfreq (/ freq 2)
         sig   (apply +
                      (concat (* 0.7 (sin-osc [bfreq (* 0.99 bfreq)]))
