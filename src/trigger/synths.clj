@@ -92,7 +92,8 @@
    in-fre-lag-val 0.1
    in-gate-select 0
    in-gate-select-val 0
-   out-bus 0]
+   out-bus 0
+   ctrl-out 0]
   (let [freq     (in:kr in-freq-val)
         freq-lag (in:kr in-fre-lag-val)
         freq     (lag freq freq-lag)
@@ -152,7 +153,7 @@
 
 
 (defsynth ticker
-  [in-trg 880 in-trg-val 880 out-bus 0]
+  [in-trg 880 in-trg-val 880 ctrl-out 0  out-bus 0]
   (* (env-gen (perc 0.001 0.01) :gate (in:kr in-trg))
      (out out-bus (pan2 (sin-osc (in:kr in-trg-val))))))
 ;(-> {:pn "ticker" :sn ticker :in-trg ["[51]" "[55 60 65 55]" "[50]"] } trg )
@@ -166,6 +167,7 @@
    in-attack-val 0.02
    in-decay 0.3
    in-decay-val 0.3
+   ctrl-out 0
    out-bus 0]
   (let [note   (in:kr in-note-val)
         attack (in:kr in-attack-val)
@@ -202,6 +204,7 @@
    in-amp-val 0.5
    in-gate-select 0
    in-gate-select-val 0
+   ctrl-out 0
    out-bus 0]
   (let [note       (in:kr in-note-val)
         wave       (in:kr in-wave-val)
@@ -273,6 +276,7 @@
    in-osc2-level-val 0.5
    in-gate-select 0
    in-gate-select-val 0
+   ctrl-out 0
    out-bus 0]
   (let [gate           (in:kr in-trg)
         gate-val       (in:kr in-trg-val)
@@ -319,6 +323,7 @@
                  in-release-val 0.1
                  in-cutoff 2000
                  in-cutoff-val 2000
+                 ctrl-out 0
                  out-bus 0]
   (let [pls      (in:kr in-trg)
         fraction (in:kr in-fraction-val)
@@ -364,6 +369,7 @@
                 in-f3-val 80
                 in-clipv 0.3
                 in-clip-val 0.3
+                ctrl-out 0
                 out-bus 0]
   (let [pls       (in:kr in-trg)
         amp       (in:kr in-amp-val)
@@ -390,3 +396,34 @@
         ;output    (free-verb output 0.1 0.3 0.1)
         ]
     (out out-bus (pan2 output))))
+
+(defsynth rise-fall-pad
+  [in-trg 0
+   in-trg-val 0
+   in-freq 440
+   in-freq-val 440
+   in-t 4
+   in-t-val 4
+   in-amt 0.3
+   in-amt-val 0.3
+   in-amp 0.8
+   in-amp-val 0.8
+   ctrl-out 0
+   out-bus 0]
+  (let [freq       (in:kr in-freq-val)
+        gate       (in:kr in-trg)
+        t          (in:kr in-t-val)
+        amt        (in:kr in-amt-val)
+        amp        (in:kr in-amp-val)
+        f-env      (env-gen (perc t t)  :gate gate)
+        src        (saw [freq (* freq 1.01)])
+        signal     (rlpf (* 0.3 src)
+                         (+ (* 0.6 freq) (* f-env 2 freq)) 0.2)
+        k          (/ (* 2 amt) (- 1 amt))
+        distort    (/ (* (+ 1 k) signal) (+ 1 (* k (abs signal))))
+        gate       (pulse (* 2 (+ 1 (sin-osc:kr 0.05))))
+        compressor (compander distort gate 0.01 1 0.5 0.01 0.01)
+        dampener   (+ 1 (* 0.5 (sin-osc:kr 0.5)))
+        reverb     (free-verb compressor 0.5 0.5 dampener)
+        echo       (comb-n reverb 0.4 0.3 0.5)]
+    (out out-bus (* amp echo))))
