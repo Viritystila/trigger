@@ -471,3 +471,48 @@
                              (lpf (saw [freq (* freq 1.01)]) f-env)))
         audio (* amp env sig)]
     (out out-bus (pan2 audio))))
+
+(defsynth bass
+  [in-trg 0
+   in-trg-val 0
+   in-freq 120
+   in-freq-val 120
+   in-t 0.6
+   in-t-val 0.6
+   in-amp 0.5
+   in-amp-val 0.5
+   ctrl-out 0
+   out-bus 0 ]
+  (let [gate (in:kr in-trg)
+        freq (in:kr in-freq-val)
+        t    (in:kr in-t-val )
+        amp  (in:kr in-amp-val)
+        env  (env-gen (perc 0.08 t) :gate gate)
+        src  (saw [freq (* 0.98 freq) (* 2.015 freq)])
+        src  (clip2 (* 1.3 src) 0.8)
+        sub  (sin-osc (/ freq 2))
+        filt (resonz (rlpf src (* 4.4 freq) 0.09) (* 2.0 freq) 2.9)]
+    (out out-bus (pan2 (* env amp (fold:ar (distort (* 1.3 (+ filt sub))) 0.08))))
+    ))
+
+(defsynth daf-bass [in-trg 0
+                    in-trg-val 0
+                    in-freq 120
+                    in-freq-val 120
+                    in-gate-select 0
+                    in-gate-select-val 0
+                    in-amp 1
+                    in-amp-val 1
+                    ctrl-out 0
+                    out-bus 0]
+  (let [freq (in:kr in-freq-val)
+        gate       (in:kr in-trg)
+        gate-val   (in:kr in-trg-val)
+        gate       (select:kr (in:kr in-gate-select-val)  [gate-val gate])
+        harm [1 1.01 2 2.02 3.5 4.01 5.501]
+        harm (concat harm (map #(* 2 %) harm))
+        snd  (* 2 (distort (sum (sin-osc (* freq harm)))))
+        snd  (+ snd (repeat 2 (sum (sin-osc (/ freq [1 2])))))
+        env  (env-gen (adsr 0.001 0.2 0.9 0.25) :gate gate )]
+    (out out-bus (pan2 (* snd env)))
+    ))
