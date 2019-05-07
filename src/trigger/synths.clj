@@ -3,7 +3,7 @@
   (:use [overtone.core]))
 
                                         ;Synths
-                                        ;Some of the definitions adapted from
+                                        ;Some of the synth  definitions adapted from
                                         ;https://github.com/overtone/overtone/blob/master/src/overtone/inst/synth.clj
 (defsynth testsin [in-trg 0 in-trg-val 0 in-attack 0.0001 in-attack-val 0.0001 f 200 out-bus 0 ctrl-out 0] (let [trg (in:kr in-trg)
                                                                                            val (in:kr in-trg-val)
@@ -741,3 +741,54 @@
         new-vel       (* vel-diff bow-table)]
    (local-out (+ [bridge-refl nut-refl] new-vel))
    (out out-bus (pan2 (resonz (* 10 bridge 0.5) 500 0.85)))))
+
+
+
+(defsynth flute
+  [in-trg 0
+   in-trg-val 0
+   in-freq 440
+   in-freq-val 440
+   in-amp 1
+   in-amp-val 1
+   in-endreflection 0.5
+   in-endreflection-val 0.5
+   in-jetreflection 0.5
+   in-jetreflection-val 0.5
+   in-jetratio 0.32
+   in-jetratio-val 0.32
+   in-noise-gain 0.15
+   in-noise-gain-val 0.15
+   in-vibfreq 5.925
+   in-vibfreq-val 5.925
+   in-vib-gain 1.0
+   in-vib-gain-val 1.0
+   in-gate-select 0
+   in-gate-select-val 0
+   ctrl-out 0
+   out-bus 0]
+  (let [gate           (in:kr in-trg)
+        gate-val       (in:kr in-trg-val)
+        gate           (select:kr (in:kr in-gate-select-val)  [gate-val gate])
+        freq           (in:kr in-freq-val)
+        amp            (in:kr in-amp-val)
+        endreflection  (in:kr in-endreflection-val)
+        jetreflection  (in:kr in-jetreflection-val)
+        jetratio       (in:kr in-jetratio-val)
+        noise-gain     (in:kr in-noise-gain-val)
+        vibfreq        (in:kr in-vibfreq-val)
+        vib-gain       (in:kr in-vib-gain-val)
+        nenv           (env-gen (linen 0.2 0.03 0.5 0.5) :gate gate)
+        adsr           (+ (* amp 0.2) (env-gen (adsr 0.005 0.01 1.1 0.01) :gate  gate))
+        noise          (* (white-noise) noise-gain)
+        vibrato        (sin-osc vibfreq 0 vib-gain)
+        delay          (reciprocal (* freq 0.66666))
+        lastout        (local-in 1)
+        breathpressure (* adsr (+ noise, vibrato))
+        filter         (leak-dc (one-pole (neg lastout) 0.7))
+        pressurediff   (- breathpressure (* jetreflection filter))
+        jetdelay       (delay-l pressurediff 0.025 (* delay jetratio))
+        jet            (clip2 (* jetdelay (- (squared jetdelay) 1.0)) 1.0)
+        boredelay      (delay-l (+ jet (* endreflection filter) 0.05 delay))]
+    (local-out boredelay)
+    (out out-bus (pan2 (* 0.3 boredelay amp nenv)))))
