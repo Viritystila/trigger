@@ -686,3 +686,58 @@
         reverb (free-verb (* clp 1) 0.4 0.8 0.2)
         ]
     (out out-bus (pan2 (* amp env reverb)))))
+
+(defsynth bowed
+  [in-trg 0
+   in-trg-val 0
+   in-note 60
+   in-note-val 60
+   in-velocity 80
+   in-velocity-val 80
+   in-amp 1
+   in-amp-val 1
+   in-bow-offset 0
+   in-bow-offset-val 0
+   in-bow-slope 0.5
+   in-bow-slope-val 0.5
+   in-bow-position 0.75
+   in-bow-position-val 0.75
+   in-vib-freq 6.127
+   in-vib-freq-val 6.127
+   in-vib-gain 0.2
+   in-vib-gain-val 0.2
+   in-gate-select 0
+   in-gate-select-val 0
+   ctrl-out 0
+   out-bus 0]
+  (let [gate         (in:kr in-trg)
+        gate-val     (in:kr in-trg-val)
+        gate         (select:kr (in:kr in-gate-select-val)  [gate-val gate])
+        note         (in:kr in-note-val)
+        velocity     (in:kr in-velocity-val)
+        amp          (in:kr in-amp-val)
+        bow-offset   (in:kr in-bow-offset-val)
+        bow-slope    (in:kr in-bow-slope-val)
+        bow-position (in:kr in-bow-position-val)
+        vib-freq     (in:kr in-vib-freq-val)
+        vib-gain     (in:kr in-vib-gain-val)
+        freq         (midicps note)
+        velocity     (/ velocity 127)
+        beta-ratio   (+ 0.027236 (* 0.2 bow-position))
+        base-delay   (reciprocal freq)
+        [fb1 fb2]    (local-in 2)
+        vibrato      (* (sin-osc vib-freq) vib-gain)
+        neck-delay   (+ (* base-delay (- 1 beta-ratio)) (* base-delay vibrato))
+        neck         (delay-l fb1 0.05 neck-delay)
+        nut-refl     (neg neck)
+        bridge       (delay-l fb2 0.025 (* base-delay beta-ratio))
+        string-filt  (one-pole (* bridge 0.95) 0.55)
+        bridge-refl  (neg string-filt)
+        adsr         (* amp (env-gen (adsr 0.01 3.005 1.0 0.01) :gate gate))
+        string-vel   (+ bridge-refl nut-refl)
+        vel-diff     (- adsr string-vel)
+        slope        (- 5.0 (* 4 bow-slope))
+        bow-table    (clip:ar (pow (abs (+ (* (+ vel-diff bow-offset) slope) 0.75 )) -4) 0 1)
+        new-vel       (* vel-diff bow-table)]
+   (local-out (+ [bridge-refl nut-refl] new-vel))
+   (out out-bus (pan2 (resonz (* 10 bridge 0.5) 500 0.85)))))
