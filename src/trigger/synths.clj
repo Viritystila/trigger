@@ -606,3 +606,83 @@
         env      (env-gen (adsr a d s r) :gate gate)
         filt     (* env (moog-ff mixed (* velocity env (+ freq 200)) 2.2))]
     (out out-bus (pan2 (* amp filt)))))
+
+
+(defsynth b3
+  [in-trg 0
+   in-trg-val 0
+   in-note 60
+   in-note-val 60
+   in-amp 1
+   in-amp-val 1
+   in-a 0.01
+   in-a-val 0.01
+   in-d 3
+   in-d-val 3
+   in-s 1
+   in-s-val 1
+   in-r 0.01
+   in-r-val 0.01
+   in-gate-select 0
+   in-gate-select-val 0
+   ctrl-out 0
+   out-bus 0]
+  (let [gate       (in:kr in-trg)
+        gate-val   (in:kr in-trg-val)
+        gate       (select:kr (in:kr in-gate-select-val)  [gate-val gate])
+        note       (in:kr in-note-val)
+        amp        (in:kr in-amp-val)
+        a       (in:kr in-a-val)
+        d       (in:kr in-d-val)
+        s       (in:kr in-s-val)
+        r       (in:kr in-r-val)
+        freq  (midicps note)
+        waves (sin-osc [(* 0.5 freq)
+                        freq
+                        (* (/ 3 2) freq)
+                        (* 2 freq)
+                        (* freq 2 (/ 3 2))
+                        (* freq 2 2)
+                        (* freq 2 2 (/ 5 4))
+                        (* freq 2 2 (/ 3 2))
+                        (* freq 2 2 2)])
+        snd   (apply + waves)
+        env   (env-gen (adsr a d s r) :gate gate)]
+    (out out-bus (pan2 (* env snd amp)))))
+
+
+(defsynth ks1
+  [in-trg 0
+   in-trg-val 0
+   in-note 60
+   in-note-val 60
+   in-amp 1
+   in-amp-val 1
+   in-dur 2
+   in-dur-val 2
+   in-decay 1
+   in-decay-val 1
+   in-coef 0.1
+   in-coef-val 0.1
+   ctrl-out 0
+   out-bus 0]
+  (let [gate  (in:kr in-trg)
+        gate-val (in:kr in-trg-val)
+        note  (in:kr in-note-val)
+        amp   (in:kr in-amp-val)
+        dur   (in:kr in-dur-val)
+        decay (in:kr in-decay-val)
+        coef  (in:kr in-coef-val)
+        freq (midicps note)
+        noize (* 0.8 (white-noise))
+        dly (/ 1.0 freq)
+        plk   (pluck noize gate (/ 1.0 freq) dly
+                     decay
+                     coef)
+        dist (distort plk)
+        filt (rlpf dist (* 12 freq) 0.6)
+        clp (clip2 filt 0.8)
+        env  (env-gen (perc 0.01 dur) :gate gate)
+        reverb (free-verb (* clp 1) 0.4 0.8 0.2)
+        ]
+    (out out-bus (pan2 (* amp env reverb)))))
