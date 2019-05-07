@@ -516,3 +516,93 @@
         env  (env-gen (adsr 0.001 0.2 0.9 0.25) :gate gate )]
     (out out-bus (pan2 (* snd env)))
     ))
+
+
+(defsynth grunge-bass
+  [in-trg 0
+   in-trg-val 0
+   in-note 48
+   in-note-val 48
+   in-amp 0.5
+   in-amp-val 0.5
+   in-dur 0.1
+   in-dur-val 0.1
+   in-a 0.01
+   in-a-val 0.01
+   in-d 0.01
+   in-d-val 0.01
+   in-s 0.4
+   in-s-val 0.4
+   in-r 0.01
+   in-r-val 0.01
+   in-gate-select 0
+   in-gate-select-val 0
+   ctrl-out 0
+   out-bus 0]
+  (let [gate       (in:kr in-trg)
+        gate-val   (in:kr in-trg-val)
+        gate       (select:kr (in:kr in-gate-select-val)  [gate-val gate])
+        note    (in:kr in-note-val)
+        freq    (midicps note)
+        amp     (in:kr in-amp-val)
+        dur     (in:kr in-dur-val)
+        a       (in:kr in-a-val)
+        d       (in:kr in-d-val)
+        s       (in:kr in-s-val)
+        r       (in:kr in-r-val)
+        env     (env-gen (adsr a d s r) (line:kr 1 0 (+ a d dur r 0.1))
+                         :gate gate)
+        src     (saw [freq (* 0.98 freq) (* 1.015 freq)])
+        src     (clip2 (* 1.3 src) 0.9)
+        sub     (sin-osc (/ freq 2))
+        filt    (resonz (rlpf src (* 8.4 freq) 0.29) (* 2.0 freq) 2.9)
+        meat    (ring4 filt sub)
+        sliced  (rlpf meat (* 2 freq) 0.1)
+        bounced (free-verb sliced 0.8 0.9 0.2)]
+    (out out-bus (pan2 (* amp env bounced)))))
+
+
+(defsynth vintage-bass
+  [in-trg 0
+   in-trg-val 0
+   in-note 40
+   in-note-val 40
+   in-velocity 80
+   in-velocity-val 80
+   in-t 0.6
+   in-t-val 0.6
+   in-amp 1
+   in-amp-val 1
+   in-a 0.1
+   in-a-val 0.1
+   in-d 3.3
+   in-d-val 3.3
+   in-s 0.4
+   in-s-val 0.4
+   in-r 0.8
+   in-r-val 0.8
+   in-gate-select 0
+   in-gate-select-val 0
+   ctrl-out 0
+   out-bus 0]
+  (let [gate       (in:kr in-trg)
+        gate-val   (in:kr in-trg-val)
+        gate       (select:kr (in:kr in-gate-select-val)  [gate-val gate])
+        note       (in:kr in-note-val)
+        velocity   (in:kr in-velocity-val)
+        t          (in:kr in-t-val)
+        amp        (in:kr in-amp-val)
+        a       (in:kr in-a-val)
+        d       (in:kr in-d-val)
+        s       (in:kr in-s-val)
+        r       (in:kr in-r-val)
+        freq     (midicps note)
+        sub-freq (midicps (- note 12))
+        velocity (/ velocity 127.0)
+        sawz1    (* 0.275 (saw [freq (* 1.01 freq)]))
+        sawz2    (* 0.75 (saw [(- freq 2) (+ 1 freq)]))
+        sqz      (* 0.3 (pulse [sub-freq (- sub-freq 1)]))
+        mixed    (* 5 (+ sawz1 sawz2 sqz))
+        env      (env-gen (adsr a d s r) :gate gate)
+        filt     (* env (moog-ff mixed (* velocity env (+ freq 200)) 2.2))]
+    (out out-bus (pan2 (* amp filt)))))
