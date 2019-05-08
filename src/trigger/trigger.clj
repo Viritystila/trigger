@@ -459,7 +459,7 @@
 
 ;New trigger input function, allows more terse an powerfull way to create patterns. Now clojure functions such as repeat can be used directly in the input.
 (defn trg ([pn sn & input]
-           (let [pattern-name          pn
+           (let [pattern-name          (if (keyword? pn) (name pn) pn )
                  pattern-name-key      (keyword pattern-name)
                  synth-name            sn
                  input                 (split-input input)
