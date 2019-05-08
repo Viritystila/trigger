@@ -269,15 +269,20 @@
   (swap-synth [this synth-name])
   (ctl-synth [this var value])
   (free-default-buses [this])
+  (free-secondary-out-bus [this])
   (apply-default-buses [this])
   (apply-default-bus [this db])
   (apply-control-out-bus [this])
-  (get-control-out-bus [this])
+  (apply-out-bus [this])
+  (apply-secondary-out-bus [this])
+  ;(get-control-out-bus [this])
+  ;(get-out-bus [this])
   (free-control-out-bus [this]))
 
 (defrecord synthContainer [pattern-name
                            group
                            out-bus
+                           out-bus-secondary
                            play-synth
                            triggers
                            synth-name
@@ -289,10 +294,14 @@
   (swap-synth [this synth-name] (println "not implemented"))
   (ctl-synth [this var value] (ctl (. this play-synth) var value))
   (free-default-buses [this] ( doseq [x (vals default-buses)] (free-bus x)))
+  (free-secondary-out-bus [this] (free-bus (. this out-bus-secondary)) )
   (apply-default-buses [this] (doseq [x default-buses] (ctl (. this play-synth) (key x) (val x))))
   (apply-default-bus [this db] (ctl (. this play-synth) db (db default-buses)))
   (apply-control-out-bus [this] (ctl (. this play-synth) :ctrl-out (. this control-out-bus)))
-  (get-control-out-bus [this] (. this control-out-bus))
+  (apply-out-bus [this] (ctl (. this play-synth) :out-bus 0 ))
+  (apply-secondary-out-bus [this] (ctl (. this play-synth) :out-bus (. this out-bus-secondary)))
+  ;(get-control-out-bus [this] (. this control-out-bus))
+  ;(get-out-bus [this] (. this out-bus))
   (free-control-out-bus [this] (free-bus (. this control-out-bus))))
 
 
@@ -342,12 +351,21 @@
   (get-trigger-val-id [this] (. this trigger-val-id)))
 
 (defn create-synth-config [pattern-name synth-name] (let [out-bus         0
+                                                          out-bus-secondary (audio-bus)
                                                           synth-group     (group pattern-name :after main-g)
                                                           play-synth      (synth-name  [:tail synth-group] )
                                                           default-buses   (generate-default-buses synth-name)
                                                           control-out-bus (control-bus 1)
                                                           triggers        {}
-                                                          synth-container  (synthContainer. pattern-name synth-group out-bus play-synth triggers synth-name default-buses control-out-bus)]
+                                                          synth-container  (synthContainer. pattern-name
+                                                                                            synth-group
+                                                                                            out-bus
+                                                                                            out-bus-secondary
+                                                                                            play-synth
+                                                                                            triggers
+                                                                                            synth-name
+                                                                                            default-buses
+                                                                                            control-out-bus)]
                                                       (apply-default-buses synth-container)
                                                       (apply-control-out-bus synth-container)
                                                       synth-container ))
@@ -526,12 +544,23 @@
                                triggers              (vals (:triggers pattern-status))]
                            (if (some? pattern-status) (do (free-default-buses pattern-status)
                                                           (free-control-out-bus pattern-status)
+                                                          (free-secondary-out-bus pattern-status)
                                                           (doseq [x triggers] (kill-trg-group x))
                                                           (kill-trg pattern-status)
                                                           (swap! synthConfig dissoc pattern-name-key)) ))
   (println "pattern stopped"))
 
+(defn set-out-bus [pattern-name] (let [pattern-name-key    pattern-name
+                                       pattern-status (pattern-name-key @synthConfig)]
+                                   (if (some? pattern-status) (apply-out-bus pattern-status) )))
 
+(defn set-secondary-out-bus [pattern-name] (let [pattern-name-key    pattern-name
+                                                 pattern-status (pattern-name-key @synthConfig)]
+                                             (if (some? pattern-status) (apply-secondary-out-bus pattern-status) )))
+
+(defn get-out-bus [pattern-name] (:out-bus (pattern-name @synthConfig)))
+
+(defn get-secondary-out-bus [pattern-name] (:out-bus-secondary (pattern-name @synthConfig)))
 
 (defn get-ctrl-bus [pattern-name] (:control-out-bus (pattern-name @synthConfig)))
 
