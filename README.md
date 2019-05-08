@@ -84,6 +84,8 @@ the in:trg and in:note loop 4 patterns, each 1 second long. Here, 'r' denotes a 
 (get-trigger-id [pattern-name trig-name]) - get the trigger id
 
 (get-trigger-val-id [pattern-name trig-name]) - get the trigger value id
+
+(lss) - list running patterns
 ```
 
 
