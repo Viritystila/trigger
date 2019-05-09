@@ -575,6 +575,10 @@
 (defn sctl [pattern-name var value] (let [pattern-status (pattern-name @synthConfig)]
                                       (if (some? pattern-status) (ctl-synth pattern-status var value))))
 
+(defn connect-synths [src-synth dst-synth input-name] (let [output-bus   (get-secondary-out-bus src-synth)]
+                                                        (sctl dst-synth input-name output-bus)
+                                                        (set-secondary-out-bus src-synth)) )
+
 (defn lss [] (println (keys @synthConfig)))
 
 (start-trigger)
