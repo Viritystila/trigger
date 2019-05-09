@@ -351,8 +351,8 @@
   (get-trigger-val-id [this] (. this trigger-val-id)))
 
 (defn create-synth-config [pattern-name synth-name] (let [out-bus         0
-                                                          out-bus-secondary (audio-bus)
-                                                          synth-group     (group pattern-name :after main-g)
+                                                          out-bus-secondary (audio-bus 2)
+                                                          synth-group     (group pattern-name :tail main-g)
                                                           play-synth      (synth-name  [:tail synth-group] )
                                                           default-buses   (generate-default-buses synth-name)
                                                           control-out-bus (control-bus 1)
@@ -572,6 +572,8 @@
 
 (defn get-trigger-val-id [pattern-name trig-name] (:trigger-val-id (trig-name (:triggers (pattern-name @synthConfig)))))
 
+(defn sctl [pattern-name var value] (let [pattern-status (pattern-name @synthConfig)]
+                                      (if (some? pattern-status) (ctl-synth pattern-status var value))))
 
 (defn lss [] (println (keys @synthConfig)))
 

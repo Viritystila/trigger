@@ -6,11 +6,15 @@
                                         ;Some of the synth  definitions adapted from
                                         ;https://github.com/overtone/overtone/blob/master/src/overtone/inst/synth.clj
 (defsynth testsin [in-trg 0 in-trg-val 0 in-attack 0.0001 in-attack-val 0.0001 f 200 out-bus 0 ctrl-out 0] (let [trg (in:kr in-trg)
-                                                                                           val (in:kr in-trg-val)
-                                                                                           env (env-gen (perc (in:kr in-attack-val) 0.01 1 0) :gate trg)
-                                                                                           src (* 1 (sin-osc (* f val)))]
-                                                                                       (out out-bus src)))
+                                                                                                                 val (in:kr in-trg-val)
+                                                                                                                 env (env-gen (perc (in:kr in-attack-val) 0.01 0.5 0.1) :gate trg)
+                                                                                                                 src (* env (sin-osc (* f val)))]
+                                                                                                             (out out-bus (pan2 src))))
 
+
+(defsynth testeffect [in-trg 0.1 in-trg-val 0.1 out-bus 0 ctrl-out 0 bus-in 0] (let [val    (in:kr in-trg-val)
+                                                                                     src (free-verb (in bus-in) val 0.1 0.1)]
+                                                                                 (out out-bus src)) )
 
 
 (defsynth simple-flute [in-trg 0
