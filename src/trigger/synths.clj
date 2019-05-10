@@ -577,7 +577,7 @@
    in-t-val 0.6
    in-amp 1
    in-amp-val 1
-   in-a 0.1
+   in-a 0.01
    in-a-val 0.1
    in-d 3.3
    in-d-val 3.3
