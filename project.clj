@@ -5,7 +5,7 @@
             :url "https://www.eclipse.org/legal/epl-2.0/"}
   :dependencies [[org.clojure/clojure "1.9.0"]
                 [org.clojure/tools.namespace "0.2.11"]
-                [overtone            "0.10.4"]]
+                [overtone            "0.10.3"]]
   :repl-options {:init-ns trigger.trigger}
   :main ^{:skip-aot true} trigger.core
   :jvm-opts ^:replace [])
