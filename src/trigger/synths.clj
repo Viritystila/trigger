@@ -796,3 +796,63 @@
         boredelay      (delay-l (+ jet (* endreflection filter) 0.05 delay))]
     (local-out boredelay)
     (out out-bus (pan2 (* 0.3 boredelay amp nenv)))))
+
+
+;drum synths from https://github.com/overtone/overtone/blob/master/src/overtone/inst/drum.clj
+
+(defsynth kick2
+  [in-trg             0
+   in-trg-val         0
+   in-freq            50
+   in-freq-val        50
+   in-env-ratio       3
+   in-env-ratio-val   3
+   in-freq-decay      0.02
+   in-freq-decay-val  0.02
+   in-amp-decay       0.5
+   in-amp-decay-val   0.5
+   in-amp             1
+   in-amp-val         1
+   out-bus            0
+   ctrl-out           0]
+  (let [gate          (in:kr in-trg)
+        freq          (in:kr in-freq-val)
+        env-ratio     (in:kr in-env-ratio-val)
+        freq-decay    (in:kr in-freq-decay-val)
+        amp-decay     (in:kr in-amp-decay-val)
+        amp           (in:kr in-amp-val)
+        fenv (* (env-gen (envelope [env-ratio 1] [freq-decay] :exp) :gate gate) freq)
+        aenv (env-gen (perc 0.005 amp-decay) :gate gate)]
+    (out out-bus (pan2 (* (sin-osc fenv (* 0.5 Math/PI)) aenv)))))
+
+
+(defsynth kick3 [in-trg             0
+                in-trg-val         0
+                in-freq            80
+                in-freq-val        80
+                in-amp             0.8
+                in-amp-val         0.8
+                in-mod-freq        60
+                in-mod-freq-val    60
+                in-mod-index       5
+                in-mod-index-val   5
+                in-sustain         0.4
+                in-sustain-val     0.4
+                in-noise           0.025
+                in-noise-val       0.025
+                out-bus            0
+                ctrl-out           0]
+  (let [gate               (in:kr in-trg)
+        freq               (in:kr in-freq-val)
+        amp                (in:kr in-amp-val)
+        mod-freq           (in:kr in-mod-freq-val)
+        mod-index          (in:kr in-mod-index-val)
+        sustain            (in:kr in-sustain-val)
+        noise              (in:kr in-noise-val)
+        pitch-contour (line:kr (* 2 freq) freq 0.02)
+        drum (lpf (sin-osc pitch-contour (sin-osc mod-freq (/ mod-index 1.3))) 1000)
+        drum-env (env-gen (perc 0.005 sustain) :gate gate)
+        hit (hpf (* noise (white-noise)) 500)
+        hit (lpf hit (line 6000 500 0.03))
+        hit-env (env-gen (perc 0.005 1) :gate gate)]
+    (out out-bus (pan2 (* amp (+ (* drum drum-env) (* hit hit-env)))))))
