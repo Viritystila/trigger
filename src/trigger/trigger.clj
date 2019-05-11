@@ -433,8 +433,9 @@
     trigger))
 
 
-(defn changed? [trigger new-control-pattern] (let [old-control-pattern  (:original-pattern-value-vector trigger)]
-                                                (= new-control-pattern old-control-pattern)))
+(defn changed? [trigger new-trigger-pattern  new-control-pattern] (let [old-trigger-pattern  (:original-pattern-vector trigger)
+                                                                        old-control-pattern  (:original-pattern-value-vector trigger)]
+                                                                    (or (not= new-trigger-pattern old-trigger-pattern) (not= new-control-pattern old-control-pattern))))
 
 (defn t [synth-container control-pair] (let [control-key       (first control-pair)
                                              control-val-key   (keyword (str (name control-key) "-val"))
@@ -446,8 +447,8 @@
                                              triggers          (:triggers synth-container)
                                              play-synth        (:play-synth synth-container)
                                              trigger-status    (control-key triggers)
-                                             has-changed       (if (some? trigger-status) (changed? trigger-status val-pattern) )
-                                             trigger           (if (some? trigger-status) (if(= true has-changed) trigger-status (update-trigger trigger-status trig-pattern val-pattern))
+                                             has-changed       (if (some? trigger-status) (changed? trigger-status trig-pattern val-pattern) )
+                                             trigger           (if (some? trigger-status) (if(= true has-changed) (update-trigger trigger-status trig-pattern val-pattern) trigger-status)
                                                                    (create-trigger control-key
                                                                                    control-val-key
                                                                                    play-synth
