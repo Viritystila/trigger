@@ -856,3 +856,128 @@
         hit (lpf hit (line 6000 500 0.03))
         hit-env (env-gen (perc 0.005 1) :gate gate)]
     (out out-bus (pan2 (* amp (+ (* drum drum-env) (* hit hit-env)))))))
+
+
+(defsynth kick4
+  [in-trg        0
+   in-freq       80
+   in-freq-val   80
+   in-amp        0.3
+   in-amp-val    0.3
+   in-attack     0.001
+   in-attack-val 0.001
+   in-decay      0.4
+   in-decay-val  0.4
+   out-bus       0
+   ctrl-out      0]
+  (let [gate      (in:kr in-trg)
+        freq      (in:kr in-freq-val)
+        attack    (in:kr in-attack-val)
+        decay     (in:kr in-decay-val)
+        amp       (in:kr in-amp-val)
+        env (env-gen (perc attack decay) :gate gate)
+        snd (sin-osc freq (* Math/PI 0.5))
+        snd (* amp env snd)]
+    (out out-bus (pan2 snd))))
+
+
+(defsynth dub-kick
+  [in-trg      0
+   in-freq     80
+   in-freq-val 80
+   ctrl-out    0
+   out-bus     0]
+  (let [gate       (in:kr in-trg)
+        freq       (in:kr in-freq-val)
+        cutoff-env (perc 0.001 1 freq -20)
+        amp-env (perc 0.001 1 1 -8)
+        osc-env (perc 0.001 1 freq -8)
+        noiz (lpf (white-noise) (+ (env-gen:kr cutoff-env :gate gate) 20))
+        snd  (lpf (sin-osc (+ (env-gen:kr osc-env :gate gate) 20)) 200)
+        mixed (* (+ noiz snd) (env-gen amp-env :gate gate))]
+    (out out-bus (pan2 mixed))))
+
+(defsynth dance-kick
+  [in-trg        0
+   in-freq       50.24
+   in-freq-val   50.24
+   in-amp        0.8
+   in-amp-val    0.8
+   in-attack     0.0001
+   in-attack-val 0.0001
+   in-decay      0.484
+   in-decay-val  0.484
+   in-fattack     0.0001
+   in-fattack-val 0.0001
+   in-fdecay      0.484
+   in-fdecay-val  0.484
+   ctrl-out      0
+   out-bus       0]
+  (let [gate       (in:kr in-trg)
+        freq       (in:kr in-freq-val)
+        attack     (in:kr in-attack-val)
+        decay      (in:kr in-decay-val)
+        fattack    (in:kr in-fattack-val)
+        fdecay     (in:kr in-fdecay-val)
+        amp        (in:kr in-amp-val)
+        freq-env (env-gen:kr (perc fattack fdecay))
+        wave (sin-osc (+ freq (* 8 freq freq-env)))
+        env  (env-gen:kr (perc attack decay) :gate gate)
+        src (* env wave)
+        dist (clip2 (* 2 (tanh (* 3 (distort (* 1.5 src))))) 0.8)
+        eq (b-peak-eq dist 37.67 1 10.4)]
+    (out out-bus (pan2 (* amp eq)))))
+
+(defsynth dry-kick
+  [in-trg        0
+   in-freq       50.24
+   in-freq-val   50.24
+   in-amp        0.8
+   in-amp-val    0.8
+   in-attack     0.0001
+   in-attack-val 0.0001
+   in-decay      0.484
+   in-decay-val  0.484
+   ctrl-out      0
+   out-bus       0]
+  (let [gate       (in:kr in-trg)
+        freq       (in:kr in-freq-val)
+        attack     (in:kr in-attack-val)
+        decay      (in:kr in-decay-val)
+        amp        (in:kr in-amp-val)
+        env (env-gen (perc attack decay) :gate gate)
+        snd (mix (sin-osc [freq (* 2 freq) (- freq 15)] (* Math/PI 0.5)))
+        snd (* amp env snd)]
+    (out out-bus (pan2 snd))))
+
+
+(defsynth quick-kick
+  [in-trg        0
+   in-freq       50.24
+   in-freq-val   50.24
+   in-amp        0.8
+   in-amp-val    0.8
+   in-attack     0.0001
+   in-attack-val 0.0001
+   in-decay      0.484
+   in-decay-val  0.484
+   in-fattack     0.0001
+   in-fattack-val 0.0001
+   in-fdecay      0.484
+   in-fdecay-val  0.484
+   ctrl-out      0
+   out-bus       0]
+  (let [gate       (in:kr in-trg)
+        freq       (in:kr in-freq-val)
+        attack     (in:kr in-attack-val)
+        decay      (in:kr in-decay-val)
+        fattack    (in:kr in-fattack-val)
+        fdecay     (in:kr in-fdecay-val)
+        amp        (in:kr in-amp-val)
+        freq-env (env-gen:kr (perc fattack fdecay) :gate gate)
+        wave (sin-osc (+ (* 0.5 freq) (* 14 freq freq-env)))
+        env  (env-gen (envelope [1, 10e-10] [decay] :exp) :gate gate) ;(x-line:kr 1 0 decay)
+        src (* env wave)
+        dist (clip2 (* 2 (tanh (* 3 (distort (* 1.5 src))))) 0.8)
+        eq (b-peak-eq dist 57.41 1 44)]
+    (out out-bus (pan2 (* amp eq)))))
