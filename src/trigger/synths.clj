@@ -23,8 +23,8 @@
                         in-freq-val 880
                         in-amp 1
                         in-amp-val 0.5
-                        in-attack 0.4
-                        in-attack-val 0.4
+                        in-attack 0.001
+                        in-attack-val 0.001
                         in-decay 0.5
                         in-decay-val 0.5
                         in-sustain 0.8
@@ -68,8 +68,8 @@
    in-freq-val 880
    in-amp 0.5
    in-amp-val 0.5
-   in-attack 0.75
-   in-attack-val 0.75
+   in-attack 0.001
+   in-attack-val 0.001
    in-decay 0.5
    in-decay-val 0.5
    in-sustain 0.8
@@ -158,8 +158,8 @@
 
 (defsynth ticker
   [in-trg 880 in-trg-val 880 ctrl-out 0  out-bus 0]
-  (* (env-gen (perc 0.001 0.01) :gate (in:kr in-trg))
-     (out out-bus (pan2 (sin-osc (in:kr in-trg-val))))))
+  (let [env (env-gen (perc 0.001 0.01) :gate (in:kr in-trg))]
+    (out out-bus (pan2 (* env (sin-osc (in:kr in-trg-val)))))))
 ;(-> {:pn "ticker" :sn ticker :in-trg ["[51]" "[55 60 65 55]" "[50]"] } trg )
 
 (defsynth ping
@@ -198,10 +198,10 @@
    in-decay-val 0.1
    in-sustain 0.6
    in-sustain-val 0.6
-   in-release 0.01
-   in-release-val 0.01
-   in-cutoff 100
-   in-cutoff-val 100
+   in-release 0.3
+   in-release-val 0.3
+   in-cutoff 2000
+   in-cutoff-val 2000
    in-env-amount 0.01
    in-env-amount-val 0.01
    in-amp 0.5
@@ -250,30 +250,30 @@
    in-trg-val 0
    in-note 60
    in-note-val 60
-   in-amp 0.3
-   in-amp-val 0.3
+   in-amp 1
+   in-amp-val 1
    in-osc1 1
    in-osc1-val 1
    in-osc2 1
    in-osc2-val 1
    in-cutoff 500
    in-cutoff-val 500
-   in-attack 0.0001
-   in-attack-val 0.0001
-   in-decay 0.3
-   in-decay-val 0.3
-   in-sustain 0.99
-   in-sustain-val 0.99
-   in-release 0.0001
-   in-release-val 0.0001
-   in-fattack 0.0001
-   in-fattack-val 0.0001
-   in-fdecay 0.3
-   in-fdecay-val 0.3
+   in-attack 0.0022
+   in-attack-val 0.0022
+   in-decay 0.95
+   in-decay-val 0.95
+   in-sustain 0.4
+   in-sustain-val 0.4
+   in-release 0.3
+   in-release-val 0.3
+   in-fattack 0.22
+   in-fattack-val 0.22
+   in-fdecay 0.9
+   in-fdecay-val 0.9
    in-fsustain 0.999
    in-fsustain-val 0.999
-   in-frelease 0.0001
-   in-frelease-val 0.0001
+   in-frelease 0.001
+   in-frelease-val 0.001
    in-osc1-level 0.5
    in-osc1-level-val 0.5
    in-osc2-level 0.5
@@ -315,12 +315,12 @@
 
 (defsynth snare [in-trg 0
                  in-trg-val 0
-                 in-amp 0.3
-                 in-amp-val 0.3
+                 in-amp 1
+                 in-amp-val 1
                  in-fraction 1
                  in-fraction-val 1
-                 in-attack 0.01
-                 in-attack-val 0.01
+                 in-attack 0.1
+                 in-attack-val 0.1
                  in-sustain 0.01
                  in-sustain-val 0.01
                  in-release 0.1
@@ -345,8 +345,8 @@
 
 (defsynth kick [in-trg 0
                 in-trg-val 0
-                in-amp 1
-                in-amp-val 1
+                in-amp 0.02
+                in-amp-val 0.02
                 in-v1 0.1
                 in-v1-val 0.01
                 in-v2 0.01
@@ -397,7 +397,7 @@
         sound     (lpf (sin-osc (+ 0 (env-gen osc-env :gate pls) 20)) (* 200 1))
         env       (env-gen a-env :gate pls)
         output    (*  amp (+ cutoff sound) env)
-        ;output    (free-verb output 0.1 0.3 0.1)
+        output    (free-verb output 0.1 0.3 0.1)
         ]
     (out out-bus (pan2 output))))
 
@@ -505,21 +505,21 @@
                     in-freq-val 120
                     in-gate-select 0
                     in-gate-select-val 0
-                    in-amp 1
-                    in-amp-val 1
+                    in-amp 0.3
+                    in-amp-val 0.3
                     ctrl-out 0
                     out-bus 0]
   (let [freq (in:kr in-freq-val)
         gate       (in:kr in-trg)
         gate-val   (in:kr in-trg-val)
         gate       (select:kr (in:kr in-gate-select-val)  [gate-val gate])
+        amp        (in:kr in-amp-val)
         harm [1 1.01 2 2.02 3.5 4.01 5.501]
         harm (concat harm (map #(* 2 %) harm))
         snd  (* 2 (distort (sum (sin-osc (* freq harm)))))
         snd  (+ snd (repeat 2 (sum (sin-osc (/ freq [1 2])))))
         env  (env-gen (adsr 0.001 0.2 0.9 0.25) :gate gate )]
-    (out out-bus (pan2 (* snd env)))
-    ))
+    (out out-bus (pan2 (* amp snd env)))))
 
 
 (defsynth grunge-bass
@@ -531,14 +531,14 @@
    in-amp-val 0.5
    in-dur 0.1
    in-dur-val 0.1
-   in-a 0.01
-   in-a-val 0.01
-   in-d 0.01
-   in-d-val 0.01
-   in-s 0.4
-   in-s-val 0.4
-   in-r 0.01
-   in-r-val 0.01
+   in-a 0.001
+   in-a-val 0.001
+   in-d 0.1
+   in-d-val 0.1
+   in-s 0.9
+   in-s-val 0.9
+   in-r 0.4
+   in-r-val 0.4
    in-gate-select 0
    in-gate-select-val 0
    ctrl-out 0
@@ -578,11 +578,11 @@
    in-amp 1
    in-amp-val 1
    in-a 0.01
-   in-a-val 0.1
-   in-d 3.3
-   in-d-val 3.3
-   in-s 0.4
-   in-s-val 0.4
+   in-a-val 0.01
+   in-d 0.03
+   in-d-val 0.03
+   in-s 1
+   in-s-val 1
    in-r 0.8
    in-r-val 0.8
    in-gate-select 0
@@ -617,16 +617,16 @@
    in-trg-val 0
    in-note 60
    in-note-val 60
-   in-amp 1
-   in-amp-val 1
+   in-amp 0.3
+   in-amp-val 0.3
    in-a 0.01
    in-a-val 0.01
    in-d 3
    in-d-val 3
    in-s 1
    in-s-val 1
-   in-r 0.01
-   in-r-val 0.01
+   in-r 0.3
+   in-r-val 0.3
    in-gate-select 0
    in-gate-select-val 0
    ctrl-out 0
@@ -737,7 +737,7 @@
         bridge       (delay-l fb2 0.025 (* base-delay beta-ratio))
         string-filt  (one-pole (* bridge 0.95) 0.55)
         bridge-refl  (neg string-filt)
-        adsr         (* amp (env-gen (adsr 0.01 3.005 1.0 0.01) :gate gate))
+        adsr         (* amp (env-gen (adsr 0.01 0.005 0.1 0.01) :gate gate))
         string-vel   (+ bridge-refl nut-refl)
         vel-diff     (- adsr string-vel)
         slope        (- 5.0 (* 4 bow-slope))
@@ -746,56 +746,6 @@
    (local-out (+ [bridge-refl nut-refl] new-vel))
    (out out-bus (pan2 (resonz (* 10 bridge 0.5) 500 0.85)))))
 
-
-
-(defsynth flute
-  [in-trg 0
-   in-trg-val 0
-   in-freq 440
-   in-freq-val 440
-   in-amp 1
-   in-amp-val 1
-   in-endreflection 0.5
-   in-endreflection-val 0.5
-   in-jetreflection 0.5
-   in-jetreflection-val 0.5
-   in-jetratio 0.32
-   in-jetratio-val 0.32
-   in-noise-gain 0.15
-   in-noise-gain-val 0.15
-   in-vibfreq 5.925
-   in-vibfreq-val 5.925
-   in-vib-gain 1.0
-   in-vib-gain-val 1.0
-   in-gate-select 0
-   in-gate-select-val 0
-   ctrl-out 0
-   out-bus 0]
-  (let [gate           (in:kr in-trg)
-        gate-val       (in:kr in-trg-val)
-        gate           (select:kr (in:kr in-gate-select-val)  [gate-val gate])
-        freq           (in:kr in-freq-val)
-        amp            (in:kr in-amp-val)
-        endreflection  (in:kr in-endreflection-val)
-        jetreflection  (in:kr in-jetreflection-val)
-        jetratio       (in:kr in-jetratio-val)
-        noise-gain     (in:kr in-noise-gain-val)
-        vibfreq        (in:kr in-vibfreq-val)
-        vib-gain       (in:kr in-vib-gain-val)
-        nenv           (env-gen (linen 0.2 0.03 0.5 0.5) :gate gate)
-        adsr-env       (+ (* amp 0.2) (env-gen (adsr 0.005 0.01 1.1 0.01) :gate  gate))
-        noise          (* (white-noise) noise-gain)
-        vibrato        (sin-osc vibfreq 0 vib-gain)
-        delay          (reciprocal (* freq 0.66666))
-        lastout        (local-in 1)
-        breathpressure (* adsr-env (+ noise, vibrato))
-        filter         (leak-dc (one-pole (neg lastout) 0.7))
-        pressurediff   (- breathpressure (* jetreflection filter))
-        jetdelay       (delay-l pressurediff 0.025 (* delay jetratio))
-        jet            (clip2 (* jetdelay (- (squared jetdelay) 1.0)) 1.0)
-        boredelay      (delay-l (+ jet (* endreflection filter) 0.05 delay))]
-    (local-out boredelay)
-    (out out-bus (pan2 (* 0.3 boredelay amp nenv)))))
 
 
 ;drum synths from https://github.com/overtone/overtone/blob/master/src/overtone/inst/drum.clj
@@ -1028,3 +978,256 @@
         sqr (* (env-gen (perc 0.01 0.04) :gate gate) (pulse 880 0.2))
         filt (bpf (+ sqr noise) 9000 0.5)]
     (out out-bus (pan2 (* 0.5 amp env filt)))))
+
+(defsynth soft-hat
+  [in-trg        0
+   in-trg-val    0
+   in-freq       6000
+   in-freq-val   6000
+   in-amp        0.3
+   in-amp-val    0.3
+   in-attack     0.001
+   in-attack-val 0.001
+   in-decay      0.1
+   in-decay-val  0.1
+   ctrl-out 0
+   out-bus 0 ]
+  (let [gate       (in:kr in-trg)
+        freq       (in:kr in-freq-val)
+        amp        (in:kr in-amp-val)
+        attack     (in:kr in-attack-val)
+        decay      (in:kr in-decay-val)
+        env (env-gen (perc attack decay) :gate gate)
+        noiz (bpf (* amp (gray-noise)) freq 0.3)
+        snd (* noiz env)]
+    (out out-bus (pan2 snd))))
+
+
+(defsynth noise-hat
+  [in-trg        0
+   in-trg-val    0
+   in-freq       6000
+   in-freq-val   6000
+   in-amp        0.3
+   in-amp-val    0.3
+   in-attack     0.1
+   in-attack-val 0.1
+   in-decay      0.001
+   in-decay-val  0.001
+   ctrl-out 0
+   out-bus 0 ]
+  (let [gate       (in:kr in-trg)
+        freq       (in:kr in-freq-val)
+        amp        (in:kr in-amp-val)
+        attack     (in:kr in-attack-val)
+        decay      (in:kr in-decay-val)
+        env (env-gen:kr (perc attack decay) :gate gate)
+        noiz (bpf (* amp (gray-noise))
+                  (line freq 50 (* decay 0.5))
+                  (*  1 ))
+        snd (* 5 noiz env)]
+    (out out-bus (pan2 snd))))
+
+(defsynth bell-hat
+  [in-trg        0
+   in-trg-val    0
+   in-freq       6000
+   in-freq-val   6000
+   in-amp        0.3
+   in-amp-val    0.3
+   in-attack     0.0001
+   in-attack-val 0.0001
+   in-decay      0.1
+   in-decay-val  0.1
+   ctrl-out 0
+   out-bus 0]
+  (let [gate       (in:kr in-trg)
+        freq       (in:kr in-freq-val)
+        amp        (in:kr in-amp-val)
+        attack     (in:kr in-attack-val)
+        decay      (in:kr in-decay-val)
+        env (env-gen (perc attack decay) :gate gate)
+        noiz (bpf (* amp (gray-noise)) (line freq 5 (* decay 0.5)) (+ env 0.1))
+        wave (* 0.1 env (mix (sin-osc [4000 6500 5000])))
+        snd (+ noiz wave)]
+    (out out-bus (pan2 snd))))
+
+(defsynth snare2
+  [in-trg              0
+   in-trg-val          0
+   in-freq             405
+   in-freq-val         405
+   in-amp              1
+   in-amp-val          1
+   in-attack           0.005
+   in-attack-val       0.005
+   in-decay            0.1
+   in-decay-val        0.1
+   in-drum-amp         0.25
+   in-drum-amp-val     0.25
+   in-crackle-amp      40
+   in-crackle-amp-val  40
+   in-tightness        1000
+   in-tightness-val    1000
+   ctrl-out 0
+   out-bus 0]
+  (let [gate         (in:kr in-trg)
+        freq         (in:kr in-freq-val)
+        amp          (in:kr in-amp-val)
+        attack       (in:kr in-attack-val)
+        decay        (in:kr in-decay-val)
+        drum-amp     (in:kr in-drum-amp-val)
+        crackle-amp  (in:kr in-crackle-amp-val)
+        tightness    (in:kr in-tightness-val)
+        drum-env  (env-gen (perc attack decay) :gate gate)
+        drum-osc  (mix (* drum-env (sin-osc [freq (* freq 0.53)])))
+        drum-s3   (* drum-env (pm-osc (saw (* freq 0.85)) 184 (/ 0.5 1.3)))
+        drum      (* drum-amp (+ drum-s3 drum-osc))
+        noise     (* 0.1 (lf-noise0 20000))
+        noise-env (env-gen (perc attack decay) :gate gate)
+        filtered  (* 0.5 (brf noise 8000 0.1))
+        filtered  (* 0.5 (brf filtered 5000 0.1))
+        filtered  (* 0.5 (brf filtered 3600 0.1))
+        filtered  (* (brf filtered 2000 0.0001) noise-env)
+        resonance (* (resonz filtered tightness) crackle-amp)]
+    (out out-bus (pan2 (* amp (+ drum resonance))))))
+
+(defsynth snare3
+  [in-trg              0
+   in-trg-val          0
+   in-freq             261.62
+   in-freq-val         261.62
+   in-amp              1
+   in-amp-val          1
+   in-attack           0.001
+   in-attack-val       0.001
+   in-decay            0.081
+   in-decay-val        0.081
+   ctrl-out            0
+   out-bus             0]
+  (let [gate         (in:kr in-trg)
+        freq         (in:kr in-freq-val)
+        amp          (in:kr in-amp-val)
+        attack       (in:kr in-attack-val)
+        decay        (in:kr in-decay-val)
+        snd-env (env-gen (perc attack decay) :gate gate)
+        snd-env-b (env-gen (perc attack (* decay 0.28)) :gate gate)
+        snd (* 0.1 (lpf (square (- freq (* freq snd-env 0.4) (* freq snd-env-b 0.05))) (* 2.5 freq)))
+        amp-env (env-gen (perc 0.001 (+ decay 0.036)) :gate gate)
+        noise (* 0.2 amp-env (pink-noise))
+        snd (rlpf (* amp-env (+ snd noise)) 10567 0.2)]
+    (out out-bus (pan2 snd))))
+
+(defsynth noise-snare
+  [in-trg              0
+   in-trg-val          0
+   in-freq             1000
+   in-freq-val         1000
+   in-amp              1
+   in-amp-val          1
+   in-attack           0.00
+   in-attack-val       0.00
+   in-decay            0.1
+   in-decay-val        0.1
+   ctrl-out            0
+   out-bus             0]
+  (let [gate         (in:kr in-trg)
+        freq         (in:kr in-freq-val)
+        amp          (in:kr in-amp-val)
+        attack       (in:kr in-attack-val)
+        decay        (in:kr in-decay-val)
+        env (env-gen (perc attack decay) :gate gate)
+        snd (bpf (gray-noise) freq 3)]
+    (out out-bus (pan2 (* snd env amp)))))
+
+
+(defsynth tone-snare
+  [in-trg              0
+   in-trg-val          0
+   in-freq             1000
+   in-freq-val         1000
+   in-amp              0.3
+   in-amp-val          0.3
+   ctrl-out            0
+   out-bus             0]
+  (let [gate         (in:kr in-trg)
+        freq         (in:kr in-freq-val)
+        amp          (in:kr in-amp-val)
+        filterenv (env-gen (lin 0 0.00 0.2) :gate gate)
+        amp-env   (env-gen (lin 0 0 0.2) :gate gate)
+        snd       (pulse 100)
+        snd       (lpf snd (+ (* filterenv freq) 30))
+        snap-env  (env-gen (lin 0 0 0.2) :gate gate)
+        snap-osc  (bpf (hpf (white-noise) 500) 1500)]
+    (out out-bus (pan2 (* amp (+ (* snd amp-env)
+                                 (* snap-env snap-osc)))))))
+
+(defsynth tom
+  [in-trg              0
+   in-trg-val          0
+   in-freq             90
+   in-freq-val         90
+   in-amp              1
+   in-amp-val          1
+   in-attack           0.005
+   in-attack-val       0.005
+   in-decay            0.4
+   in-decay-val        0.4
+   in-mode-level       0.25
+   in-mode-level-val   0.25
+   in-timbre           1
+   in-timbre-val       1
+   in-stick-level      1
+   in-stick-level-val  1
+   ctrl-out            0
+   out-bus             0]
+  (let [gate         (in:kr in-trg)
+        freq         (in:kr in-freq-val)
+        amp          (in:kr in-amp-val)
+        attack       (in:kr in-attack-val)
+        decay        (in:kr in-decay-val)
+        mode-level   (in:kr in-mode-level-val)
+        timbre       (in:kr in-timbre-val)
+        stick-level  (in:kr in-stick-level-val)
+        env (env-gen (perc attack decay) :gate gate)
+        s1 (* 0.5 env (sin-osc (* freq 0.8)))
+        s2 (* 0.5 env (sin-osc freq))
+        s3 (* 5 env (sin-osc (saw (* 0.9 freq))
+                             (* (sin-osc (* freq 0.85))
+                                (/ timbre 1.3))))
+        mix (* mode-level (+ s1 s2 s3))
+        stick (* stick-level
+                 (env-gen (perc 0.001 0.01) :gate gate)
+                 (crackle 2.0))
+        mix2 (* amp (+ mix stick))]
+    (out out-bus (pan2 mix2))))
+
+(defsynth haziti-clap
+  [in-trg              0
+   in-trg-val          0
+   in-freq             90
+   in-freq-val         90
+   in-amp              1
+   in-amp-val          1
+   in-attack           0.036
+   in-attack-val       0.036
+   in-decay            1.884
+   in-decay-val        1.884
+   in-rq               0.08
+   in-rq-val           0.08
+   ctrl-out            0
+   out-bus             0]
+  (let [gate         (in:kr in-trg)
+        freq         (in:kr in-freq-val)
+        amp          (in:kr in-amp-val)
+        attack       (in:kr in-attack-val)
+        decay        (in:kr in-decay-val)
+        rq           (in:kr in-rq-val)
+        noiz (white-noise)
+        bfreq (* 400 (abs (lf-noise0 80)))
+        filt (* 4 (bpf (rhpf noiz 4064.78 rq) bfreq (* 1 rq)))
+        env  (env-gen  (lin 0.001 1 decay 1 :exp) :gate gate)           ;(x-line 1 0.001 decay :action FREE)
+        wave (lf-tri (* (abs (lf-noise0:kr 699)) 4400))
+        wenv (env-gen (perc 0.00001 0.008) :gate gate)
+        skip (* wave wenv)]
+    (out out-bus (pan2 (* amp (+ (* env filt) skip))))))
