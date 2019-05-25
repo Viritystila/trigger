@@ -4,6 +4,7 @@
         [clojure.data])
   (:require
    [trigger.synths :refer :all]
+   [trigger.misc :refer :all]
    [clojure.tools.namespace.repl :refer [refresh]]))
 
 
