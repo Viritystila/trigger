@@ -744,7 +744,7 @@
         bow-table    (clip:ar (pow (abs (+ (* (+ vel-diff bow-offset) slope) 0.75 )) -4) 0 1)
         new-vel       (* vel-diff bow-table)]
    (local-out (+ [bridge-refl nut-refl] new-vel))
-   (out out-bus (pan2 (resonz (* 10 bridge 0.5) 500 0.85)))))
+   (out out-bus (pan2 (resonz (* amp 10 bridge 0.5) 500 0.85)))))
 
 
 
@@ -773,7 +773,7 @@
         amp           (in:kr in-amp-val)
         fenv (* (env-gen (envelope [env-ratio 1] [freq-decay] :exp) :gate gate) freq)
         aenv (env-gen (perc 0.005 amp-decay) :gate gate)]
-    (out out-bus (pan2 (* (sin-osc fenv (* 0.5 Math/PI)) aenv)))))
+    (out out-bus (pan2 (* amp (sin-osc fenv (* 0.5 Math/PI)) aenv)))))
 
 
 (defsynth kick3 [in-trg             0
@@ -1115,7 +1115,7 @@
         snd (* 0.1 (lpf (square (- freq (* freq snd-env 0.4) (* freq snd-env-b 0.05))) (* 2.5 freq)))
         amp-env (env-gen (perc 0.001 (+ decay 0.036)) :gate gate)
         noise (* 0.2 amp-env (pink-noise))
-        snd (rlpf (* amp-env (+ snd noise)) 10567 0.2)]
+        snd (rlpf (* amp amp-env (+ snd noise)) 10567 0.2)]
     (out out-bus (pan2 snd))))
 
 (defsynth noise-snare
