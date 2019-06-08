@@ -478,7 +478,7 @@
                             (apply conj (map (fn [x] {(key x)  (vec (map (fn [x] (clojure.string/replace x #"\"-\"" "-") )  (map str (val x))))}) ip))))
 
 
-;New trigger input function, allows more terse an powerfull way to create patterns. Now clojure functions such as repeat can be used directly in the input.
+;New trigger input function, allows more terse and powerfull way to create patterns. Now clojure functions such as repeat can be used directly in the input.
 (defn trg ([pn sn & input]
            (let [pattern-name          (if (keyword? pn) (name pn) pn )
                  pattern-name-key      (keyword pattern-name)
@@ -509,38 +509,6 @@
                            (zipmap (keys input-controls-only) (map (partial t (pattern-name-key @synthConfig)) input-controls-only)))) pattern-name)))
 
 
-
-(defn trg_deprecated ([input]
-           (let [pattern-name          (:pn input)
-                 pattern-name-key      (keyword pattern-name)
-                 synth-name            (:sn input)
-                 original-input        input
-                 valid-keys            (concat [:pn :sn]  (vec (synth-args synth-name)))
-                 input                 (select-keys input (vec valid-keys)) ; Make input valid, meaning remove control keys that are not present in the synth args
-                 input                 (dissoc input :sn)
-                 input-controls-only   (dissoc input :pn)
-                 initial-controls-only input-controls-only
-                 input-check           (some? (not-empty input-controls-only))
-                 synth-container       (pattern-name-key @synthConfig)]
-             (if  (= nil synth-container)
-               (do (println "Synth created") (swap! synthConfig assoc pattern-name-key (create-synth-config pattern-name synth-name)))
-               (do (println "Synth exists"))) ;TODO: if a tigger group is removed, restore the default value bus
-             (do  (let [synth-container                              (pattern-name-key @synthConfig)
-                        triggers                                     (:triggers synth-container)
-                        running-trigger-keys                         (keys triggers)
-                        input-trigger-keys                           (keys initial-controls-only)
-                        triggers-running-but-not-renewd              (first (diff running-trigger-keys input-trigger-keys))
-                        _                                            (doseq [x triggers-running-but-not-renewd] (if (some? x) (do (kill-trg-group (x triggers))
-                                                                                                                                  (apply-default-bus synth-container x))))
-                        triggers                                     (apply dissoc triggers triggers-running-but-not-renewd)
-                        synth-container                              (assoc synth-container :triggers triggers)]
-                    (swap! synthConfig assoc pattern-name-key synth-container)))
-             (swap! synthConfig assoc pattern-name-key
-                    (assoc (pattern-name-key @synthConfig) :triggers
-                           (zipmap (keys input-controls-only) (map (partial t (pattern-name-key @synthConfig)) input-controls-only)))) pattern-name)))
-
-
-
                                         ; Misc pattern related functions
 (defn stp [pattern-name] (let [pattern-name-key      pattern-name ;(keyword pattern-name)
                                pattern-status        (pattern-name-key @synthConfig)
@@ -550,8 +518,7 @@
                                                           (free-secondary-out-bus pattern-status)
                                                           (doseq [x triggers] (kill-trg-group x))
                                                           (kill-trg pattern-status)
-                                                          (swap! synthConfig dissoc pattern-name-key)) ))
-  (println "pattern stopped"))
+                                                          (swap! synthConfig dissoc pattern-name-key) (println "pattern" (:pattern-name pattern-status) "stopped")) (println "No such pattern") )))
 
 (defn set-out-bus [pattern-name] (let [pattern-name-key    pattern-name
                                        pattern-status (pattern-name-key @synthConfig)]
