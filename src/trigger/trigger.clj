@@ -478,22 +478,27 @@
                             (apply conj (map (fn [x] {(key x)  (vec (map (fn [x] (clojure.string/replace x #"\"-\"" "-") )  (map str (val x))))}) ip))))
 
 
+(defn synth-name-check [new-sn synth-container] (let [sc       synth-container
+                                                      old-sn   (:synth-name synth-container)]
+                                                  (if (nil? sc) new-sn
+                                                      (if (not= old-sn new-sn) old-sn new-sn))))
+
 ;New trigger input function, allows more terse and powerfull way to create patterns. Now clojure functions such as repeat can be used directly in the input.
 (defn trg ([pn sn & input]
            (let [pattern-name          (if (keyword? pn) (name pn) pn )
                  pattern-name-key      (keyword pattern-name)
-                 synth-name            sn
+                 synth-container       (pattern-name-key @synthConfig)
+                 synth-name            (synth-name-check sn synth-container)
                  input                 (split-input input)
                  original-input        input
                  valid-keys            (concat [:pn :sn]  (vec (synth-args synth-name)))
                  input                 (select-keys input (vec valid-keys)) ; Make input valid, meaning remove control keys that are not present in the synth args
                  input-controls-only   input
                  initial-controls-only input-controls-only
-                 input-check           (some? (not-empty input-controls-only))
-                 synth-container       (pattern-name-key @synthConfig)]
+                 input-check           (some? (not-empty input-controls-only))]
              (if  (= nil synth-container)
                (do (println "Synth created") (swap! synthConfig assoc pattern-name-key (create-synth-config pattern-name synth-name)))
-               (do (println "Synth exists"))) ;TODO: if a tigger group is removed, restore the default value bus
+               (do (println "Synth exists")))
              (do  (let [synth-container                              (pattern-name-key @synthConfig)
                         triggers                                     (:triggers synth-container)
                         running-trigger-keys                         (keys triggers)
