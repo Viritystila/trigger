@@ -263,7 +263,17 @@
 
 
 
-                                        ;Synth triggering generation
+                                        ;Synth trigger generation
+
+(defprotocol inst-control
+  (kill-inst [this])
+  (kill-inst-trg   [this])
+  (ctl-inst [this var value])
+  (apply-inst-default-buses [this])
+  (apply-inst-default-bus [this db])
+  (apply-inst-control-out-bus [this])
+  (free-inst-control-out-bus [this]))
+
 
 (defprotocol synth-control
   (kill-synth [this])
@@ -277,8 +287,6 @@
   (apply-control-out-bus [this])
   (apply-out-bus [this])
   (apply-secondary-out-bus [this])
-  ;(get-control-out-bus [this])
-  ;(get-out-bus [this])
   (free-control-out-bus [this]))
 
 (defrecord synthContainer [pattern-name
@@ -302,8 +310,6 @@
   (apply-control-out-bus [this] (ctl (. this play-synth) :ctrl-out (. this control-out-bus)))
   (apply-out-bus [this] (ctl (. this play-synth) :out-bus 0 ))
   (apply-secondary-out-bus [this] (ctl (. this play-synth) :out-bus (. this out-bus-secondary)))
-  ;(get-control-out-bus [this] (. this control-out-bus))
-  ;(get-out-bus [this] (. this out-bus))
   (free-control-out-bus [this] (free-bus (. this control-out-bus))))
 
 
