@@ -322,8 +322,8 @@
   (get-trigger-value-bus [this])
   (get-trigger-id [this])
   (get-trigger-val-id [this])
-  (get-pattern-buffer [this])
-  (get-pattern-value-buffer [this]))
+  (get-pattern-vector [this])
+  (get-pattern-value-vector [this]))
 
                                         ; TODO: Implement buffer management
                                         ; -buffer reuse
@@ -360,8 +360,8 @@
   (get-trigger-value-bus [this] (. this trigger-value-bus))
   (get-trigger-id [this] (. this trigger-id))
   (get-trigger-val-id [this] (. this trigger-val-id))
-  (get-pattern-buffer [this] (. this pattern-buf))
-  (get-pattern-value-buffer [this] (. this pattern-value-buf)))
+  (get-pattern-vector [this] (. this pattern-vector))
+  (get-pattern-value-vector [this] (. this pattern-value-vector)))
 
 (defn create-synth-config [pattern-name synth-name] (let [out-bus         0
                                                           out-bus-secondary (audio-bus 2)
@@ -557,6 +557,11 @@
 (defn get-trigger-id [pattern-name trig-name] (:trigger-id (trig-name (:triggers (pattern-name @synthConfig)))))
 
 (defn get-trigger-val-id [pattern-name trig-name] (:trigger-val-id (trig-name (:triggers (pattern-name @synthConfig)))))
+
+(defn get-vector [pattern-name trig-name] (get-pattern-vector (trig-name (:triggers (pattern-name @synthConfig)))))
+
+(defn get-value-vector [pattern-name trig-name] (get-pattern-value-vector (trig-name (:triggers (pattern-name @synthConfig)))))
+
 
 (defn sctl [pattern-name var value] (let [pattern-status (pattern-name @synthConfig)]
                                       (if (some? pattern-status) (ctl-synth pattern-status var value))))
