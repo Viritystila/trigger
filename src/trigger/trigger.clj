@@ -5,6 +5,7 @@
   (:require
    [trigger.synths :refer :all]
    [trigger.misc :refer :all]
+   [trigger.algo :refer :all]
    [clojure.tools.namespace.repl :refer [refresh]]))
 
 
@@ -264,7 +265,7 @@
 
 
                                         ;Synth trigger generation
-
+;Inst support under construction
 (defprotocol inst-control
   (kill-inst [this])
   (kill-inst-trg   [this])
@@ -320,7 +321,9 @@
   (get-trigger-bus [this])
   (get-trigger-value-bus [this])
   (get-trigger-id [this])
-  (get-trigger-val-id [this]))
+  (get-trigger-val-id [this])
+  (get-pattern-buffer [this])
+  (get-pattern-value-buffer [this]))
 
                                         ; TODO: Implement buffer management
                                         ; -buffer reuse
@@ -356,7 +359,9 @@
   (get-trigger-bus [this] (. this trigger-bus))
   (get-trigger-value-bus [this] (. this trigger-value-bus))
   (get-trigger-id [this] (. this trigger-id))
-  (get-trigger-val-id [this] (. this trigger-val-id)))
+  (get-trigger-val-id [this] (. this trigger-val-id))
+  (get-pattern-buffer [this] (. this pattern-buf))
+  (get-pattern-value-buffer [this] (. this pattern-value-buf)))
 
 (defn create-synth-config [pattern-name synth-name] (let [out-bus         0
                                                           out-bus-secondary (audio-bus 2)
