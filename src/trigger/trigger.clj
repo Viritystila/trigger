@@ -573,7 +573,7 @@
 (defn lss [] (println (keys @synthConfig)))
 
 (start-trigger)
-
+(init-algo synthConfig)
                                         ; External OSC trigger
 
 (defn init-osc [port]
@@ -603,3 +603,10 @@
 (defn set-to-external-trigger [] (ctl base-trigger :out-bus external-trigger-bus) (osc-handle oscserver "/play2" (fn [msg] (external-trigger msg))))
 
 (defn set-to-internal-trigger [] (ctl base-trigger :out-bus base-trigger-bus) (osc-handle oscserver "/play2" (fn [msg] (null-trigger msg))))
+
+                                        ;Algorithm
+
+(defn alg [pattern trigger buf-id function]
+  (let [pat-vec        (get-vector pattern trigger)
+        pat-val-vec    (get-value-vector pattern trigger)
+        vec-size       (count pat-vec)]))
