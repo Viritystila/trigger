@@ -112,8 +112,7 @@ Each pattern is controlled by its own trigger-generator synth which sends two tr
 
 
 ### TODO:
-  - Syncronizing with TidaCycles
-  - Output effects
+  - Overtone Inst support
 ## License
 The MIT License
 
