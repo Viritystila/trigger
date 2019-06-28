@@ -607,61 +607,15 @@
 
                                         ;Algorithm
 
+;(defonce algConfig (atom {}))
+
 (defn testf [t-id trigger] (on-trigger t-id (fn [val] (println val "aaa")) (keyword trigger)))
 
 (defn alg [pattern trigger buf-id function]
   (let [pat-vec        (get-vector pattern trigger)
         pat-val-vec    (get-value-vector pattern trigger)
         trigger-id     (get-trigger-val-id pattern trigger)
-        vec-size       (count pat-vec)]
-    (function trigger-id trigger)))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        vec-size       (count pat-vec)
+        alg-key        (keyword pattern trigger)]
+    ;(function trigger-id trigger)
+    ))
