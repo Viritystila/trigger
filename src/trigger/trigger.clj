@@ -527,7 +527,8 @@
 
 
                                         ; Misc pattern related functions
-(defn stp [pattern-name] (let [pattern-name-key      pattern-name ;(keyword pattern-name)
+
+(defn stop-pattern [pattern-name] (let [pattern-name-key      pattern-name ;(keyword pattern-name)
                                pattern-status        (pattern-name-key @synthConfig)
                                triggers              (vals (:triggers pattern-status))]
                            (if (some? pattern-status) (do (free-default-buses pattern-status)
@@ -536,6 +537,10 @@
                                                           (doseq [x triggers] (kill-trg-group x))
                                                           (kill-trg pattern-status)
                                                           (swap! synthConfig dissoc pattern-name-key) (println "pattern" (:pattern-name pattern-status) "stopped")) (println "No such pattern") )))
+
+(defn stp [& pattern-names] (doseq [x pattern-names] (stop-pattern x)))
+
+(defn stpa [] (doseq [x  (keys @synthConfig)] (stop-pattern x)))
 
 (defn set-out-bus [pattern-name] (let [pattern-name-key    pattern-name
                                        pattern-status (pattern-name-key @synthConfig)]
@@ -571,9 +576,10 @@
                                                         (sctl dst-synth input-name output-bus)
                                                         (set-secondary-out-bus src-synth)) )
 
-(defn lss [] (println (keys @synthConfig)))
+(defn lss [] (println (keys @synthConfig))  (keys @synthConfig) )
 
 (start-trigger)
+
 (init-algo synthConfig)
                                         ; External OSC trigger
 
@@ -607,15 +613,25 @@
 
                                         ;Algorithm
 
-;(defonce algConfig (atom {}))
+(defonce algConfig (atom {}))
 
-(defn testf [t-id trigger] (on-trigger t-id (fn [val] (println val "aaa")) (keyword trigger)))
+(defn testf [t-id alg-key pat-vec pat-val-vec & args]
+  (on-trigger t-id
+              (fn [val] (let [buf  (nth pat-vec 0)
+                             rnmd (+ 1 (rand-int 7))
+                             dur  (/ 1 rnmd)]
+                         (buffer-write! buf 1 [dur])
+                         ;(println val "aaa" args)
+                         ))
+              alg-key))
 
-(defn alg [pattern trigger buf-id function]
+(defn alg [pattern trigger buf-id function & args]
   (let [pat-vec        (get-vector pattern trigger)
         pat-val-vec    (get-value-vector pattern trigger)
         trigger-id     (get-trigger-val-id pattern trigger)
         vec-size       (count pat-vec)
-        alg-key        (keyword pattern trigger)]
-    ;(function trigger-id trigger)
+        alg-key        (keyword (name pattern) (name trigger))]
+    (println alg-key)
+    (println (nth pat-vec 0))
+    (function trigger-id alg-key pat-vec pat-val-vec args)
     ))
