@@ -9,6 +9,12 @@
 
 (defn init-algo [sc-in] (def sC sc-in))
 
+(def first-order-prob-matrix {
+  [:en] { :en 0.1   :qn 0.06  :hn 0.3 }
+  [:qn] { :en 0.925 :qn 0.05  :hn 0.07 }
+    [:hn] { :en 0.7   :qn 0.03  :hn 0.9 }})
+
+
 ;(defn alg [buf algorithm] (println "not implemented yet"))
 
 (defsynth ping_tst

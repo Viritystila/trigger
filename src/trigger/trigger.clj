@@ -613,14 +613,22 @@
 
                                         ;Algorithm
 
+
+(def fobm {
+  [0.125] { 0.125 0.091   0.25 0.06  1 0.9 }
+  [0.25] { 0.125 0.0925 0.25 0.05  1 0.9 }
+  [1] { 0.125 0.7   0.25 0.3  1 0.9 }})
+
+
 (defonce algConfig (atom {}))
 
 (defn testf [t-id alg-key pat-vec pat-val-vec & args]
   (on-trigger t-id
               (fn [val] (let [buf  (nth pat-vec 0)
                              rnmd (+ 1 (rand-int 7))
-                             dur  (/ 1 rnmd)]
-                         (buffer-write! buf 1 [dur])
+                             dur  (/ 1 rnmd)
+                             dur  (vec (take 1 (markov-chains.core/generate fobm)))]
+                         (buffer-write! buf 1 dur)
                          ;(println val "aaa" args)
                          ))
               alg-key))
