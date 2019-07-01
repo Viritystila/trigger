@@ -615,21 +615,25 @@
 
 
 (def fobm {
-  [0.125] { 0.125 0.091   0.25 0.06  1 0.9 }
-  [0.25] { 0.125 0.0925 0.25 0.05  1 0.9 }
-  [1] { 0.125 0.7   0.25 0.3  1 0.9 }})
+           [0.125] { 0.125 0.91  0.25 0.06  0.5 0.9   1.0 0.9 }
+           [0.25] {  0.125 0.92  0.25 0.05  0.5 0.9   1.0 0.9 }
+           [0.5] {   0.125 0.7   0.25 0.9   0.5 0.09  1.0 0.9}
+           [0.75] {  0.125 0.09  0.25 0.04  0.5 0.01  1.0 0.9}
+           })
 
+(def fa (atom fobm))
 
 (defonce algConfig (atom {}))
 
-(defn testf [t-id alg-key pat-vec pat-val-vec & args]
+(defn testf [t-id alg-key pat-vec pat-val-vec buf-id & args]
   (on-trigger t-id
-              (fn [val] (let [buf  (nth pat-vec 0)
+              (fn [val] (let [fobm_args (first (first args))
+                             buf  (nth pat-vec buf-id)
                              rnmd (+ 1 (rand-int 7))
                              dur  (/ 1 rnmd)
-                             dur  (vec (take 1 (markov-chains.core/generate fobm)))]
+                             dur  (vec (take 1 (markov-chains.core/generate @fobm_args)))]
                          (buffer-write! buf 1 dur)
-                         ;(println val "aaa" args)
+                         ;(println "aaa" (first fobm_args))
                          ))
               alg-key))
 
@@ -638,8 +642,9 @@
         pat-val-vec    (get-value-vector pattern trigger)
         trigger-id     (get-trigger-val-id pattern trigger)
         vec-size       (count pat-vec)
-        alg-key        (keyword (name pattern) (name trigger))]
+        trg_str        (str (name trigger) "-" (str buf-id))
+        alg-key        (keyword (name pattern) trg_str)]
     (println alg-key)
     (println (nth pat-vec 0))
-    (function trigger-id alg-key pat-vec pat-val-vec args)
+    (function trigger-id alg-key pat-vec pat-val-vec buf-id args)
     ))
