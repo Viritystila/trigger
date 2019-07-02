@@ -9,28 +9,51 @@
 
 (defn init-algo [sc-in] (def sC sc-in))
 
-(def first-order-prob-matrix {
-  [:en] { :en 0.1   :qn 0.06  :hn 0.3 }
-  [:qn] { :en 0.925 :qn 0.05  :hn 0.07 }
-    [:hn] { :en 0.7   :qn 0.03  :hn 0.9 }})
+(def note-fobm {
+                [:A3]  { :A3 0.1  :C#3 0.06  :E3 0.3 }
+                [:C#3] { :A3 0.925 :C#3 0.05 :E3 0.07 }
+                [:E3] { :A3 0.7  :C#3 0.03  :E3 0.9 }})
 
 
-;(defn alg [buf algorithm] (println "not implemented yet"))
 
-(defsynth ping_tst
-  [note   72
-   attack 0.02
-   decay  0.3]
-  (let [snd (sin-osc (midicps note))
-        env (env-gen (perc attack decay) :action FREE)]
-    (out 0 (* 0.13 env snd))))
+(def beat-fobm {
+           [0.125] { 0.125 0.91  0.25 0.06  0.5 0.9   0.0625 0.9 }
+           [0.25] {  0.125 0.92  0.25 0.05  0.5 0.9   0.0625 0.9 }
+           [0.5] {   0.125 0.7   0.25 0.9   0.5 0.09  0.0625 0.9}
+           [0.0625] {  0.125 0.09  0.25 0.04  0.5 0.01  0.0625 0.9}
+           })
+
+(defn example_markov [t-id alg-key pat-vec pat-val-vec buf-id alg-config & args]
+  (on-trigger t-id
+              (fn [val] (try (let [fobm_args (first (first args))
+                                  buf  (nth pat-vec buf-id)
+                                  rnmd (+ 1 (rand-int 7))
+                                  dur  (/ 1 rnmd)
+                                  dur  (vec (take 1 (markov-chains.core/generate @fobm_args)))]
+                              (buffer-write! buf 1 dur)
+                              )
+                            (catch Exception e (do (println "Excpetion " e)
+                                                   (swap! alg-config dissoc alg-key)
+                                                 (remove-event-handler alg-key)))))
+              alg-key))
 
 
-(defn foo
-  [t freq]
-  (at t (ping_tst freq))
-  (let [next-t (+ t 1000)
-        next-f (+ freq 0)]
-     (apply-by next-t #'trigger.algo/foo [next-t next-f])
-    )
-  nil)
+
+(defn example_markov2 [t-id alg-key pat-vec pat-val-vec buf-id alg-config & args]
+  (on-trigger t-id
+              (fn [val] (try (let [fobm_args (first (first args))
+                                  fobm_args2 (last (first args))
+                                  buf  (nth pat-vec buf-id)
+                                  buf2 (nth pat-val-vec buf-id)
+                                  rnmd (+ 1 (rand-int 7))
+                                  dur  (/ 1 rnmd)
+                                  dur  (vec (take 1 (markov-chains.core/generate @fobm_args)))
+                                  note_m (note (first (take 1 (markov-chains.core/generate @fobm_args2))))
+                                  freq [(midi->hz note_m)]]
+                              (buffer-write! buf 1 dur)
+                              (buffer-write! buf2 1 freq)
+                              )
+                            (catch Exception e (do (println "Excpetion " e)
+                                                   (swap! alg-config dissoc alg-key)
+                                                 (remove-event-handler alg-key)))))
+              alg-key))
