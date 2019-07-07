@@ -165,6 +165,8 @@
 (defsynth ping
   [in-trg 0
    in-trg-val 0
+   in-amp 0.8
+   in-amp-val 0.8
    in-note 72
    in-note-val 72
    in-attack 0.02
@@ -174,11 +176,12 @@
    ctrl-out 0
    out-bus 0]
   (let [note   (in:kr in-note-val)
+        amp    (in:kr in-amp-val)
         attack (in:kr in-attack-val)
         decay  (in:kr in-decay-val)
         snd    (sin-osc (midicps note))
         env    (env-gen (perc attack decay) :gate (in:kr in-trg))]
-    (out out-bus (pan2 (* 0.8 env snd)))))
+    (out out-bus (pan2 (* amp env snd)))))
 ;(-> {:pn "ping" :sn ping :in-trg ["[1]"]} trg)
 ;(-> {:pn "ping" :sn ping :in-trg ["[51 52 54 55 60 70 80 90]" "[1 1 1 1]"] :in-note ["[50]"] :in-decay ["[0.2]"]} trg)
 
@@ -228,7 +231,7 @@
         vol-env    (env-gen (adsr attack decay sustain release)
                             (line:kr 1 0 (+ attack decay release))
                             :gate gate)
-        fil-env    (env-gen (perc))
+        fil-env    (env-gen (perc) :gate gate)
         fil-cutoff (+ cutoff (* env-amount fil-env))
         waves      (* vol-env
                       [(saw freqs)
@@ -835,17 +838,20 @@
   [in-trg      0
    in-freq     80
    in-freq-val 80
+   in-amp      1
+   in-amp-val  1
    ctrl-out    0
    out-bus     0]
   (let [gate       (in:kr in-trg)
         freq       (in:kr in-freq-val)
+        amp        (in:kr in-amp-val)
         cutoff-env (perc 0.001 1 freq -20)
         amp-env (perc 0.001 1 1 -8)
         osc-env (perc 0.001 1 freq -8)
         noiz (lpf (white-noise) (+ (env-gen:kr cutoff-env :gate gate) 20))
         snd  (lpf (sin-osc (+ (env-gen:kr osc-env :gate gate) 20)) 200)
         mixed (* (+ noiz snd) (env-gen amp-env :gate gate))]
-    (out out-bus (pan2 mixed))))
+    (out out-bus (pan2 (* amp mixed)))))
 
 (defsynth dance-kick
   [in-trg        0
@@ -1205,8 +1211,8 @@
 (defsynth haziti-clap
   [in-trg              0
    in-trg-val          0
-   in-freq             90
-   in-freq-val         90
+   in-freq             80
+   in-freq-val         80
    in-amp              1
    in-amp-val          1
    in-attack           0.036
@@ -1224,7 +1230,7 @@
         decay        (in:kr in-decay-val)
         rq           (in:kr in-rq-val)
         noiz (white-noise)
-        bfreq (* 400 (abs (lf-noise0 80)))
+        bfreq (* 400 (abs (lf-noise0 freq)))
         filt (* 4 (bpf (rhpf noiz 4064.78 rq) bfreq (* 1 rq)))
         env  (env-gen  (lin 0.001 1 decay 1 :exp) :gate gate)           ;(x-line 1 0.001 decay :action FREE)
         wave (lf-tri (* (abs (lf-noise0:kr 699)) 4400))
