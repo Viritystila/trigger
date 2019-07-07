@@ -1,7 +1,8 @@
 (ns #^{:author "Mikael Reponen"}
   trigger.algo
   (:use [overtone.core])
-  (:require [markov-chains.core]))
+  (:require [markov-chains.core]
+            [overtone.algo.euclidean-rhythm :refer :all]))
 
 
 
@@ -57,3 +58,16 @@
                                                    (swap! alg-config dissoc alg-key)
                                                  (remove-event-handler alg-key)))))
               alg-key))
+
+
+
+(defn fast [factor input] (vec (repeat factor (seq input ) )))
+
+(defn slow [factor input] (map vec (partition factor input)))
+
+
+;(euclidean-rhythm 4 8)
+
+;(rotate 2 [ 1 2 3 4])
+
+;(cosr 0 1 10 10)
