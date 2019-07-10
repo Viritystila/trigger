@@ -30,7 +30,7 @@
                                   buf  (nth pat-vec buf-id)
                                   rnmd (+ 1 (rand-int 7))
                                   dur  (/ 1 rnmd)
-                                  dur  (vec (take 1 (markov-chains.core/generate @fobm_args)))]
+                                  dur]  (vec (take 1 (markov-chains.core/generate @fobm_args)))
                               (buffer-write! buf 1 dur)
                               )
                             (catch Exception e (do (println "Excpetion " e)
@@ -60,14 +60,22 @@
               alg-key))
 
 
+;Functions
 
-(defn fast [factor input] (vec (repeat factor (seq input ) )))
+(defn fst [factor input] (vec (repeat factor (seq input ) )))
 
-(defn slow [factor input] (map vec (partition factor input)))
+(defn slw [factor input] (map vec (partition factor input)))
 
+(defn rev [coll] (vec (reverse coll)))
 
-;(euclidean-rhythm 4 8)
+(defn evr [n f & coll] (let [coll_length (count coll)
+                             coll        (if (= 1 coll_length) (apply concat coll) coll )]
+                           (map-indexed #(if (zero? (mod (inc %1) n)) (vec (f %2)) %2) coll)))
 
-;(rotate 2 [ 1 2 3 4])
+(defn rtm [pulses steps]  (mapv (fn [x] (if (zero? x) "-" x))  (vec (euclidean-rhythm pulses steps))))
 
-;(cosr 0 1 10 10)
+(defn nts [& notes] (mapv (fn [x] (if (keyword? x) (note x) x) ) notes))
+
+(defn mhz [& notes] (mapv (fn [x] (if (keyword? x) (midi->hz (note x)) x) ) notes))
+
+(defn rep [n input] (repeat n input))
