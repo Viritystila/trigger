@@ -78,4 +78,8 @@
 
 (defn mhz [& notes] (mapv (fn [x] (if (keyword? x) (midi->hz (note x)) x) ) notes))
 
-(defn rep [n input] (repeat n input))
+(defn rep ([n input]  (let [isfn   (fn? input)]
+                        (if isfn (repeatedly n #(input))  (repeat n input))))
+  ([n fnc & args] (repeatedly n #(apply fnc args) ) ))
+
+(defn sfl [coll] (shuffle coll))

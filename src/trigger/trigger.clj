@@ -44,7 +44,7 @@
 
 
 (defsynth base-trigger-synth [out-bus 0 trigger-id 0] (let [trg  (t-duty:kr  (dbufrd base-dur (dseries 0 1 INF)) 0 1)
-                                                                  trg  (t-delay:kr trg  (dbufrd base-del (dseries 0 1 INF)) )]
+                                                            trg  (t-delay:kr trg  (dbufrd base-del (dseries 0 1 INF)) )]
                                                            (send-trig trg trigger-id trg)
                                                            (out:kr out-bus trg)))
 
