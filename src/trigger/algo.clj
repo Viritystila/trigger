@@ -29,8 +29,7 @@
               (fn [val] (try (let [fobm_args (first (first args))
                                   buf  (nth pat-vec buf-id)
                                   rnmd (+ 1 (rand-int 7))
-                                  dur  (/ 1 rnmd)
-                                  dur]  (vec (take 1 (markov-chains.core/generate @fobm_args)))
+                                  dur  (/ 1 rnmd)]  (vec (take 1 (markov-chains.core/generate @fobm_args)))
                               (buffer-write! buf 1 dur)
                               )
                             (catch Exception e (do (println "Excpetion " e)
@@ -68,7 +67,8 @@
 
 (defn rev [coll] (vec (reverse coll)))
 
-(defn evr [n f & coll] (let [coll_length (count coll)
+(defn evr [n f & coll] (let [;is_function  (clojure.test/function? f)
+                             coll_length (count coll)
                              coll        (if (= 1 coll_length) (apply concat coll) coll )]
                            (map-indexed #(if (zero? (mod (inc %1) n)) (vec (f %2)) %2) coll)))
 

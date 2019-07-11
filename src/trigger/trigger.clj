@@ -24,22 +24,27 @@
 (defonce bufferPool (atom {}))
 (def timeatom (atom 0))
 
-                                        ;groups
+                                        ;Groups
   (do
     (defonce main-g (group "main group")))
 
-                                        ;base duration
+                                        ;Base duration
 (do
   (def base-dur (buffer 1))
   (buffer-write! base-dur [1]))
 
-;(remove-event-handler ::debug)
+                                        ; Base trigger delay
+(do
+  (def base-del (buffer 1))
+  (buffer-write! base-del [0]))
+
                                         ;Synthdefs
 
 (defsynth single-trigger-synth [out-bus 0] (let [env  (env-gen (perc 1 1 1) :action FREE)] (out:kr out-bus (* env (trig:kr 1 0.0000001)))))
 
 
-(defsynth base-trigger-synth [dur 1 out-bus 0 trigger-id 0] (let [trg  (t-duty:kr  (dbufrd base-dur (dseries 0 1 INF)) 0 1)]
+(defsynth base-trigger-synth [out-bus 0 trigger-id 0] (let [trg  (t-duty:kr  (dbufrd base-dur (dseries 0 1 INF)) 0 1)
+                                                                  trg  (t-delay:kr trg  (dbufrd base-del (dseries 0 1 INF)) )]
                                                            (send-trig trg trigger-id trg)
                                                            (out:kr out-bus trg)))
 
@@ -112,7 +117,7 @@
   (def base-trigger-dur-bus (control-bus 1))
   (control-bus-set! base-trigger-dur-bus 1)
   (buffer-write! base-dur [1])
-  (def base-trigger (base-trigger-synth [:tail main-g] base-trigger-dur-bus base-trigger-bus base-trigger-id))
+  (def base-trigger (base-trigger-synth [:tail main-g] base-trigger-bus base-trigger-id))
   (def base-trigger-count-bus (control-bus 1))
   (def base-trigger-count (base-trigger-counter [:tail main-g] base-trigger-bus base-trigger-count-bus))
   (pmap (fn [x] (pmap (fn [y] (store-buffer (buffer (+ x 1))) ) (range 100) )) (range 40))
@@ -260,8 +265,9 @@
                                                ))
 
                                   ;pattern timing adjustments
-(defn set-pattern-duration [dur] (control-bus-set! base-trigger-dur-bus 1)
-                                  (buffer-write! base-dur [dur]))
+(defn set-pattern-duration [dur]   (buffer-write! base-dur [dur]))
+
+(defn set-pattern-delay [delay]  (buffer-write! base-del [delay]))
 
 
 
