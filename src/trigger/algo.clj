@@ -11,9 +11,9 @@
 (defn init-algo [sc-in] (def sC sc-in))
 
 (def note-fobm {
-                [:A3]  { :A3 0.1  :C#3 0.06  :E3 0.3 }
-                [:C#3] { :A3 0.925 :C#3 0.05 :E3 0.07 }
-                [:E3] { :A3 0.7  :C#3 0.03  :E3 0.9 }})
+                [:A2]  { :A2 0.1  :C#2 0.06  :E2 0.3 }
+                [:C#2] { :A2 0.925 :C#2 0.05 :E2 0.07 }
+                [:E2] { :A2 0.7  :C#2 0.03  :E2 0.9 }})
 
 
 
@@ -61,25 +61,48 @@
 
 ;Functions
 
-(defn fst [factor input] (vec (repeat factor (seq input ) )))
+(defn func-val [input & args] (let [isfn  (fn? input)
+                                    coll_length (count args)
+                                    args        (if (= 1 coll_length) (apply concat args) args )]
+                                (if isfn (apply input args) input )
+                                ) )
 
-(defn slw [factor input] (map vec (partition factor input)))
+(defn fst ([factor input] (vec (repeat factor (seq input ) )))
+  ([input] (vec (repeat 2 (seq input)))))
+
+(defn slw ([factor input] (let [input-size (count input)
+                                factor     (int (/  input-size factor))
+                                ] (map vec (partition factor input))))
+  ([input] (let  [input-size (count input)
+                                factor     (int (/  input-size 2))
+                                ] (map vec (partition factor input)))))
 
 (defn rev [coll] (vec (reverse coll)))
 
-(defn evr [n f & coll] (let [;is_function  (clojure.test/function? f)
+(defn evr [n f & coll] (let [isfn  (fn? f)
                              coll_length (count coll)
                              coll        (if (= 1 coll_length) (apply concat coll) coll )]
-                           (map-indexed #(if (zero? (mod (inc %1) n)) (vec (f %2)) %2) coll)))
+                         (if isfn
+                           (map-indexed #(if (zero? (mod (inc %1) n))  (f %2) %2) coll)
+                            (map-indexed #(if (zero? (mod (inc %1) n)) f %2) coll)
+                           )
 
-(defn rtm [pulses steps]  (mapv (fn [x] (if (zero? x) "-" x))  (vec (euclidean-rhythm pulses steps))))
+                         ))
+
+(defn rtm [pulses steps & args]  (mapv (fn [x] (if (zero? x) "-" x))  (vec (euclidean-rhythm (max 1 (func-val pulses args)) steps))))
 
 (defn nts [& notes] (mapv (fn [x] (if (keyword? x) (note x) x) ) notes))
 
-(defn mhz [& notes] (mapv (fn [x] (if (keyword? x) (midi->hz (note x)) x) ) notes))
+(defn chr [root chord-name] (vec (chord root chord-name)) )
 
-(defn rep ([n input]  (let [isfn   (fn? input)]
+(defn chd ([degree root mode] (vec (chord-degree degree root mode)))
+  ([degree root mode num-notes] (vec (chord-degree degree root mode num-notes))))
+
+(defn mhz ([& notes] (mapv (fn [x] (if (keyword? x) (midi->hz (note x)) x) ) notes)))
+
+(defn rep ([n input]  (let [isfn   (fn? input)
+                            n      (max 1 n)]
                         (if isfn (repeatedly n #(input))  (repeat n input))))
-  ([n fnc & args] (repeatedly n #(apply fnc args) ) ))
+  ([n fnc & args] (let [n (max n 1)] (repeatedly n #(apply fnc args) )) ))
 
 (defn sfl [coll] (shuffle coll))
