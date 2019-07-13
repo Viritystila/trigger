@@ -124,6 +124,7 @@
 (defn fll [size coll] (fill size coll))
 
 (defn del [coll beat del_val] (let [coll_length (count coll)
+                                    beat        (mod beat coll_length)
                                     coll_val    (nth coll beat)
                                     is_coll_val_vec (vector? coll_val)
                                     delay_count  (+ 1 del_val)
@@ -132,3 +133,12 @@
                                                    (assoc delay_vector del_val (seq coll_val))
                                                    (assoc delay_vector del_val coll_val) )]
                                  (assoc coll beat delay_vector)))
+
+
+(defn adv [coll beat del_val] (let [
+                                    ;coll_length    (count coll)
+                                    ;beat           (mod beat coll_length)
+                                    ;coll_val       (nth coll beat)
+                                    ;prev_coll_val  (nth coll (mod (- beat 1) coll_length))
+                                    ;coll           (assoc coll beat "-")
+                                   ]))
