@@ -332,10 +332,6 @@
   (get-pattern-vector [this])
   (get-pattern-value-vector [this]))
 
-                                        ; TODO: Implement buffer management
-                                        ; -buffer reuse
-                                        ; -Freeing unneeded buffers (note: buffer-free does not seem to work, at least not in a similar way as free-bus )
-                                        ; -Freeing control buses
 (defrecord triggerContainer [trigger-id
                              trigger-val-id
                              control-key

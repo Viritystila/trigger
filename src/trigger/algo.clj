@@ -84,10 +84,7 @@
                              coll        (if (= 1 coll_length) (apply concat coll) coll )]
                          (if isfn
                            (map-indexed #(if (zero? (mod (inc %1) n))  (f %2) %2) coll)
-                            (map-indexed #(if (zero? (mod (inc %1) n)) f %2) coll)
-                           )
-
-                         ))
+                            (map-indexed #(if (zero? (mod (inc %1) n)) f %2) coll) )))
 
 (defn rtm [pulses steps & args]  (mapv (fn [x] (if (zero? x) "-" x))  (vec (euclidean-rhythm (max 1 (func-val pulses args)) steps))))
 
@@ -98,11 +95,30 @@
 (defn chd ([degree root mode] (vec (chord-degree degree root mode)))
   ([degree root mode num-notes] (vec (chord-degree degree root mode num-notes))))
 
-(defn mhz ([& notes] (mapv (fn [x] (if (keyword? x) (midi->hz (note x)) x) ) notes)))
 
-(defn rep ([n input]  (let [isfn   (fn? input)
-                            n      (max 1 n)]
+(defn mhz [& notes] (mapv (fn [x] (if (keyword? x) (midi->hz (note x)) x) ) notes))
+
+(defn rep ([n input]  (let [isfn   (fn? input)]
                         (if isfn (repeatedly n #(input))  (repeat n input))))
-  ([n fnc & args] (let [n (max n 1)] (repeatedly n #(apply fnc args) )) ))
+  ([n fnc & args] (repeatedly n #(apply fnc args) ) ))
 
 (defn sfl [coll] (shuffle coll))
+
+(defn rpl ([n input & coll]  (let [coll_length (count coll)
+                                   isseq       (seq? (first coll))
+                                   coll        (if  isseq (apply concat coll)
+                                                   (apply concat coll) )]
+                               (if isseq (seq (assoc (vec coll) n input ))
+                                   (vec (assoc (vec coll) n input))))))
+
+(defn sir [n range center period] (map (fn [x] (sinr x range center period)) (clojure.core/range n)))
+
+
+(defn cor [n range center period] (map (fn [x] (cosr x range center period)) (clojure.core/range n)))
+
+
+(defn tar [n range center period] (map (fn [x] (tanr x range center period)) (clojure.core/range n)))
+
+(defn rot [n coll] (rotate n coll))
+
+(defn fll [size coll] (fill size coll))
