@@ -122,3 +122,10 @@
 (defn rot [n coll] (rotate n coll))
 
 (defn fll [size coll] (fill size coll))
+
+(defn del [coll beat del_val] (let [coll_length (count coll)
+                                    coll_val    (nth coll beat)
+                                    delay_count  (+ 1 del_val)
+                                    delay_vector (repeat delay_count "r")
+                                    delay_vector (assoc delay_vector del_val coll_val)]
+                                 (assoc coll beat delay_vector)))
