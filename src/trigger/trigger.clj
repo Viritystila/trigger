@@ -192,19 +192,14 @@
                                                                 op      (if (and (not= 0 op) ( = 0 opnext)) (+ op (sum-zero-durs vec-ring input-vector full-durs)) op)]
                                                             (recur (next xv) (conj result op))) result))))
 
-(defn generate-durations [input] (let [mod-input (vec (map trigger-dur (vec (flatten input))))
-                                       durs  (traverse-vector input)
-                                       durs  (into [] (flatten durs))
-                                       durs  (adjust-duration durs (vec (flatten mod-input)))  ]
-                                   {:dur durs :val (flatten input) :mod-input (vec mod-input) }))
 
-
-
-(defn generate-durations2 [input input-val] (let [mod-input (vec (map trigger-dur (vec (flatten input))))
-                                       durs  (traverse-vector input)
-                                       durs  (into [] (flatten durs))
-                                       durs  (adjust-duration durs (vec (flatten mod-input)))  ]
-                                   {:dur durs :val (flatten input-val) :mod-input (vec mod-input) }))
+(defn generate-durations [input input-val] (let [mod-input (vec (map trigger-dur (vec (flatten input))))
+                                                 durs  (traverse-vector input)
+                                                 durs  (into [] (flatten durs))
+                                                 mod-beat durs
+                                                 durs  (adjust-duration durs (vec (flatten mod-input)))]
+                                             ;(println durs)
+                                             {:dur durs :val (flatten input-val) :mod-input mod-beat }))
 
 
 (defn split-to-sizes [input sizes] (let [s input]
@@ -243,7 +238,7 @@
                                                    ;_ (println "new-buf-data"  (type (nth new-buf-data 0)))
                                                    ;new-buf-data        (map clojure.edn/read-string new-buf-data)
                                                    ;_ (println "new-buf-data-string" (type (nth  new-buf-data 0)))
-                                                   new-durs-and-vals   (map generate-durations2 new-trig-data new-val-data)
+                                                   new-durs-and-vals   (map generate-durations new-trig-data new-val-data)
                                                    ;_ (println "new durs and vals" new-durs-and-vals)
                                                    durs                (map :dur new-durs-and-vals)
                                                    vals                (map :val new-durs-and-vals)
@@ -251,7 +246,9 @@
                                                    base-sizes          (map count new-trig-data)
                                                    base-durations      (map (fn [x] (/ 1 x) ) base-sizes)
                                                    leading-zeros       (map (fn [x]  (count (filter #{0} (first (partition-by identity x))))) durs)
-                                                   silent-trigger-durs (mapv  * base-durations leading-zeros)
+                                                   silent-trigger-durs (mapv (fn [x y] (into [] (subvec x 0 y))) mod-beat leading-zeros )
+                                                   silent-trigger-durs (mapv (fn [x] (reduce + x)) silent-trigger-durs)
+
                                                    durs-and-vals-zero  (mapv (fn [x y] (vec (dur-and-val-zero x y))) durs vals)
                                                    durs                (mapv (fn [x y] (conditional-remove-zero x y)) durs-and-vals-zero durs)
                                                    vals                (map (fn [x y] (conditional-remove-zero x y)) durs-and-vals-zero vals)
@@ -260,9 +257,7 @@
                                                                                (let [cur-idx            x
                                                                                      cur-vec            (nth vals cur-idx)]
                                                                                  (concat [0] cur-vec))) (range (count vals)))]
-                                               {:dur durs :val vals}
-
-                                               ))
+                                               {:dur durs :val vals}))
 
                                   ;pattern timing adjustments
 (defn set-pattern-duration [dur]   (buffer-write! base-dur [dur]))
@@ -542,7 +537,7 @@
 
 (defn stp [& pattern-names] (doseq [x pattern-names] (stop-pattern x)))
 
-(defn stpa [] (doseq [x  (keys @synthConfig)] (stop-pattern x)))
+(defn sta [] (doseq [x  (keys @synthConfig)] (stop-pattern x)))
 
 (defn set-out-bus [pattern-name] (let [pattern-name-key    pattern-name
                                        pattern-status (pattern-name-key @synthConfig)]

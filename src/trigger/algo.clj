@@ -125,7 +125,10 @@
 
 (defn del [coll beat del_val] (let [coll_length (count coll)
                                     coll_val    (nth coll beat)
+                                    is_coll_val_vec (vector? coll_val)
                                     delay_count  (+ 1 del_val)
-                                    delay_vector (repeat delay_count "r")
-                                    delay_vector (assoc delay_vector del_val coll_val)]
+                                    delay_vector (vec (repeat delay_count "-"))
+                                    delay_vector (if is_coll_val_vec
+                                                   (assoc delay_vector del_val (seq coll_val))
+                                                   (assoc delay_vector del_val coll_val) )]
                                  (assoc coll beat delay_vector)))
