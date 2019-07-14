@@ -2,13 +2,16 @@
   trigger.algo
   (:use [overtone.core])
   (:require [markov-chains.core]
+            [clojure.set :as set]
             [overtone.algo.euclidean-rhythm :refer :all]))
 
 
 
-(def sC (atom 0))
 
-(defn init-algo [sc-in] (def sC sc-in))
+(defn unique-random-numbers [n]
+  (let [a-set (set (take n (repeatedly #(rand-int n))))]
+    (concat a-set (set/difference (set (take n (range)))
+                                  a-set))))
 
 (def note-fobm {
                 [:A2]  { :A2 0.1  :C#2 0.06  :E2 0.3 }
@@ -34,7 +37,7 @@
                               )
                             (catch Exception e (do (println "Excpetion " e)
                                                    (swap! alg-config dissoc alg-key)
-                                                 (remove-event-handler alg-key)))))
+                                                   (remove-event-handler alg-key)))))
               alg-key))
 
 

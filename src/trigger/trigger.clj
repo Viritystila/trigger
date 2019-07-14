@@ -577,7 +577,6 @@
 
 (start-trigger)
 
-(init-algo synthConfig)
                                         ; External OSC trigger
 
 (defn init-osc [port]
