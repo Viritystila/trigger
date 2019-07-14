@@ -13,6 +13,8 @@
     (concat a-set (set/difference (set (take n (range)))
                                   a-set))))
 
+
+;Markov chain example
 (def note-fobm {
                 [:A2]  { :A2 0.1  :C#2 0.06  :E2 0.3 }
                 [:C#2] { :A2 0.925 :C#2 0.05 :E2 0.07 }
@@ -63,12 +65,20 @@
 
 
 ;Functions
-
+;general
 (defn func-val [input & args] (let [isfn  (fn? input)
                                     coll_length (count args)
                                     args        (if (= 1 coll_length) (apply concat args) args )]
                                 (if isfn (apply input args) input )
                                 ) )
+
+;trg-related
+(defn urn [n]
+  "Unique random numbers, e.g. (1 3 2  5)"
+  (let [a-set (set (take n (repeatedly #(rand-int n))))]
+    (concat a-set (set/difference (set (take n (range)))
+                                  a-set))))
+
 
 (defn fst ([factor input] (vec (repeat factor (seq input ) )))
   ([input] (vec (repeat 2 (seq input)))))
