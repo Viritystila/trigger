@@ -17,10 +17,6 @@
 
 
 
-(defsynth testeffect [in-trg 0.1 in-trg-val 0.1 out-bus 0 ctrl-out 0 bus-in 0] (let [val    (in:kr in-trg-val)
-                                                                                     src (free-verb (in bus-in) val 0.1 0.1)]
-                                                                                 (out out-bus src)) )
-
 
 (defsynth simple-flute [in-trg 0
                         in-trg-val 0
