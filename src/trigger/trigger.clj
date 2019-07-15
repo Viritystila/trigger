@@ -636,3 +636,29 @@
     ))
 
                                         ;Instrument functions
+
+
+(defn volume! [pattern-name vol] (let [pat      (pattern-name @synthConfig)
+                                       inst     (:synth-name pat)
+                                       is-inst  (instrument? inst)]
+                                   (if is-inst (inst-volume! inst vol) (println inst))))
+
+
+(defn pan! [pattern-name pan] (let [pat      (pattern-name @synthConfig)
+                                    inst     (:synth-name pat)
+                                    is-inst  (instrument? inst)]
+                                   (if is-inst (inst-pan! inst pan))))
+
+
+(defn fx! [pattern-name fx] (let [pat      (pattern-name @synthConfig)
+                                       inst     (:synth-name pat)
+                                       is-inst  (instrument? inst)]
+                              (if is-inst (inst-fx! inst fx)))
+  nil)
+
+
+(defn clrfx! [pattern-name] (let [pat      (pattern-name @synthConfig)
+                                       inst     (:synth-name pat)
+                                       is-inst  (instrument? inst)]
+                                 (if is-inst (clear-fx inst)))
+  nil)
