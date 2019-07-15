@@ -121,6 +121,7 @@
   (def base-trigger-count-bus (control-bus 1))
   (def base-trigger-count (base-trigger-counter [:tail main-g] base-trigger-bus base-trigger-count-bus))
   (pmap (fn [x] (pmap (fn [y] (store-buffer (buffer (+ x 1))) ) (range 100) )) (range 40))
+  ;(require '[trigger.insts :refer :all])
   (println "trigger initialized")
   (println (trigger-logo)))
 
