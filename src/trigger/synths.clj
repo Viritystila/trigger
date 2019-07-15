@@ -6,6 +6,16 @@
                                         ;Some of the synth  definitions adapted from
                                         ;https://github.com/overtone/overtone/blob/master/src/overtone/inst/synth.clj
 
+
+
+;; (definst testsin_i [in-trg 0 in-trg-val 0 in-attack 0.0001 in-attack-val 0.0001 f 200 out-bus 0 ctrl-out 0] (let [trg (in:kr in-trg)
+;;                                                                                                                   val (in:kr in-trg-val)
+;;                                                                                                                   env (env-gen (perc (in:kr in-attack-val) 0.01 0.5 0.1) :gate trg)
+;;                                                                                                                   src (* env (sin-osc (* f val)))]
+;;                                                                                                               src))
+
+
+
 (defsynth testsin [in-trg 0 in-trg-val 0 in-attack 0.0001 in-attack-val 0.0001 f 200 out-bus 0 ctrl-out 0] (let [trg (in:kr in-trg)
                                                                                                                  val (in:kr in-trg-val)
                                                                                                                  env (env-gen (perc (in:kr in-attack-val) 0.01 0.5 0.1) :gate trg)
@@ -136,7 +146,7 @@
 
 
 
-(defsynth supersaw [in-freq 440 in-freq-val 440 in-amp 1 in-amp-val 1 out-bus 0 ctrl-out 0]
+(defsynth supersaw [in-freq 440 in-freq-val 440 in-amp 0.5 in-amp-val 0.5 out-bus 0 ctrl-out 0]
   (let [freq   (in:kr in-freq-val)
         amp    (in:kr in-amp-val)
         input  (lf-saw freq)

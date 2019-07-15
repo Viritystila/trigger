@@ -136,7 +136,7 @@
 
 (defn fll [size coll] (fill size coll))
 
-(defn del [coll beat del_val] (let [coll_length (count coll)
+(defn del [beat del_val coll] (let [coll_length (count coll)
                                     beat        (mod beat coll_length)
                                     coll_val    (nth coll beat)
                                     is_coll_val_vec (vector? coll_val)

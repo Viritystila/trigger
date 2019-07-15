@@ -267,16 +267,6 @@
 
 
                                         ;Synth trigger generation
-;Inst support under construction
-(defprotocol inst-control
-  (kill-inst [this])
-  (kill-inst-trg   [this])
-  (ctl-inst [this var value])
-  (apply-inst-default-buses [this])
-  (apply-inst-default-bus [this db])
-  (apply-inst-control-out-bus [this])
-  (free-inst-control-out-bus [this]))
-
 
 (defprotocol synth-control
   (kill-synth [this])
@@ -292,7 +282,8 @@
   (apply-secondary-out-bus [this])
   (free-control-out-bus [this]))
 
-(defrecord synthContainer [pattern-name
+(defrecord synthContainer [is-inst
+                           pattern-name
                            group
                            out-bus
                            out-bus-secondary
@@ -303,7 +294,7 @@
                            control-out-bus]
   synth-control
   (kill-synth [this] (kill (. this play-synth)))
-  (kill-trg   [this] (group-free (. this group)))
+  (kill-trg   [this] (if (. this is-inst) (do (kill play-synth))   (group-free (. this group))))
   (swap-synth [this synth-name] (println "not implemented"))
   (ctl-synth [this var value] (ctl (. this play-synth) var value))
   (free-default-buses [this] ( doseq [x (vals default-buses)] (free-bus x)))
@@ -363,20 +354,24 @@
 
 (defn create-synth-config [pattern-name synth-name] (let [out-bus         0
                                                           out-bus-secondary (audio-bus 2)
-                                                          synth-group     (group pattern-name :tail main-g)
-                                                          play-synth      (synth-name  [:tail synth-group] )
+                                                          is_inst         (instrument? synth-name)
+                                                          synth-group     (if is_inst (:group synth-name) (group pattern-name :tail main-g))
+                                                          play-synth      (if is_inst (synth-name) (synth-name  [:tail synth-group] ))
+                                                          _ (println play-synth)
                                                           default-buses   (generate-default-buses synth-name)
                                                           control-out-bus (control-bus 1)
                                                           triggers        {}
-                                                          synth-container  (synthContainer. pattern-name
-                                                                                            synth-group
-                                                                                            out-bus
-                                                                                            out-bus-secondary
-                                                                                            play-synth
-                                                                                            triggers
-                                                                                            synth-name
-                                                                                            default-buses
-                                                                                            control-out-bus)]
+                                                          synth-container  (synthContainer.
+                                                                            is_inst
+                                                                            pattern-name
+                                                                            synth-group
+                                                                            out-bus
+                                                                            out-bus-secondary
+                                                                            play-synth
+                                                                            triggers
+                                                                            synth-name
+                                                                            default-buses
+                                                                            control-out-bus)]
                                                       (apply-default-buses synth-container)
                                                       (apply-control-out-bus synth-container)
                                                       synth-container ))
@@ -639,3 +634,5 @@
           (swap! algConfig assoc alg-key alg-key )))
 
     ))
+
+                                        ;Instrument functions
