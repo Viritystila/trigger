@@ -517,8 +517,8 @@
                     in-trg-val 0
                     in-freq 120
                     in-freq-val 120
-                    in-gate-select 0
-                    in-gate-select-val 0
+                    in-gate-select 1
+                    in-gate-select-val 1
                     in-amp 0.3
                     in-amp-val 0.3
                     ctrl-out 0
@@ -553,8 +553,8 @@
    in-s-val 0.9
    in-r 0.4
    in-r-val 0.4
-   in-gate-select 0
-   in-gate-select-val 0
+   in-gate-select 1
+   in-gate-select-val 1
    ctrl-out 0
    out-bus 0]
   (let [gate       (in:kr in-trg)
@@ -591,16 +591,16 @@
    in-t-val 0.6
    in-amp 1
    in-amp-val 1
-   in-a 0.01
-   in-a-val 0.01
-   in-d 0.03
-   in-d-val 0.03
+   in-a 0.001
+   in-a-val 0.001
+   in-d 0.3
+   in-d-val 0.3
    in-s 1
    in-s-val 1
    in-r 0.8
    in-r-val 0.8
-   in-gate-select 0
-   in-gate-select-val 0
+   in-gate-select 1
+   in-gate-select-val 1
    ctrl-out 0
    out-bus 0]
   (let [gate       (in:kr in-trg)
