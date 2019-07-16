@@ -9,19 +9,7 @@
    [trigger.algo :refer :all]
    [clojure.tools.namespace.repl :refer [refresh]]))
 
-(def port 57110)
-
-(defn boot-ext [] (if (server-connected?) nil (boot-external-server port {:max-buffers 262144 :max-control-bus 8096}) ))
-
 (defn main
   []
-
-  (boot-ext)
-  (start-trigger)
-
-  (Thread/sleep 5000)
-
-  (require '[trigger.insts :refer :all])
+  (println "start")
   )
-
-(main)

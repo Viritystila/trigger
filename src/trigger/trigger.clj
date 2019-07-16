@@ -8,6 +8,13 @@
    [trigger.algo :refer :all]
    [clojure.tools.namespace.repl :refer [refresh]]) )
 
+                                        ;Boot Supercollider
+
+(def port 57110)
+
+(defn boot-ext [] (if (server-connected?) nil (boot-external-server port {:max-buffers 262144 :max-control-bus 8096}) ))
+(boot-ext)
+
 
                                         ;State atoms
 (defonce synthConfig (atom {}))
@@ -651,3 +658,7 @@
                                        is-inst  (instrument? inst)]
                                  (if is-inst (clear-fx inst)))
   nil)
+
+
+                                        ;Start trigger
+(start-trigger)
