@@ -123,7 +123,9 @@
   (pmap (fn [x] (pmap (fn [y] (store-buffer (buffer (+ x 1))) ) (range 100) )) (range 40))
   ;(require '[trigger.insts :refer :all])
   (println "trigger initialized")
-  (println (trigger-logo)))
+  (println (trigger-logo))
+  ;(require '[trigger.insts :refer :all])
+  )
 
 
                                         ;Default value bus generation
@@ -571,8 +573,8 @@
 
 (defn lss [] (println (keys @synthConfig))  (keys @synthConfig) )
 
+                                        ;Start trigger
 (start-trigger)
-
                                         ; External OSC trigger
 
 (defn init-osc [port]
@@ -605,8 +607,6 @@
 
                                         ;Algorithm
 
-
-(def algConfig (atom {}))
 
 (defn rm-alg [pattern trigger buf-id] (let [trg_str        (str (name trigger) "-" (str buf-id))
                                             alg-key        (keyword (name pattern) trg_str)

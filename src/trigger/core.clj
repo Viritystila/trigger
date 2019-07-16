@@ -1,6 +1,6 @@
-(ns trigger.core)
+(ns #^{:author "Mikael Reponen"}
+    trigger.core)
 
-(defn foo
-  "I don't do a whole lot."
-  [x]
+(defn -main
+  []
   (println x "Hello, World!"))
