@@ -9,15 +9,6 @@
    [clojure.tools.namespace.repl :refer [refresh]]) )
 
 
-                                        ;boot eternal server
-;(def port 57110)
-;(boot-external-server port {:max-buffers 262144 :max-control-bus 8096})
-
-;(connect-external-server port)
-
-;(defn boot-ext [] (if (server-connected?) nil (boot-external-server port {:max-buffers 262144 :max-control-bus 8096}) ))
-;(boot-ext)
-
                                         ;State atoms
 (defonce synthConfig (atom {}))
 (defonce algConfig (atom {}))
@@ -88,8 +79,6 @@
     (out:kr trigger-value-bus-out pattern-item-value)
     (out:kr trigger-bus-out trg)))
 
-;(remove-watch dm :dm)
-
                                         ;Buffer pool functions
 (defn store-buffer [buf] (let [size      (buffer-size buf)
                                size-key  (keyword (str size))
@@ -110,8 +99,6 @@
 
                                         ;Start
 
-
-
 (defn start-trigger []
   (init_groups_dur_and_del)
   (def base-trigger-id (trig-id))
@@ -124,10 +111,8 @@
   (def base-trigger-count-bus (control-bus 1))
   (def base-trigger-count (base-trigger-counter [:tail main-g] base-trigger-bus base-trigger-count-bus))
   (pmap (fn [x] (pmap (fn [y] (store-buffer (buffer (+ x 1))) ) (range 100) )) (range 40))
-  ;(require '[trigger.insts :refer :all])
   (println "trigger initialized")
   (println (trigger-logo))
-  ;(require '[trigger.insts :refer :all])
   )
 
 
@@ -577,8 +562,6 @@
 
 (defn lss [] (println (keys @synthConfig))  (keys @synthConfig) )
 
-                                        ;Start trigger
-;(start-trigger)
                                         ; External OSC trigger
 
 (defn init-osc [port]

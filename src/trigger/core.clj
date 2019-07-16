@@ -17,8 +17,11 @@
   []
 
   (boot-ext)
-  ;(require '[trigger.trigger :refer :all])
   (start-trigger)
+
+  (Thread/sleep 5000)
+
+  (require '[trigger.insts :refer :all])
   )
 
 (main)

@@ -7,17 +7,17 @@
                                         ;https://github.com/overtone/overtone/blob/master/src/overtone/inst/synth.clj
 
 
-;; 
+;;
 ;; (definst testsin_i [in-trg 0 in-trg-val 0 in-attack 0.0001 in-attack-val 0.0001 f 200 out-bus 0 ctrl-out 0] (let [trg (in:kr in-trg)
 ;;                                                                                                                    val (in:kr in-trg-val)
 ;;                                                                                                                    env (env-gen (perc (in:kr in-attack-val) 0.01 0.5 0.1) :gate trg)
 ;;                                                                                                                    src (* env (sin-osc (* f val)))]
 ;;                                                                                                                src))
-;; 
+;;
 
 
 
-;; 
+;;
 (definst simple-flute_i [in-trg 0
                         in-trg-val 0
                         in-freq 880
@@ -56,8 +56,8 @@
         ctrl-out-sel (select:kr (in:kr in-ctrl-select-val) [(a2k sig) (a2k env)] )]
     (out:kr ctrl-out (a2k ctrl-out-sel))
     sig))
- 
-;; 
+
+;;
 ;; (defsynth cs80lead
 ;;   [in-trg 0
 ;;    in-trg-val 0
@@ -107,31 +107,31 @@
 ;;         decay    (in:kr in-decay-val)
 ;;         sus      (in:kr in-sustain-val)
 ;;         rel      (in:kr in-release-val)
-;; 
+;;
 ;;         fatt     (in:kr in-fattack-val)
 ;;         fdecay   (in:kr in-fdecay-val)
 ;;         fsus     (in:kr in-fsustain-val)
 ;;         frel     (in:kr in-frelease-val)
-;; 
+;;
 ;;         dtune    (in:kr in-dtune-val)
 ;;         vibrate  (in:kr in-vibrate-val)
 ;;         vibdepth (in:kr in-vibdepth-val)
-;; 
+;;
 ;;         env     (env-gen (adsr att decay sus rel) :gate gate)
 ;;         fenv    (env-gen (adsr fatt fdecay fsus frel 2) :gate gate)
-;; 
+;;
 ;;         vib     (+ 1 (lin-lin:kr (sin-osc:kr vibrate) -1 1 (- vibdepth) vibdepth))
-;; 
+;;
 ;;         freq    (* freq vib)
 ;;         sig     (mix (* env amp (saw [freq (* freq (+ dtune 1))])))]
 ;;     (out out-bus (pan2 sig))))
 ;; ;(-> {:pn "cs80lead" :sn cs80lead :in-trg ["[1]"]} trg )
-;; 
+;;
 ;; ;(-> {:pn "cs80lead" :sn cs80lead :in-trg ["[1 1 1 1]"] :in-freq ["[30 40]"] :in-amp ["[0.4]"] :in-attack ["[0.75]"] :in-decay ["[0.1]"] :in-sustain ["[0.5]"] :in-release ["[0.7]"] :in-vibdepth ["[0.001]"] :in-vibrate ["[1]"] :in-dtune ["[0.00000001]"] :in-freq-lag ["[10]"] :in-gate-select ["[1]"] } trg )
-;; 
-;; 
-;; 
-;; 
+;;
+;;
+;;
+;;
 ;; (defsynth supersaw [in-freq 440 in-freq-val 440 in-amp 0.5 in-amp-val 0.5 out-bus 0 ctrl-out 0]
 ;;   (let [freq   (in:kr in-freq-val)
 ;;         amp    (in:kr in-amp-val)
@@ -148,17 +148,17 @@
 ;;         output (- output input)
 ;;         output (leak-dc:ar (* output 0.25))]
 ;;     (out out-bus (pan2 (* amp output)))))
-;; 
+;;
 ;; ; (-> {:pn "ss" :sn supersaw} trg)
 ;; ;(-> {:pn "supersaw " :sn supersaw :in-freq ["[51]" "[55 60 65 55]" "[50]"] :in-amp ["[0.4]" "[0.4 0.45 0.5 0.55 0.6 0.55 0.5 0.45 0.4]" "[0.4]"] } trg )
-;; 
-;; 
+;;
+;;
 ;; (defsynth ticker
 ;;   [in-trg 880 in-trg-val 880 ctrl-out 0  out-bus 0]
 ;;   (let [env (env-gen (perc 0.001 0.01) :gate (in:kr in-trg))]
 ;;     (out out-bus (pan2 (* env (sin-osc (in:kr in-trg-val)))))))
 ;; ;(-> {:pn "ticker" :sn ticker :in-trg ["[51]" "[55 60 65 55]" "[50]"] } trg )
-;; 
+;;
 ;; (defsynth ping
 ;;   [in-trg 0
 ;;    in-trg-val 0
@@ -181,8 +181,8 @@
 ;;     (out out-bus (pan2 (* amp env snd)))))
 ;; ;(-> {:pn "ping" :sn ping :in-trg ["[1]"]} trg)
 ;; ;(-> {:pn "ping" :sn ping :in-trg ["[51 52 54 55 60 70 80 90]" "[1 1 1 1]"] :in-note ["[50]"] :in-decay ["[0.2]"]} trg)
-;; 
-;; 
+;;
+;;
 ;; (defsynth tb303
 ;;   [in-trg 0
 ;;    in-trg-val 0
@@ -240,10 +240,10 @@
 ;;   )
 ;; ;(-> {:pn "tb303" :sn tb303 :in-trg ["[1]"]} trg )
 ;; ;(-> {:pn "tb303" :sn tb303 :in-trg ["[1 1 0 [1 1]]"] :in-note ["[40]"] :in-attack ["[0.001]"] :in-decay ["[0.8]"] :in-sustain ["[0.99]"] :in-release ["[1.05]"] :in-amp ["[0.35]"] :in-cutoff ["[402]"] :in-wave ["[2]" "[1]"] :in-gate-select ["[1]"] } trg )
-;; 
-;; 
-;; 
-;; 
+;;
+;;
+;;
+;;
 ;; (defsynth mooger
 ;;   "Choose 0, 1, or 2 for saw, sin, or pulse"
 ;;   [in-trg 0
@@ -310,9 +310,9 @@
 ;;         filt       (moog-ff (+ s1 s2) (* cutoff f-env) 3)]
 ;;     (out out-bus (pan2 (* amp amp-env filt)))))
 ;; ;(-> {:pn "mooger" :sn mooger :in-trg ["[1]"]} trg )
-;; 
+;;
 ;; ;(-> {:pn "mooger" :sn mooger :in-trg ["[1]" "[1 1 1 -2]"] :in-note ["[40]" "[50]"] :in-attack ["[0.022]"] :in-decay ["[0.091]"] :in-sustain ["[0.5]"] :in-release ["[0.01]"] :in-amp ["[0.9]"] :in-cutoff ["[3000 2000 1000 1500]"] :in-osc1 ["[1]"] :in-osc2 ["[2]"] :in-osc1-level ["[0.95]"] :in-osc2-level ["[0.5]"] :in-fattack ["[0.0022]"] :in-fdecay ["[0.91]"] :in-fsustain ["[0.099]"] :in-frelease ["[0.9 0.99]"] :in-gate-select ["[1]"] } trg )
-;; 
+;;
 ;; (defsynth snare [in-trg 0
 ;;                  in-trg-val 0
 ;;                  in-amp 1
@@ -342,7 +342,7 @@
 ;;         snare (+ snare (bpf (* 4 snare) cutoff))
 ;;         snare (clip2 snare 1)]
 ;;     (out out-bus (pan2 (*  amp snare env)))))
-;; 
+;;
 ;; (defsynth kick [in-trg 0
 ;;                 in-trg-val 0
 ;;                 in-amp 0.02
@@ -400,7 +400,7 @@
 ;;         output    (free-verb output 0.1 0.3 0.1)
 ;;         ]
 ;;     (out out-bus (pan2 output))))
-;; 
+;;
 ;; (defsynth rise-fall-pad
 ;;   [in-trg 0
 ;;    in-trg-val 0
@@ -435,9 +435,9 @@
 ;;         reverb     (free-verb compressor 0.5 0.5 dampener)
 ;;         echo       (comb-n reverb 0.4 0.3 0.5)]
 ;;     (out out-bus (pan2 (* amp echo)))))
-;; 
-;; 
-;; 
+;;
+;;
+;;
 ;; (defsynth overpad
 ;;   [in-trg 0
 ;;    in-trg-val 0
@@ -475,7 +475,7 @@
 ;;                              (lpf (saw [freq (* freq 1.01)]) f-env)))
 ;;         audio (* amp env sig)]
 ;;     (out out-bus (pan2 audio))))
-;; 
+;;
 ;; (defsynth bass
 ;;   [in-trg 0
 ;;    in-trg-val 0
@@ -498,7 +498,7 @@
 ;;         filt (resonz (rlpf src (* 4.4 freq) 0.09) (* 2.0 freq) 2.9)]
 ;;     (out out-bus (pan2 (* env amp (fold:ar (distort (* 1.3 (+ filt sub))) 0.08))))
 ;;     ))
-;; 
+;;
 ;; (defsynth daf-bass [in-trg 0
 ;;                     in-trg-val 0
 ;;                     in-freq 120
@@ -520,8 +520,8 @@
 ;;         snd  (+ snd (repeat 2 (sum (sin-osc (/ freq [1 2])))))
 ;;         env  (env-gen (adsr 0.001 0.2 0.9 0.25) :gate gate )]
 ;;     (out out-bus (pan2 (* amp snd env)))))
-;; 
-;; 
+;;
+;;
 ;; (defsynth grunge-bass
 ;;   [in-trg 0
 ;;    in-trg-val 0
@@ -564,8 +564,8 @@
 ;;         sliced  (rlpf meat (* 2 freq) 0.1)
 ;;         bounced (free-verb sliced 0.8 0.9 0.2)]
 ;;     (out out-bus (pan2 (* amp env bounced)))))
-;; 
-;; 
+;;
+;;
 ;; (defsynth vintage-bass
 ;;   [in-trg 0
 ;;    in-trg-val 0
@@ -610,8 +610,8 @@
 ;;         env      (env-gen (adsr a d s r) :gate gate)
 ;;         filt     (* env (moog-ff mixed (* velocity env (+ freq 200)) 2.2))]
 ;;     (out out-bus (pan2 (* amp filt)))))
-;; 
-;; 
+;;
+;;
 ;; (defsynth b3
 ;;   [in-trg 0
 ;;    in-trg-val 0
@@ -653,8 +653,8 @@
 ;;         snd   (apply + waves)
 ;;         env   (env-gen (adsr a d s r) :gate gate)]
 ;;     (out out-bus (pan2 (* env snd amp)))))
-;; 
-;; 
+;;
+;;
 ;; (defsynth ks1
 ;;   [in-trg 0
 ;;    in-trg-val 0
@@ -690,7 +690,7 @@
 ;;         reverb (free-verb (* clp 1) 0.4 0.8 0.2)
 ;;         ]
 ;;     (out out-bus (pan2 (* amp env reverb)))))
-;; 
+;;
 ;; (defsynth bowed
 ;;   [in-trg 0
 ;;    in-trg-val 0
@@ -745,11 +745,11 @@
 ;;         new-vel       (* vel-diff bow-table)]
 ;;    (local-out (+ [bridge-refl nut-refl] new-vel))
 ;;    (out out-bus (pan2 (resonz (* amp 10 bridge 0.5) 500 0.85)))))
-;; 
-;; 
-;; 
+;;
+;;
+;;
 ;; ;drum synths from https://github.com/overtone/overtone/blob/master/src/overtone/inst/drum.clj
-;; 
+;;
 ;; (defsynth kick2
 ;;   [in-trg             0
 ;;    in-trg-val         0
@@ -774,8 +774,8 @@
 ;;         fenv (* (env-gen (envelope [env-ratio 1] [freq-decay] :exp) :gate gate) freq)
 ;;         aenv (env-gen (perc 0.005 amp-decay) :gate gate)]
 ;;     (out out-bus (pan2 (* amp (sin-osc fenv (* 0.5 Math/PI)) aenv)))))
-;; 
-;; 
+;;
+;;
 ;; (defsynth kick3 [in-trg             0
 ;;                 in-trg-val         0
 ;;                 in-freq            80
@@ -806,8 +806,8 @@
 ;;         hit (lpf hit (line 6000 500 0.03))
 ;;         hit-env (env-gen (perc 0.005 1) :gate gate)]
 ;;     (out out-bus (pan2 (* amp (+ (* drum drum-env) (* hit hit-env)))))))
-;; 
-;; 
+;;
+;;
 ;; (defsynth kick4
 ;;   [in-trg        0
 ;;    in-freq       80
@@ -829,8 +829,8 @@
 ;;         snd (sin-osc freq (* Math/PI 0.5))
 ;;         snd (* amp env snd)]
 ;;     (out out-bus (pan2 snd))))
-;; 
-;; 
+;;
+;;
 ;; (defsynth dub-kick
 ;;   [in-trg      0
 ;;    in-freq     80
@@ -849,7 +849,7 @@
 ;;         snd  (lpf (sin-osc (+ (env-gen:kr osc-env :gate gate) 20)) 200)
 ;;         mixed (* (+ noiz snd) (env-gen amp-env :gate gate))]
 ;;     (out out-bus (pan2 (* amp mixed)))))
-;; 
+;;
 ;; (defsynth dance-kick
 ;;   [in-trg        0
 ;;    in-freq       50.24
@@ -880,7 +880,7 @@
 ;;         dist (clip2 (* 2 (tanh (* 3 (distort (* 1.5 src))))) 0.8)
 ;;         eq (b-peak-eq dist 37.67 1 10.4)]
 ;;     (out out-bus (pan2 (* amp eq)))))
-;; 
+;;
 ;; (defsynth dry-kick
 ;;   [in-trg        0
 ;;    in-freq       50.24
@@ -902,8 +902,8 @@
 ;;         snd (mix (sin-osc [freq (* 2 freq) (- freq 15)] (* Math/PI 0.5)))
 ;;         snd (* amp env snd)]
 ;;     (out out-bus (pan2 snd))))
-;; 
-;; 
+;;
+;;
 ;; (defsynth quick-kick
 ;;   [in-trg        0
 ;;    in-trg-val    0
@@ -936,7 +936,7 @@
 ;;         dist (clip2 (* 2 (tanh (* 3 (distort (* 1.5 src))))) 0.8)
 ;;         eq (b-peak-eq dist 57.41 1 44)]
 ;;     (out out-bus (pan2 (* amp eq)))))
-;; 
+;;
 ;; (defsynth hat1
 ;;   [in-trg     0
 ;;    in-trg-val 0
@@ -960,7 +960,7 @@
 ;;         env       (env-gen (lin 0 0 t 1 :linear) :gate gate)  ;(line 1 0 t :action FREE)
 ;;         ]
 ;;     (out out-bus (pan2 (* amp env hi)))))
-;; 
+;;
 ;; (defsynth hat2
 ;;   [in-trg        0
 ;;    in-trg-val    0
@@ -981,7 +981,7 @@
 ;;         sqr (* (env-gen (perc 0.01 0.04) :gate gate) (pulse 880 0.2))
 ;;         filt (bpf (+ sqr noise) 9000 0.5)]
 ;;     (out out-bus (pan2 (* 0.5 amp env filt)))))
-;; 
+;;
 ;; (defsynth soft-hat
 ;;   [in-trg        0
 ;;    in-trg-val    0
@@ -1004,8 +1004,8 @@
 ;;         noiz (bpf (* amp (gray-noise)) freq 0.3)
 ;;         snd (* noiz env)]
 ;;     (out out-bus (pan2 snd))))
-;; 
-;; 
+;;
+;;
 ;; (defsynth noise-hat
 ;;   [in-trg        0
 ;;    in-trg-val    0
@@ -1030,7 +1030,7 @@
 ;;                   (*  1 ))
 ;;         snd (* 5 noiz env)]
 ;;     (out out-bus (pan2 snd))))
-;; 
+;;
 ;; (defsynth bell-hat
 ;;   [in-trg        0
 ;;    in-trg-val    0
@@ -1054,7 +1054,7 @@
 ;;         wave (* 0.1 env (mix (sin-osc [4000 6500 5000])))
 ;;         snd (+ noiz wave)]
 ;;     (out out-bus (pan2 snd))))
-;; 
+;;
 ;; (defsynth snare2
 ;;   [in-trg              0
 ;;    in-trg-val          0
@@ -1094,7 +1094,7 @@
 ;;         filtered  (* (brf filtered 2000 0.0001) noise-env)
 ;;         resonance (* (resonz filtered tightness) crackle-amp)]
 ;;     (out out-bus (pan2 (* amp (+ drum resonance))))))
-;; 
+;;
 ;; (defsynth snare3
 ;;   [in-trg              0
 ;;    in-trg-val          0
@@ -1120,7 +1120,7 @@
 ;;         noise (* 0.2 amp-env (pink-noise))
 ;;         snd (rlpf (* amp amp-env (+ snd noise)) 10567 0.2)]
 ;;     (out out-bus (pan2 snd))))
-;; 
+;;
 ;; (defsynth noise-snare
 ;;   [in-trg              0
 ;;    in-trg-val          0
@@ -1142,8 +1142,8 @@
 ;;         env (env-gen (perc attack decay) :gate gate)
 ;;         snd (bpf (gray-noise) freq 3)]
 ;;     (out out-bus (pan2 (* snd env amp)))))
-;; 
-;; 
+;;
+;;
 ;; (defsynth tone-snare
 ;;   [in-trg              0
 ;;    in-trg-val          0
@@ -1164,7 +1164,7 @@
 ;;         snap-osc  (bpf (hpf (white-noise) 500) 1500)]
 ;;     (out out-bus (pan2 (* amp (+ (* snd amp-env)
 ;;                                  (* snap-env snap-osc)))))))
-;; 
+;;
 ;; (defsynth tom
 ;;   [in-trg              0
 ;;    in-trg-val          0
@@ -1204,7 +1204,7 @@
 ;;                  (crackle 2.0))
 ;;         mix2 (* amp (+ mix stick))]
 ;;     (out out-bus (pan2 mix2))))
-;; 
+;;
 ;; (defsynth haziti-clap
 ;;   [in-trg              0
 ;;    in-trg-val          0
