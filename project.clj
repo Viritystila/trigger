@@ -8,5 +8,5 @@
                 [overtone            "0.10.6"]
                 [rm-hull/markov-chains "0.1.1"]]
   :repl-options {:init-ns trigger.core}
-  :main  trigger.core
+  :main  ^{:skip-aot true}  trigger.core
   :jvm-opts ^:replace [])
