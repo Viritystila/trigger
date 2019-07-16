@@ -7,6 +7,6 @@
                 [org.clojure/tools.namespace "0.2.11"]
                 [overtone            "0.10.6"]
                 [rm-hull/markov-chains "0.1.1"]]
-  :repl-options {:init-ns trigger.trigger}
-  :main ^{:skip-aot true} trigger.core
+  :repl-options {:init-ns trigger.core}
+  :main  trigger.core
   :jvm-opts ^:replace [])

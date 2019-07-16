@@ -6,17 +6,17 @@
    [trigger.synths :refer :all]
    [trigger.misc :refer :all]
    [trigger.algo :refer :all]
-   [clojure.tools.namespace.repl :refer [refresh]]))
+   [clojure.tools.namespace.repl :refer [refresh]]) )
 
 
                                         ;boot eternal server
-(def port 57110)
+;(def port 57110)
 ;(boot-external-server port {:max-buffers 262144 :max-control-bus 8096})
 
 ;(connect-external-server port)
 
-(defn boot-ext [] (if (server-connected?) nil (boot-external-server port {:max-buffers 262144 :max-control-bus 8096}) ))
-(boot-ext)
+;(defn boot-ext [] (if (server-connected?) nil (boot-external-server port {:max-buffers 262144 :max-control-bus 8096}) ))
+;(boot-ext)
 
                                         ;State atoms
 (defonce synthConfig (atom {}))
@@ -24,27 +24,28 @@
 (defonce bufferPool (atom {}))
 (def timeatom (atom 0))
 
+(defn init_groups_dur_and_del []
                                         ;Groups
   (do
     (defonce main-g (group "main group")))
 
                                         ;Base duration
-(do
-  (def base-dur (buffer 1))
-  (buffer-write! base-dur [1]))
+  (do
+    (def base-dur (buffer 1))
+    (buffer-write! base-dur [1]))
 
                                         ; Base trigger delay
-(do
-  (def base-del (buffer 1))
-  (buffer-write! base-del [0]))
+  (do
+    (def base-del (buffer 1))
+    (buffer-write! base-del [0])))
 
                                         ;Synthdefs
 
 (defsynth single-trigger-synth [out-bus 0] (let [env  (env-gen (perc 1 1 1) :action FREE)] (out:kr out-bus (* env (trig:kr 1 0.0000001)))))
 
 
-(defsynth base-trigger-synth [out-bus 0 trigger-id 0] (let [trg  (t-duty:kr  (dbufrd base-dur (dseries 0 1 INF)) 0 1)
-                                                            trg  (t-delay:kr trg  (dbufrd base-del (dseries 0 1 INF)) )]
+(defsynth base-trigger-synth [out-bus 0 trigger-id 0 base-dur-in 0 base-del-in 0] (let [trg  (t-duty:kr  (dbufrd base-dur-in (dseries 0 1 INF)) 0 1)
+                                                            trg  (t-delay:kr trg  (dbufrd base-del-in (dseries 0 1 INF)) )]
                                                            (send-trig trg trigger-id trg)
                                                            (out:kr out-bus trg)))
 
@@ -62,7 +63,8 @@
                              trigger-bus-out 0
                              trigger-value-bus-out 0
                              trigger-id 0
-                             trigger-val-id 0]
+                             trigger-val-id 0
+                             base-dur-in 0]
   (let [base-trigger            (in:kr base-trigger-bus-in)
         base-counter            (in:kr base-counter-bus-in)
         pattern-buffer-id       (dbufrd base-pattern-buffer-in base-counter)
@@ -71,7 +73,7 @@
         pattern-value-start-idx (select:kr (= 0.0 pattern-first-value) [0 1])
                                         ; Depending on if a spacer trigger exists or not in the first index of a buffer,
                                         ;this value needs to be either 1 or 0 in order to play the buffer as intended.
-        trg                     (t-duty:kr (* (dbufrd base-dur (dseries 0 1 INF) ) (dbufrd pattern-buffer-id (dseries 0 1 INF) 0))
+        trg                     (t-duty:kr (* (dbufrd base-dur-in (dseries 0 1 INF) ) (dbufrd pattern-buffer-id (dseries 0 1 INF) 0))
                                            base-trigger
                                            (dbufrd pattern-buffer-id (dseries 0 1 INF) 0))
         pattern-item-value      (demand:kr trg base-trigger (dbufrd pattern-value-buffer-id (dseries pattern-value-start-idx 1 INF)))
@@ -111,13 +113,14 @@
 
 
 (defn start-trigger []
+  (init_groups_dur_and_del)
   (def base-trigger-id (trig-id))
   (def base-trigger-bus (control-bus 1))
   (def external-trigger-bus (control-bus 1))
   (def base-trigger-dur-bus (control-bus 1))
   (control-bus-set! base-trigger-dur-bus 1)
   (buffer-write! base-dur [1])
-  (def base-trigger (base-trigger-synth [:tail main-g] base-trigger-bus base-trigger-id))
+  (def base-trigger (base-trigger-synth [:tail main-g] base-trigger-bus base-trigger-id base-dur base-del))
   (def base-trigger-count-bus (control-bus 1))
   (def base-trigger-count (base-trigger-counter [:tail main-g] base-trigger-bus base-trigger-count-bus))
   (pmap (fn [x] (pmap (fn [y] (store-buffer (buffer (+ x 1))) ) (range 100) )) (range 40))
@@ -407,7 +410,8 @@
                                                 trig-bus
                                                 trig-val-bus
                                                 trigger-id
-                                                trigger-val-id)]
+                                                trigger-val-id
+                                                base-dur)]
     (ctl synth-name  control-key trig-bus control-val-key  trig-val-bus)
     (triggerContainer. trigger-id trigger-val-id control-key control-val-key trig-group synth-name trig-bus
                        trig-val-bus  trig-synth  dur-buffers val-buffers pattern-id-buf pattern-value-id-buf pattern-vector pattern-value-vector)))
@@ -574,7 +578,7 @@
 (defn lss [] (println (keys @synthConfig))  (keys @synthConfig) )
 
                                         ;Start trigger
-(start-trigger)
+;(start-trigger)
                                         ; External OSC trigger
 
 (defn init-osc [port]
