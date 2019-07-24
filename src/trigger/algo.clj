@@ -72,6 +72,14 @@
                                 (if isfn (apply input args) input )
                                 ) )
 
+(defn cnc [& input] (let [isseq (seq input)
+                          ;input  (vec (reverse input))
+                          input (apply conj  input)]
+                    (if isseq (conj input)
+                        (concat input))))
+
+(defn handle_args [input] (let [s  (count input)] (apply cnc input)))
+
 ;trg-related
 (defn urn [n]
   "Unique random numbers, e.g. (1 3 2  5)"
@@ -99,30 +107,33 @@
                            (map-indexed #(if (zero? (mod (inc %1) n))  (f %2) %2) coll)
                             (map-indexed #(if (zero? (mod (inc %1) n)) f %2) coll) )))
 
-(defn rtm [pulses steps & args]  (mapv (fn [x] (if (zero? x) "-" x))  (vec (euclidean-rhythm (max 1 (func-val pulses args)) steps))))
+(defn rtm [pulses steps & args]  (map (fn [x] (if (zero? x) "-" x))  (vec (euclidean-rhythm (max 1 (func-val pulses args)) steps))))
 
-(defn nts [& notes] (mapv (fn [x] (if (keyword? x) (note x) x) ) notes))
+(defn nts [& notes] (map (fn [x] (if (keyword? x) (note x) x) ) notes))
 
-(defn chr [root chord-name] (vec (chord root chord-name)) )
+(defn chr [root chord-name] (seq (chord root chord-name)) )
 
-(defn chd ([degree root mode] (vec (chord-degree degree root mode)))
-  ([degree root mode num-notes] (vec (chord-degree degree root mode num-notes))))
+(defn chd ([degree root mode] (seq (chord-degree degree root mode)))
+  ([degree root mode num-notes] (seq (chord-degree degree root mode num-notes))))
 
 
-(defn mhz [& notes] (mapv (fn [x] (if (keyword? x) (midi->hz (note x)) x) ) notes))
+(defn mhz [& notes] (map (fn [x] (if (keyword? x) (midi->hz (note x)) x) ) notes))
 
 (defn rep ([n input]  (let [isfn   (fn? input)]
                         (if isfn (repeatedly n #(input))  (repeat n input))))
   ([n fnc & args] (repeatedly n #(apply fnc args) ) ))
 
-(defn sfl [coll] (shuffle coll))
+(defn sfl [& coll] (let [isseq (seq? (first coll))
+                         isseq (if (= 1 (count coll )) true false )]
+                     (if isseq (vec (shuffle (first coll)))
+                         (seq (shuffle coll)))))
 
 (defn rpl ([n input & coll]  (let [coll_length (count coll)
                                    isseq       (seq? (first coll))
                                    coll        (if  isseq (apply concat coll)
-                                                   (apply concat coll) )]
+                                                   coll )]
                                (if isseq (seq (assoc (vec coll) n input ))
-                                   (vec (assoc (vec coll) n input))))))
+                                   (seq (assoc (vec coll) n input))))))
 
 (defn sir [n range center period] (map (fn [x] (sinr x range center period)) (clojure.core/range n)))
 

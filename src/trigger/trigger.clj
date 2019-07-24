@@ -12,7 +12,7 @@
 
 (def port 57110)
 
-(defn boot-ext [] (if (server-connected?) nil (boot-external-server port {:max-buffers 262144 :max-control-bus 8096}) ))
+(defn boot-ext [] (if (server-connected?) nil (boot-external-server port {:max-buffers 2621440 :max-control-bus 80960}) ))
 (boot-ext)
 
 
@@ -117,7 +117,7 @@
   (def base-trigger (base-trigger-synth [:tail main-g] base-trigger-bus base-trigger-id base-dur base-del))
   (def base-trigger-count-bus (control-bus 1))
   (def base-trigger-count (base-trigger-counter [:tail main-g] base-trigger-bus base-trigger-count-bus))
-  (pmap (fn [x] (pmap (fn [y] (store-buffer (buffer (+ x 1))) ) (range 100) )) (range 40))
+  (pmap (fn [x] (pmap (fn [y] (store-buffer (buffer (+ x 1))) ) (range 200) )) (range 100))
   (println "trigger initialized")
   (println (trigger-logo))
   )
