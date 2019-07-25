@@ -78,7 +78,15 @@
                     (if isseq (conj input)
                         (concat input))))
 
-(defn handle_args [input] (let [s  (count input)] (apply cnc input)))
+
+(defn piv [input] (let []
+                                   (loop [xv     (seq input)
+                                          result []]
+                                     (if xv
+                                       (let [fst     (first xv) ]
+                                         (if (vector? fst) (recur (next xv) (conj result (vec (piv fst))))
+                                             (if (seq? fst) (recur (next xv) (apply conj result  (vec (piv fst))))
+                                                 (recur (next xv) (conj result fst))))) result ))))
 
 ;trg-related
 (defn urn [n]
@@ -88,21 +96,24 @@
                                   a-set))))
 
 
-(defn fst ([factor input] (vec (repeat factor (seq input ) )))
-  ([input] (vec (repeat 2 (seq input)))))
+(defn fst ([factor input] (piv (vec (repeat factor (seq input ) ))))
+  ([input] (piv (vec (repeat 2 (seq input))))))
 
-(defn slw ([factor input] (let [input-size (count input)
-                                factor     (int (/  input-size factor))
-                                ] (map vec (partition factor input))))
-  ([input] (let  [input-size (count input)
-                                factor     (int (/  input-size 2))
-                                ] (map vec (partition factor input)))))
+(defn slw ([factor input] (let [input      (piv input)
+                                input-size (count input)
+                                factor     (int (/  input-size factor))]
+                            (seq (piv (map vec (partition factor input))))))
+  ([input] (let  [input   (piv input)
+                  input-size (count input)
+                  factor     (int (/  input-size 2))]
+             (seq (piv (map vec (partition factor input)))))))
 
-(defn rev [coll] (vec (reverse coll)))
+(defn rev [coll]  (piv (reverse (piv coll))))
 
-(defn evr [n f & coll] (let [isfn  (fn? f)
+(defn evr [n f & coll] (let [isfn        (fn? f)
+                             coll        (piv coll)
                              coll_length (count coll)
-                             coll        (if (= 1 coll_length) (apply concat coll) coll )]
+                             ]
                          (if isfn
                            (map-indexed #(if (zero? (mod (inc %1) n))  (f %2) %2) coll)
                             (map-indexed #(if (zero? (mod (inc %1) n)) f %2) coll) )))
@@ -120,8 +131,8 @@
 (defn mhz [& notes] (map (fn [x] (if (keyword? x) (midi->hz (note x)) x) ) notes))
 
 (defn rep ([n input]  (let [isfn   (fn? input)]
-                        (if isfn (repeatedly n #(input))  (repeat n input))))
-  ([n fnc & args] (repeatedly n #(apply fnc args) ) ))
+                        (if isfn (seq (piv (repeatedly n #(input))))  (seq (piv (repeat n  input))))))
+  ([n fnc & args] (seq (piv (repeatedly n #(apply fnc args) ))) ))
 
 (defn sfl [& coll] (let [isseq (seq? (first coll))
                          isseq (if (= 1 (count coll )) true false )]
@@ -130,8 +141,10 @@
 
 (defn rpl ([n input & coll]  (let [coll_length (count coll)
                                    isseq       (seq? (first coll))
+                                   isfn        (fn? input)
                                    coll        (if  isseq (apply concat coll)
-                                                   coll )]
+                                                    coll )
+                                   ]
                                (if isseq (seq (assoc (vec coll) n input ))
                                    (seq (assoc (vec coll) n input))))))
 
@@ -143,11 +156,12 @@
 
 (defn tar [n range center period] (map (fn [x] (tanr x range center period)) (clojure.core/range n)))
 
-(defn rot [n coll] (rotate n coll))
+(defn rot [n coll] (rotate n (piv coll)))
 
 (defn fll [size coll] (fill size coll))
 
-(defn del [beat del_val coll] (let [coll_length (count coll)
+(defn del [beat del_val coll] (let [coll        (piv coll)
+                                    coll_length (count coll)
                                     beat        (mod beat coll_length)
                                     coll_val    (nth coll beat)
                                     is_coll_val_vec (vector? coll_val)
