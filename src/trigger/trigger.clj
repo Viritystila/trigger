@@ -39,9 +39,6 @@
 
                                         ;Synthdefs
 
-(defsynth single-trigger-synth [out-bus 0] (let [env  (env-gen (perc 1 1 1) :action FREE)] (out:kr out-bus (* env (trig:kr 1 0.0000001)))))
-
-
 (defsynth base-trigger-synth [out-bus 0 trigger-id 0 base-dur-in 0 base-del-in 0]
   (let [trg1  (t-duty:kr  (dbufrd base-dur-in (dseries 0 1 INF)) 0 1)
         ;trg   (t-delay:kr trg1  (dbufrd base-del-in (dseries 0 1 INF)))
@@ -571,35 +568,18 @@
 
 (defn lss [] (println (keys @synthConfig))  (keys @synthConfig) )
 
-                                        ; External OSC trigger
-
+                                        ; OSC
+;(var addr=NetAddr.new("127.0.0.1", 3333);  OSCdef ('/tidalplay2', { arg msg; addr.sendMsg("/play2", *msg);}, '/play2', n);)
 (defn init-osc [port]
-  (def oscserver (osc-server 3334 "osc-clj"))
-  (def client (osc-client "localhost" 3334))
+  (def oscserver (osc-server port "osc-clj"))
+  (def client (osc-client "localhost" port))
   (zero-conf-on)
   (java.net.InetAddress/getLocalHost))
 
-
-(defn external-trigger
-  [val]
-  (let [val val
-        _ (single-trigger-synth base-trigger-bus)
-        ;_ (reset! timeatom (System/currentTimeMillis))
-        ]
-    (println val)
-    ))
-
-(defn null-trigger
- [val]
-  (let [val val
-        _ (single-trigger-synth)
-        ;_ (reset! timeatom (System/currentTimeMillis))
-        ]
-    ;(println val)
-    ))
-(defn set-to-external-trigger [] (ctl base-trigger :out-bus external-trigger-bus) (osc-handle oscserver "/play2" (fn [msg] (external-trigger msg))))
-
-(defn set-to-internal-trigger [] (ctl base-trigger :out-bus base-trigger-bus) (osc-handle oscserver "/play2" (fn [msg] (null-trigger msg))))
+(defn osc-extract-tidal [msg key]
+  (let [submsg  (into [] (subvec (vec (key msg)) 1))
+        part     (mapv (fn [x] [(keyword (first x)) (last x)]) (partition 2 submsg))]
+    (into {} part)))
 
                                         ;Algorithm
 
