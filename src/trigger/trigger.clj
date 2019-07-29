@@ -10,7 +10,7 @@
 
                                         ;Boot Supercollider
 
-(def port 57110)
+(def port 57111)
 
 (defn boot-ext [] (if (server-connected?) nil (boot-external-server port {:max-buffers 2621440 :max-control-bus 80960}) ))
 (boot-ext)
@@ -43,8 +43,9 @@
 
 
 (defsynth base-trigger-synth [out-bus 0 trigger-id 0 base-dur-in 0 base-del-in 0]
-  (let [trg  (t-duty:kr  (dbufrd base-dur-in (dseries 0 1 INF)) 0 1)
-        trg  (t-delay:kr trg  (dbufrd base-del-in (dseries 0 1 INF)) )]
+  (let [trg1  (t-duty:kr  (dbufrd base-dur-in (dseries 0 1 INF)) 0 1)
+        ;trg   (t-delay:kr trg1  (dbufrd base-del-in (dseries 0 1 INF)))
+        trg   (t-delay:kr trg1  (buf-rd:kr 1 base-del-in))]
     (send-trig trg trigger-id trg)
     (out:kr out-bus trg)))
 
@@ -114,7 +115,7 @@
   (def external-trigger-bus (control-bus 1))
   (def base-trigger-dur-bus (control-bus 1))
   (control-bus-set! base-trigger-dur-bus 1)
-  (buffer-write! base-dur [1])
+  (buffer-write! base-dur [(/ 1 0.5625)])
   (def base-trigger (base-trigger-synth [:tail main-g] base-trigger-bus base-trigger-id base-dur base-del))
   (def base-trigger-count-bus (control-bus 1))
   (def base-trigger-count (base-trigger-counter [:tail main-g] base-trigger-bus base-trigger-count-bus))
