@@ -42,10 +42,11 @@
 (defsynth single-trigger-synth [out-bus 0] (let [env  (env-gen (perc 1 1 1) :action FREE)] (out:kr out-bus (* env (trig:kr 1 0.0000001)))))
 
 
-(defsynth base-trigger-synth [out-bus 0 trigger-id 0 base-dur-in 0 base-del-in 0] (let [trg  (t-duty:kr  (dbufrd base-dur-in (dseries 0 1 INF)) 0 1)
-                                                            trg  (t-delay:kr trg  (dbufrd base-del-in (dseries 0 1 INF)) )]
-                                                           (send-trig trg trigger-id trg)
-                                                           (out:kr out-bus trg)))
+(defsynth base-trigger-synth [out-bus 0 trigger-id 0 base-dur-in 0 base-del-in 0]
+  (let [trg  (t-duty:kr  (dbufrd base-dur-in (dseries 0 1 INF)) 0 1)
+        trg  (t-delay:kr trg  (dbufrd base-del-in (dseries 0 1 INF)) )]
+    (send-trig trg trigger-id trg)
+    (out:kr out-bus trg)))
 
 
 (defsynth base-trigger-counter [base-trigger-bus-in 0 base-trigger-count-bus-out 0]
@@ -258,9 +259,9 @@
                                                {:dur durs :val vals}))
 
                                   ;pattern timing adjustments
-(defn set-pattern-duration [dur]   (buffer-write! base-dur [dur]))
+(defn set-pattern-duration [dur]   (buffer-write! base-dur [dur])nil)
 
-(defn set-pattern-delay [delay]  (buffer-write! base-del [delay]))
+(defn set-pattern-delay [delay]  (buffer-write! base-del [delay]) nil)
 
 
 

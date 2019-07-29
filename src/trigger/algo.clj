@@ -156,6 +156,8 @@
 
 (defn tar [n range center period] (map (fn [x] (tanr x range center period)) (clojure.core/range n)))
 
+(defn sqr [n x1 x2 high low] (map (fn [x] (if (and (>= x x1) (< x x2)) high low )) (range n) ))
+
 (defn rot [n coll] (rotate n (piv coll)))
 
 (defn fll [size coll] (fill size coll))
