@@ -6,7 +6,8 @@
   :dependencies [[org.clojure/clojure "1.10.0"]
                 [org.clojure/tools.namespace "0.2.11"]
                 [overtone            "0.10.6"]
-                [rm-hull/markov-chains "0.1.1"]]
+                [rm-hull/markov-chains "0.1.1"]
+                [org.clojure/math.numeric-tower "0.0.4"]]
   :repl-options {:init-ns trigger.trigger}
   :main  ^{:skip-aot true}  trigger.trigger
   :jvm-opts ^:replace [])

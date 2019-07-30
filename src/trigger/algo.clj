@@ -3,7 +3,8 @@
   (:use [overtone.core])
   (:require [markov-chains.core]
             [clojure.set :as set]
-            [overtone.algo.euclidean-rhythm :refer :all]))
+            [overtone.algo.euclidean-rhythm :refer :all]
+            [clojure.math.numeric-tower :as math]))
 
 
 
@@ -182,3 +183,21 @@
                                     ;prev_coll_val  (nth coll (mod (- beat 1) coll_length))
                                     ;coll           (assoc coll beat "-")
                                    ]))
+
+(defn acc ([coll] (let [coll    (piv coll)
+                        s       (count coll)
+                        rcollr  (range s)
+                        rcoll   (mapv (fn [x]  (repeat x "-")) rcollr )
+                        rcoll   (reverse rcoll)
+                        coll    (partition 1 coll)
+                        pcoll   (vec (interleave coll rcoll))
+                        pcoll   (apply concat pcoll)] pcoll)))
+
+
+(defn dec ([coll] (let [coll    (piv coll)
+                        s       (count coll)
+                        rcollr  (range s)
+                        rcoll   (mapv (fn [x]  (repeat x "-")) rcollr )
+                        coll    (partition 1 coll)
+                        pcoll   (vec (interleave rcoll coll))
+                        pcoll   (apply concat pcoll)] pcoll)))
