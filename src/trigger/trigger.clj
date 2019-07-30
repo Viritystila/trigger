@@ -41,7 +41,6 @@
 
 (defsynth base-trigger-synth [out-bus 0 trigger-id 0 base-dur-in 0 base-del-in 0]
   (let [trg1  (t-duty:kr  (dbufrd base-dur-in (dseries 0 1 INF)) 0 1)
-        ;trg   (t-delay:kr trg1  (dbufrd base-del-in (dseries 0 1 INF)))
         trg   (t-delay:kr trg1  (buf-rd:kr 1 base-del-in))]
     (send-trig trg trigger-id trg)
     (out:kr out-bus trg)))
@@ -86,21 +85,23 @@
     (out:kr trigger-bus-out trg)))
 
                                         ;Buffer pool functions
-(defn store-buffer [buf] (let [size      (buffer-size buf)
-                               size-key  (keyword (str size))
-                               pool      @bufferPool
-                               pool      (update pool size-key (fnil concat []) [buf])]
-                           (reset! bufferPool pool)))
+(defn store-buffer [buf]
+  (let [size      (buffer-size buf)
+        size-key  (keyword (str size))
+        pool      @bufferPool
+        pool      (update pool size-key (fnil concat []) [buf])]
+    (reset! bufferPool pool)))
 
-(defn retrieve-buffer [size] (let [size-key      (keyword (str size))
-                                   pool          @bufferPool
-                                   buffers-left  (and (contains? pool size-key) (< 0 (count (size-key pool))))
-                                   first-buf     (first (size-key pool))
-                                   rest-buf      (rest  (size-key pool))
-                                   pool          (assoc pool size-key  rest-buf )]
-                               (if buffers-left
-                                 (do (reset! bufferPool pool) first-buf)
-                                 (do (buffer size)))))
+(defn retrieve-buffer [size]
+  (let [size-key      (keyword (str size))
+        pool          @bufferPool
+        buffers-left  (and (contains? pool size-key) (< 0 (count (size-key pool))))
+        first-buf     (first (size-key pool))
+        rest-buf      (rest  (size-key pool))
+        pool          (assoc pool size-key  rest-buf )]
+    (if buffers-left
+      (do (reset! bufferPool pool) first-buf)
+      (do (buffer size)))))
 
 
                                         ;Start
@@ -123,143 +124,151 @@
 
 
                                         ;Default value bus generation
-(defn is-in-arg [arg-key arg-val] (if (some? (re-find #"in" (str arg-key))) {(keyword arg-key) arg-val} nil ))
+(defn is-in-arg [arg-key arg-val]
+  (if (some? (re-find #"in" (str arg-key))) {(keyword arg-key) arg-val} nil ))
 
-(defn get-in-defaults [synth-name] (let [arg-names        (map :name (:params synth-name))
-                                         arg-keys         (map :default (:params synth-name))
-                                         arg-val-keys     (map (fn [x] (keyword (str (name x) "-val"))) arg-keys)
-                                         args-names-vals  (map (fn [x y] (is-in-arg x y)) arg-names arg-keys)
-                                         args-names-vals  (remove nil? args-names-vals)
-                                         args-names-vals  (apply conj args-names-vals)]
-                                     args-names-vals) )
+(defn get-in-defaults [synth-name]
+  (let [arg-names        (map :name (:params synth-name))
+        arg-keys         (map :default (:params synth-name))
+        arg-val-keys     (map (fn [x] (keyword (str (name x) "-val"))) arg-keys)
+        args-names-vals  (map (fn [x y] (is-in-arg x y)) arg-names arg-keys)
+        args-names-vals  (remove nil? args-names-vals)
+        args-names-vals  (apply conj args-names-vals)]
+    args-names-vals) )
 
-(defn generate-default-buses  [synth-name] (let [anv        (get-in-defaults synth-name)
-                                                 buses-def  (vec (map (fn [x]   (control-bus 1)) (vals anv)))
-                                                 set-buses  (vec (map (fn [x y] (control-bus-set! x y)) buses-def (vals anv )))
-                                                 buses      (vec (map (fn [x y] {x y}) (keys anv) buses-def))
-                                                 buses      (apply conj buses)]
-                                             buses))
+(defn generate-default-buses  [synth-name]
+  (let [anv        (get-in-defaults synth-name)
+        buses-def  (vec (map (fn [x]   (control-bus 1)) (vals anv)))
+        set-buses  (vec (map (fn [x y] (control-bus-set! x y)) buses-def (vals anv )))
+        buses      (vec (map (fn [x y] {x y}) (keys anv) buses-def))
+        buses      (apply conj buses)]
+    buses))
 
 
                                         ;Pattern generation functions
-(defn trigger-dur [dur] (if (= dur 0) 0 1) )
+(defn trigger-dur [dur]
+  (if (= dur 0) 0 1) )
 
-(defn traverse-vector ([input-array] (let [input-vec input-array
-                                           result []]
-                                      (if true
-                                        (loop [xv (seq input-vec)
-                                               result []]
-                                          (if xv
-                                            (let [ length (count input-vec)
-                                                  x (first xv)]
-                                               (if (vector? x) (recur (next xv) (conj result (traverse-vector x length)))
-                                                   (recur (next xv) (conj result (/ 1 length 1))))) result)))))
+(defn traverse-vector ([input-array]
+                       (let [input-vec input-array
+                             result []]
+                         (if true
+                           (loop [xv (seq input-vec)
+                                  result []]
+                             (if xv
+                               (let [ length (count input-vec)
+                                     x (first xv)]
+                                 (if (vector? x) (recur (next xv) (conj result (traverse-vector x length)))
+                                     (recur (next xv) (conj result (/ 1 length 1))))) result)))))
   ([input-array bl] (let [input-vec input-array]
                       (if (vector? input-vec)
-                         (loop [xv (seq input-vec)
-                                result []]
-                           (if xv
-                             (let [length (count input-vec)
-                                   x (first xv)]
+                        (loop [xv (seq input-vec)
+                               result []]
+                          (if xv
+                            (let [length (count input-vec)
+                                  x (first xv)]
                                (if (vector? x) (recur (next xv) (conj result (traverse-vector x (* bl length))))
-                                   (recur (next xv) (conj result (/ 1 length bl))))) result))))))
+                                (recur (next xv) (conj result (/ 1 length bl))))) result))))))
 
 
-(defn sum-zero-durs [idxs input-vector full-durs] (loop [xv (seq idxs)
-                                                       sum 0]
-                                                  (if xv
-                                                    (let [x       (first xv)
-                                                          zero-x  (nth input-vector x )
-                                                          dur-x   (nth full-durs x)]
-                                                      (if (= zero-x 0) (do (recur (next xv) (+ dur-x sum))) sum)) sum)))
+(defn sum-zero-durs [idxs input-vector full-durs]
+  (loop [xv (seq idxs)
+         sum 0]
+    (if xv
+      (let [x       (first xv)
+            zero-x  (nth input-vector x )
+            dur-x   (nth full-durs x)]
+        (if (= zero-x 0) (do (recur (next xv) (+ dur-x sum))) sum)) sum)))
 
 
-(defn adjust-duration [input-vector input-original] (let [length   (count input-vector)
-                                                         full-durs input-vector
-                                                         input-vector (into [] (map * input-vector input-original))
-                                                         idxs (vec (range length))]
-                                                     (loop [xv (seq idxs)
-                                                            result []]
-                                                         (if xv
-                                                          (let [xidx      (first xv)
-                                                                nidx      (if (< (+ 1 xidx) length) (+ 1 xidx) (- length 1));   (mod (+ 1 xidx) length)
-                                                                opnext    (nth input-vector nidx)
-                                                                op        (nth input-vector xidx)
-                                                                vec-ring  (vec (subvec idxs nidx))
-                                                                op      (if (and (not= 0 op) ( = 0 opnext)) (+ op (sum-zero-durs vec-ring input-vector full-durs)) op)]
-                                                            (recur (next xv) (conj result op))) result))))
+(defn adjust-duration [input-vector input-original]
+  (let [length   (count input-vector)
+        full-durs input-vector
+        input-vector (into [] (map * input-vector input-original))
+        idxs (vec (range length))]
+    (loop [xv (seq idxs)
+           result []]
+      (if xv
+        (let [xidx      (first xv)
+              nidx      (if (< (+ 1 xidx) length) (+ 1 xidx) (- length 1))
+              opnext    (nth input-vector nidx)
+              op        (nth input-vector xidx)
+              vec-ring  (vec (subvec idxs nidx))
+              op      (if (and (not= 0 op) ( = 0 opnext)) (+ op (sum-zero-durs vec-ring input-vector full-durs)) op)]
+          (recur (next xv) (conj result op))) result))))
 
 
-(defn generate-durations [input input-val] (let [mod-input (vec (map trigger-dur (vec (flatten input))))
-                                                 durs  (traverse-vector input)
-                                                 durs  (into [] (flatten durs))
-                                                 mod-beat durs
-                                                 durs  (adjust-duration durs (vec (flatten mod-input)))]
-                                             ;(println durs)
-                                             {:dur durs :val (flatten input-val) :mod-input mod-beat }))
+(defn generate-durations [input input-val]
+  (let [mod-input (vec (map trigger-dur (vec (flatten input))))
+        durs  (traverse-vector input)
+        durs  (into [] (flatten durs))
+        mod-beat durs
+        durs  (adjust-duration durs (vec (flatten mod-input)))]
+    {:dur durs :val (flatten input-val) :mod-input mod-beat }))
 
 
-(defn split-to-sizes [input sizes] (let [s input]
-                                     (apply concat (reduce
-                                                    (fn [[s xs] len]
-                                                      [(subvec s len)
-                                                       (conj xs (subvec s 0 len))])
-                                                    [s []]
-                                                    sizes))))
+(defn split-to-sizes [input sizes]
+  (let [s input]
+    (apply concat (reduce
+                   (fn [[s xs] len]
+                     [(subvec s len)
+                      (conj xs (subvec s 0 len))])
+                   [s []]
+                   sizes))))
 
 
 
-(defn conditional-remove-zero [cond inputvec] (let [size      (count inputvec)
-                                                    idxs      (range size)]
-                                                (loop [xv     (seq idxs)
-                                                       result []]
-                                                  (if xv
-                                                    (let [idx     (first xv)
-                                                          cond-i  (nth cond idx )
-                                                          value-i (nth inputvec idx)
-                                                          ]
-                                                      (if (= cond-i false) (do (recur (next xv) (conj result value-i))) (do (recur (next xv) result )) )) result))))
+(defn conditional-remove-zero [cond inputvec]
+  (let [size      (count inputvec)
+        idxs      (range size)]
+    (loop [xv     (seq idxs)
+           result []]
+      (if xv
+        (let [idx     (first xv)
+              cond-i  (nth cond idx )
+              value-i (nth inputvec idx)]
+          (if (= cond-i false) (do (recur (next xv) (conj result value-i))) (do (recur (next xv) result )) )) result))))
 
 
-(defn dur-and-val-zero [durs vals] (map (fn [x y] (= x y 0)) durs vals))
+(defn dur-and-val-zero [durs vals]
+  (map (fn [x y] (= x y 0)) durs vals))
 
-(defn string-zero-to-one [str-in]  (clojure.string/replace  str-in #"0" "1") )
+(defn string-zero-to-one [str-in]
+  (clojure.string/replace  str-in #"0" "1") )
 
-(defn string-hyphen-to-zero [str-in]  (clojure.string/replace str-in #"-" "0") )
+(defn string-hyphen-to-zero [str-in]
+  (clojure.string/replace str-in #"-" "0") )
 
-(defn generate-pattern-vector [new-buf-data] (let [new-trig-data       (vec (map (fn [x] (string-zero-to-one x)) new-buf-data))
-                                                   new-trig-data       (map clojure.edn/read-string (vec (map (fn [x] (string-hyphen-to-zero x)) new-trig-data)))
-                                                   new-val-data        (map clojure.edn/read-string (vec (map (fn [x] (string-hyphen-to-zero x)) new-buf-data)))
-                                                   ;_ (println "new trig-data" new-trig-data)
-                                                   ;_ (println "new-val-data" new-val-data)
-                                                   ;_ (println "new-buf-data"  (type (nth new-buf-data 0)))
-                                                   ;new-buf-data        (map clojure.edn/read-string new-buf-data)
-                                                   ;_ (println "new-buf-data-string" (type (nth  new-buf-data 0)))
-                                                   new-durs-and-vals   (map generate-durations new-trig-data new-val-data)
-                                                   ;_ (println "new durs and vals" new-durs-and-vals)
-                                                   durs                (map :dur new-durs-and-vals)
-                                                   vals                (map :val new-durs-and-vals)
-                                                   mod-beat            (map :mod-input new-durs-and-vals)
-                                                   base-sizes          (map count new-trig-data)
-                                                   base-durations      (map (fn [x] (/ 1 x) ) base-sizes)
-                                                   leading-zeros       (map (fn [x]  (count (filter #{0} (first (partition-by identity x))))) durs)
-                                                   silent-trigger-durs (mapv (fn [x y] (into [] (subvec x 0 y))) mod-beat leading-zeros )
-                                                   silent-trigger-durs (mapv (fn [x] (reduce + x)) silent-trigger-durs)
+(defn generate-pattern-vector [new-buf-data]
+  (let [new-trig-data       (vec (map (fn [x] (string-zero-to-one x)) new-buf-data))
+        new-trig-data       (map clojure.edn/read-string (vec (map (fn [x] (string-hyphen-to-zero x)) new-trig-data)))
+        new-val-data        (map clojure.edn/read-string (vec (map (fn [x] (string-hyphen-to-zero x)) new-buf-data)))
+        new-durs-and-vals   (map generate-durations new-trig-data new-val-data)
+        durs                (map :dur new-durs-and-vals)
+        vals                (map :val new-durs-and-vals)
+        mod-beat            (map :mod-input new-durs-and-vals)
+        base-sizes          (map count new-trig-data)
+        base-durations      (map (fn [x] (/ 1 x) ) base-sizes)
+        leading-zeros       (map (fn [x]  (count (filter #{0} (first (partition-by identity x))))) durs)
+        silent-trigger-durs (mapv (fn [x y] (into [] (subvec x 0 y))) mod-beat leading-zeros )
+        silent-trigger-durs (mapv (fn [x] (reduce + x)) silent-trigger-durs)
 
-                                                   durs-and-vals-zero  (mapv (fn [x y] (vec (dur-and-val-zero x y))) durs vals)
-                                                   durs                (mapv (fn [x y] (conditional-remove-zero x y)) durs-and-vals-zero durs)
-                                                   vals                (map (fn [x y] (conditional-remove-zero x y)) durs-and-vals-zero vals)
-                                                   durs                (mapv (fn [x y] (concat [x] y)) silent-trigger-durs durs)
-                                                   vals                (mapv (fn [x]
-                                                                               (let [cur-idx            x
-                                                                                     cur-vec            (nth vals cur-idx)]
-                                                                                 (concat [0] cur-vec))) (range (count vals)))]
-                                               {:dur durs :val vals}))
+        durs-and-vals-zero  (mapv (fn [x y] (vec (dur-and-val-zero x y))) durs vals)
+        durs                (mapv (fn [x y] (conditional-remove-zero x y)) durs-and-vals-zero durs)
+        vals                (map (fn [x y] (conditional-remove-zero x y)) durs-and-vals-zero vals)
+        durs                (mapv (fn [x y] (concat [x] y)) silent-trigger-durs durs)
+        vals                (mapv (fn [x]
+                                    (let [cur-idx            x
+                                          cur-vec            (nth vals cur-idx)]
+                                      (concat [0] cur-vec))) (range (count vals)))]
+    {:dur durs :val vals}))
 
                                   ;pattern timing adjustments
-(defn set-pattern-duration [dur]   (buffer-write! base-dur [dur])nil)
+(defn set-pattern-duration [dur]
+  (buffer-write! base-dur [dur])nil)
 
-(defn set-pattern-delay [delay]  (buffer-write! base-del [delay]) nil)
+(defn set-pattern-delay [delay]
+  (buffer-write! base-del [delay]) nil)
 
 
 
@@ -349,29 +358,30 @@
   (get-pattern-vector [this] (. this pattern-vector))
   (get-pattern-value-vector [this] (. this pattern-value-vector)))
 
-(defn create-synth-config [pattern-name synth-name] (let [out-bus         0
-                                                          out-bus-secondary (audio-bus 2)
-                                                          is_inst         (instrument? synth-name)
-                                                          synth-group     (if is_inst (:group synth-name) (group pattern-name :tail main-g))
-                                                          play-synth      (if is_inst (synth-name) (synth-name  [:tail synth-group] ))
-                                                          _ (println play-synth)
-                                                          default-buses   (generate-default-buses synth-name)
-                                                          control-out-bus (control-bus 1)
-                                                          triggers        {}
-                                                          synth-container  (synthContainer.
-                                                                            is_inst
-                                                                            pattern-name
-                                                                            synth-group
-                                                                            out-bus
-                                                                            out-bus-secondary
-                                                                            play-synth
-                                                                            triggers
-                                                                            synth-name
-                                                                            default-buses
-                                                                            control-out-bus)]
-                                                      (apply-default-buses synth-container)
-                                                      (apply-control-out-bus synth-container)
-                                                      synth-container ))
+(defn create-synth-config [pattern-name synth-name]
+  (let [out-bus         0
+        out-bus-secondary (audio-bus 2)
+        is_inst         (instrument? synth-name)
+        synth-group     (if is_inst (:group synth-name) (group pattern-name :tail main-g))
+        play-synth      (if is_inst (synth-name) (synth-name  [:tail synth-group] ))
+        _ (println play-synth)
+        default-buses   (generate-default-buses synth-name)
+        control-out-bus (control-bus 1)
+        triggers        {}
+        synth-container  (synthContainer.
+                          is_inst
+                          pattern-name
+                          synth-group
+                          out-bus
+                          out-bus-secondary
+                          play-synth
+                          triggers
+                          synth-name
+                          default-buses
+                          control-out-bus)]
+    (apply-default-buses synth-container)
+    (apply-control-out-bus synth-container)
+    synth-container ))
 
 (defn create-trigger [control-key
                       control-val-key
@@ -408,8 +418,9 @@
                        trig-val-bus  trig-synth  dur-buffers val-buffers pattern-id-buf pattern-value-id-buf pattern-vector pattern-value-vector)))
 
 
-(defn reuse-or-create-buffer [new-buf-vec] (let  [new-size    (count new-buf-vec)]
-                                             (retrieve-buffer new-size)))
+(defn reuse-or-create-buffer [new-buf-vec]
+  (let  [new-size    (count new-buf-vec)]
+    (retrieve-buffer new-size)))
 
 
 (defn update-trigger [trigger
@@ -437,53 +448,57 @@
     trigger))
 
 
-(defn changed? [trigger new-trigger-pattern  new-control-pattern] (let [old-trigger-pattern  (:original-pattern-vector trigger)
-                                                                        old-control-pattern  (:original-pattern-value-vector trigger)]
-                                                                    (or (not= new-trigger-pattern old-trigger-pattern) (not= new-control-pattern old-control-pattern))))
+(defn changed? [trigger new-trigger-pattern  new-control-pattern]
+  (let [old-trigger-pattern  (:original-pattern-vector trigger)
+        old-control-pattern  (:original-pattern-value-vector trigger)]
+    (or (not= new-trigger-pattern old-trigger-pattern) (not= new-control-pattern old-control-pattern))))
 
-(defn t [synth-container control-pair] (let [control-key       (first control-pair)
-                                             control-val-key   (keyword (str (name control-key) "-val"))
-                                             control-pattern   (last control-pair)
-                                             pattern-vectors   (generate-pattern-vector control-pattern)
-                                             trig-pattern      (:dur pattern-vectors)
-                                             val-pattern       (:val pattern-vectors)
-                                             pattern-group     (:group synth-container)
-                                             triggers          (:triggers synth-container)
-                                             play-synth        (:play-synth synth-container)
-                                             trigger-status    (control-key triggers)
-                                             has-changed       (if (some? trigger-status) (changed? trigger-status trig-pattern val-pattern) )
-                                             trigger           (if (some? trigger-status) (if(= true has-changed) (update-trigger trigger-status trig-pattern val-pattern) trigger-status)
-                                                                   (create-trigger control-key
-                                                                                   control-val-key
-                                                                                   play-synth
-                                                                                   pattern-group
-                                                                                   trig-pattern
-                                                                                   val-pattern
-                                                                                   ))]
-                                         trigger))
+(defn t [synth-container control-pair]
+  (let [control-key       (first control-pair)
+        control-val-key   (keyword (str (name control-key) "-val"))
+        control-pattern   (last control-pair)
+        pattern-vectors   (generate-pattern-vector control-pattern)
+        trig-pattern      (:dur pattern-vectors)
+        val-pattern       (:val pattern-vectors)
+        pattern-group     (:group synth-container)
+        triggers          (:triggers synth-container)
+        play-synth        (:play-synth synth-container)
+        trigger-status    (control-key triggers)
+        has-changed       (if (some? trigger-status) (changed? trigger-status trig-pattern val-pattern) )
+        trigger           (if (some? trigger-status) (if(= true has-changed) (update-trigger trigger-status trig-pattern val-pattern) trigger-status)
+                              (create-trigger control-key
+                                              control-val-key
+                                              play-synth
+                                              pattern-group
+                                              trig-pattern
+                                              val-pattern))]
+    trigger))
 
                                         ;input as hashmap {:pn :sn ...:controls...}
 
 (def r "-")
 
-(defn parse-input-vector [input] (let []
-                                   (loop [xv     (seq input)
-                                          result []]
-                                     (if xv
-                                       (let [fst     (first xv) ]
-                                         (if (vector? fst) (recur (next xv) (conj result (vec (parse-input-vector fst))))
-                                             (if (seq? fst) (recur (next xv) (apply conj result  (vec (parse-input-vector fst))))
-                                                 (recur (next xv) (conj result fst))))) result ))))
+(defn parse-input-vector [input]
+  (let []
+    (loop [xv     (seq input)
+           result []]
+      (if xv
+        (let [fst     (first xv) ]
+          (if (vector? fst) (recur (next xv) (conj result (vec (parse-input-vector fst))))
+              (if (seq? fst) (recur (next xv) (apply conj result  (vec (parse-input-vector fst))))
+                  (recur (next xv) (conj result fst))))) result ))))
 
 
-(defn split-input [input] (let [ ip  (into (sorted-map) (map (fn [x] {(first (first x))  (vec (parse-input-vector (last x)))})   (partition 2 (partition-by keyword? input))))]
-                            (apply conj (map (fn [x] {(key x)  (vec (map (fn [x] (clojure.string/replace x #"\"-\"" "-") )  (map str (val x))))}) ip))))
+(defn split-input [input]
+  (let [ ip  (into (sorted-map) (map (fn [x] {(first (first x))  (vec (parse-input-vector (last x)))})   (partition 2 (partition-by keyword? input))))]
+    (apply conj (map (fn [x] {(key x)  (vec (map (fn [x] (clojure.string/replace x #"\"-\"" "-") )  (map str (val x))))}) ip))))
 
 
-(defn synth-name-check [new-sn synth-container] (let [sc       synth-container
-                                                      old-sn   (:synth-name synth-container)]
-                                                  (if (nil? sc) new-sn
-                                                      (if (not= old-sn new-sn) old-sn new-sn))))
+(defn synth-name-check [new-sn synth-container]
+  (let [sc       synth-container
+        old-sn   (:synth-name synth-container)]
+    (if (nil? sc) new-sn
+        (if (not= old-sn new-sn) old-sn new-sn))))
 
 ;New trigger input function, allows more terse and powerfull way to create patterns. Now clojure functions such as repeat can be used directly in the input.
 (defn trg ([pn sn & input]
@@ -501,16 +516,17 @@
              (if  (= nil synth-container)
                (do (println "Synth created") (swap! synthConfig assoc pattern-name-key (create-synth-config pattern-name synth-name)))
                (do (println "Synth exists")))
-             (do  (let [synth-container                              (pattern-name-key @synthConfig)
-                        triggers                                     (:triggers synth-container)
-                        running-trigger-keys                         (keys triggers)
-                        input-trigger-keys                           (keys initial-controls-only)
-                        triggers-running-but-not-renewd              (first (diff running-trigger-keys input-trigger-keys))
-                        _                                            (doseq [x triggers-running-but-not-renewd] (if (some? x) (do (kill-trg-group (x triggers))
-                                                                                                                                  (apply-default-bus synth-container x))))
-                        triggers                                     (apply dissoc triggers triggers-running-but-not-renewd)
-                        synth-container                              (assoc synth-container :triggers triggers)]
-                    (swap! synthConfig assoc pattern-name-key synth-container)))
+             (do
+               (let [synth-container                              (pattern-name-key @synthConfig)
+                     triggers                                     (:triggers synth-container)
+                     running-trigger-keys                         (keys triggers)
+                     input-trigger-keys                           (keys initial-controls-only)
+                     triggers-running-but-not-renewd              (first (diff running-trigger-keys input-trigger-keys))
+                     _                                            (doseq [x triggers-running-but-not-renewd] (if (some? x) (do (kill-trg-group (x triggers))
+                                                                                                                               (apply-default-bus synth-container x))))
+                     triggers                                     (apply dissoc triggers triggers-running-but-not-renewd)
+                     synth-container                              (assoc synth-container :triggers triggers)]
+                 (swap! synthConfig assoc pattern-name-key synth-container)))
              (swap! synthConfig assoc pattern-name-key
                     (assoc (pattern-name-key @synthConfig) :triggers
                            (zipmap (keys input-controls-only) (map (partial t (pattern-name-key @synthConfig)) input-controls-only)))) pattern-name)))
@@ -518,53 +534,69 @@
 
                                         ; Misc pattern related functions
 
-(defn stop-pattern [pattern-name] (let [pattern-name-key      pattern-name ;(keyword pattern-name)
-                               pattern-status        (pattern-name-key @synthConfig)
-                               triggers              (vals (:triggers pattern-status))]
-                           (if (some? pattern-status) (do (free-default-buses pattern-status)
-                                                          (free-control-out-bus pattern-status)
-                                                          (free-secondary-out-bus pattern-status)
-                                                          (doseq [x triggers] (kill-trg-group x))
-                                                          (kill-trg pattern-status)
-                                                          (swap! synthConfig dissoc pattern-name-key) (println "pattern" (:pattern-name pattern-status) "stopped")) (println "No such pattern") )))
+(defn stop-pattern [pattern-name]
+  (let [pattern-name-key      pattern-name ;(keyword pattern-name)
+        pattern-status        (pattern-name-key @synthConfig)
+        triggers              (vals (:triggers pattern-status))]
+    (if (some? pattern-status) (do (free-default-buses pattern-status)
+                                   (free-control-out-bus pattern-status)
+                                   (free-secondary-out-bus pattern-status)
+                                   (doseq [x triggers] (kill-trg-group x))
+                                   (kill-trg pattern-status)
+                                   (swap! synthConfig dissoc pattern-name-key) (println "pattern" (:pattern-name pattern-status) "stopped")) (println "No such pattern") )))
 
-(defn stp [& pattern-names] (doseq [x pattern-names] (stop-pattern x)))
+(defn stp [& pattern-names]
+  (doseq [x pattern-names] (stop-pattern x)))
 
-(defn sta [] (doseq [x  (keys @synthConfig)] (stop-pattern x)))
+(defn sta []
+  (doseq [x  (keys @synthConfig)] (stop-pattern x)))
 
-(defn set-out-bus [pattern-name] (let [pattern-name-key    pattern-name
-                                       pattern-status (pattern-name-key @synthConfig)]
-                                   (if (some? pattern-status) (apply-out-bus pattern-status) )))
+(defn set-out-bus [pattern-name]
+  (let [pattern-name-key    pattern-name
+        pattern-status (pattern-name-key @synthConfig)]
+    (if (some? pattern-status) (apply-out-bus pattern-status) )))
 
-(defn set-secondary-out-bus [pattern-name] (let [pattern-name-key    pattern-name
-                                                 pattern-status (pattern-name-key @synthConfig)]
-                                             (if (some? pattern-status) (apply-secondary-out-bus pattern-status) )))
+(defn set-secondary-out-bus [pattern-name]
+  (let [pattern-name-key    pattern-name
+        pattern-status (pattern-name-key @synthConfig)]
+    (if (some? pattern-status) (apply-secondary-out-bus pattern-status) )))
 
-(defn get-out-bus [pattern-name] (:out-bus (pattern-name @synthConfig)))
+(defn get-out-bus [pattern-name]
+  (:out-bus (pattern-name @synthConfig)))
 
-(defn get-secondary-out-bus [pattern-name] (:out-bus-secondary (pattern-name @synthConfig)))
+(defn get-secondary-out-bus [pattern-name]
+  (:out-bus-secondary (pattern-name @synthConfig)))
 
-(defn get-ctrl-bus [pattern-name] (:control-out-bus (pattern-name @synthConfig)))
+(defn get-ctrl-bus [pattern-name]
+  (:control-out-bus (pattern-name @synthConfig)))
 
-(defn get-trigger-bus [pattern-name trig-name] (:trigger-bus (trig-name (:triggers (pattern-name @synthConfig)))))
+(defn get-trigger-bus [pattern-name trig-name]
+  (:trigger-bus (trig-name (:triggers (pattern-name @synthConfig)))))
 
-(defn get-trigger-val-bus [pattern-name trig-name] (:trigger-val-bus (trig-name (:triggers (pattern-name @synthConfig)))))
+(defn get-trigger-val-bus [pattern-name trig-name]
+  (:trigger-val-bus (trig-name (:triggers (pattern-name @synthConfig)))))
 
-(defn get-trigger-id [pattern-name trig-name] (:trigger-id (trig-name (:triggers (pattern-name @synthConfig)))))
+(defn get-trigger-id [pattern-name trig-name]
+  (:trigger-id (trig-name (:triggers (pattern-name @synthConfig)))))
 
-(defn get-trigger-val-id [pattern-name trig-name] (:trigger-val-id (trig-name (:triggers (pattern-name @synthConfig)))))
+(defn get-trigger-val-id [pattern-name trig-name]
+  (:trigger-val-id (trig-name (:triggers (pattern-name @synthConfig)))))
 
-(defn get-vector [pattern-name trig-name] (get-pattern-vector (trig-name (:triggers (pattern-name @synthConfig)))))
+(defn get-vector [pattern-name trig-name]
+  (get-pattern-vector (trig-name (:triggers (pattern-name @synthConfig)))))
 
-(defn get-value-vector [pattern-name trig-name] (get-pattern-value-vector (trig-name (:triggers (pattern-name @synthConfig)))))
+(defn get-value-vector [pattern-name trig-name]
+  (get-pattern-value-vector (trig-name (:triggers (pattern-name @synthConfig)))))
 
 
-(defn sctl [pattern-name var value] (let [pattern-status (pattern-name @synthConfig)]
-                                      (if (some? pattern-status) (ctl-synth pattern-status var value))))
+(defn sctl [pattern-name var value]
+  (let [pattern-status (pattern-name @synthConfig)]
+    (if (some? pattern-status) (ctl-synth pattern-status var value))))
 
-(defn connect-synths [src-synth dst-synth input-name] (let [output-bus   (get-secondary-out-bus src-synth)]
-                                                        (sctl dst-synth input-name output-bus)
-                                                        (set-secondary-out-bus src-synth)) )
+(defn connect-synths [src-synth dst-synth input-name]
+  (let [output-bus   (get-secondary-out-bus src-synth)]
+    (sctl dst-synth input-name output-bus)
+    (set-secondary-out-bus src-synth)) )
 
 (defn lss [] (println (keys @synthConfig))  (keys @synthConfig) )
 
@@ -584,12 +616,13 @@
                                         ;Algorithm
 
 
-(defn rm-alg [pattern trigger buf-id] (let [trg_str        (str (name trigger) "-" (str buf-id))
-                                            alg-key        (keyword (name pattern) trg_str)
-                                            key-exist      (some? (alg-key @algConfig))]
-                                        (if key-exist (do
-                                                        (swap! algConfig dissoc alg-key)
-                                                        (remove-event-handler alg-key) ))))
+(defn rm-alg [pattern trigger buf-id]
+  (let [trg_str        (str (name trigger) "-" (str buf-id))
+        alg-key        (keyword (name pattern) trg_str)
+        key-exist      (some? (alg-key @algConfig))]
+    (if key-exist (do
+                    (swap! algConfig dissoc alg-key)
+                    (remove-event-handler alg-key) ))))
 
 (defn alg [pattern trigger buf-id function & args]
   (let [pat-vec        (get-vector pattern trigger)
@@ -602,18 +635,11 @@
     (println alg-key)
     (println (nth pat-vec 0))
     (if key-exist
-      (do (println "Alg key exists for pattern" pattern ", trigger" trigger ", buffer" buf-id)
-                                        ;(swap! algConfig dissoc alg-key)
-                                        ;(remove-event-handler (alg-key @algConfig))
-
-       )
+      (do (println "Alg key exists for pattern" pattern ", trigger" trigger ", buffer" buf-id))
       (do (function trigger-id alg-key pat-vec pat-val-vec buf-id algConfig args)
-          (swap! algConfig assoc alg-key alg-key )))
-
-    ))
+          (swap! algConfig assoc alg-key alg-key )))))
 
                                         ;Instrument functions
-
 
 (defn volume! [pattern-name vol] (let [pat      (pattern-name @synthConfig)
                                        inst     (:synth-name pat)
