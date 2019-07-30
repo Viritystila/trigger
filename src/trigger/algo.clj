@@ -202,7 +202,7 @@
                   pcoll   (apply concat pcoll)] (piv pcoll))))
 
 
-(defn dec ([coll] (let [coll    (piv coll)
+(defn dcl ([coll] (let [coll    (piv coll)
                         s       (count coll)
                         rcollr  (range s)
                         rcoll   (mapv (fn [x]  (repeat x "-")) rcollr )
