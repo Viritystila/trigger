@@ -238,7 +238,7 @@
   (clojure.string/replace  str-in #"0" "1") )
 
 (defn string-hyphen-to-zero [str-in]
-  (clojure.string/replace str-in #"-" "0") )
+  (clojure.string/replace str-in #"~" "0") )
 
 (defn generate-pattern-vector [new-buf-data]
   (let [new-trig-data       (vec (map (fn [x] (string-zero-to-one x)) new-buf-data))
@@ -477,7 +477,7 @@
 
                                         ;input as hashmap {:pn :sn ...:controls...}
 
-(def r "-")
+(def r "~")
 
 (defn parse-input-vector [input]
   (let []
@@ -492,7 +492,7 @@
 
 (defn split-input [input]
   (let [ ip  (into (sorted-map) (map (fn [x] {(first (first x))  (vec (parse-input-vector (last x)))})   (partition 2 (partition-by keyword? input))))]
-    (apply conj (map (fn [x] {(key x)  (vec (map (fn [x] (clojure.string/replace x #"\"-\"" "-") )  (map str (val x))))}) ip))))
+    (apply conj (map (fn [x] {(key x)  (vec (map (fn [x] (clojure.string/replace x #"\"~\"" "~") )  (map str (val x))))}) ip))))
 
 
 (defn synth-name-check [new-sn synth-container]
