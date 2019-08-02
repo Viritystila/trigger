@@ -25,6 +25,39 @@
                                                                                      src (free-verb (in bus-in) val 0.1 0.1)]
                                                                                  (out out-bus src)) )
 
+(defsynth trg-sampler [in-trg 0
+                       in-trg-val 0
+                       in-buf 0
+                       in-buf-val 0
+                       in-rate 24000
+                       in-rate-val 24000
+                       in-start-pos 0
+                       in-start-pos-val 0
+                       in-step 2
+                       in-step-val 2
+                       in-loop 0
+                       in-loop-val 0
+                       in-amp 1
+                       in-amp-val 1
+                       out-bus 0
+                       ctrl-out 0
+                       bus-in 0]
+  (let [trg       (in:kr in-trg)
+        buf-trg   (in:kr in-buf)
+        buf-no    (in:kr in-buf-val)
+        amp       (in:kr in-amp-val)
+        rate      (in:kr in-rate-val)
+        start-pos (in:kr in-start-pos-val)
+        step      (in:kr in-step-val)
+        loop      (in:kr in-loop-val)
+        dur       (/ 1.0 24000)
+        td        (t-duty:ar dur 0 1 )
+        buffer-value  (demand:ar td trg (dbufrd buf-no (dseries start-pos step  INF) loop))
+        ]
+    (out out-bus (* amp buffer-value))))
+
+;(defsynth smpl [buf 0] (out 0 (play-buf 1 buf :action FREE)))
+
 
 (defsynth simple-flute [in-trg 0
                         in-trg-val 0

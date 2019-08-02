@@ -11,7 +11,8 @@
                 [org.clojure/math.numeric-tower "0.0.4"]
                 [de.dfki.mary/marytts "5.2" :extension "pom"]
                 [de.dfki.mary/marytts-runtime "5.2"]
-                [de.dfki.mary/voice-cmu-slt-hsmm "5.2"]]
+                [de.dfki.mary/voice-cmu-slt-hsmm "5.2"]
+                [de.dfki.mary/voice-enst-camille-hsmm "5.2"]]
   :repl-options {:init-ns trigger.trigger}
   :main  ^{:skip-aot true}  trigger.trigger
   :jvm-opts ^:replace [])
