@@ -6,6 +6,7 @@
    [trigger.synths :refer :all]
    [trigger.misc :refer :all]
    [trigger.algo :refer :all]
+   [trigger.speech :refer :all]
    [clojure.tools.namespace.repl :refer [refresh]]) )
 
                                         ;Boot Supercollider

@@ -14,8 +14,6 @@
 ;;                                                                                                                   src (* env (sin-osc (* f val)))]
 ;;                                                                                                               src))
 
-
-
 (defsynth testsin [in-trg 0 in-trg-val 0 in-attack 0.0001 in-attack-val 0.0001 f 200 out-bus 0 ctrl-out 0] (let [trg (in:kr in-trg)
                                                                                                                  val (in:kr in-trg-val)
                                                                                                                  env (env-gen (perc (in:kr in-attack-val) 0.01 0.5 0.1) :gate trg)

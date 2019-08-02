@@ -7,8 +7,6 @@
             [clojure.math.numeric-tower :as math]))
 
 
-
-
 (defn unique-random-numbers [n]
   (let [a-set (set (take n (repeatedly #(rand-int n))))]
     (concat a-set (set/difference (set (take n (range)))
@@ -65,8 +63,8 @@
               alg-key))
 
 
-;Functions
-;general
+                                        ;Functions
+                                        ;General
 (defn func-val [input & args] (let [isfn  (fn? input)
                                     coll_length (count args)
                                     args        (if (= 1 coll_length) (apply concat args) args )]
