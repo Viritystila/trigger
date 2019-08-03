@@ -128,7 +128,7 @@
 (defn generate-buffer-pool [sizes amount]
   (let [size-vectors  (range 1 sizes)
         size-keys     (map (fn [x] (keyword (str x))) size-vectors )
-        buffers       (pmap (fn [y]  (pmap (fn [x] (buffer x)) (repeat  amount y))) size-vectors)
+        buffers       (pmap (fn [y]  (doall (map (fn [x] (buffer x)) (repeat  amount y)))) size-vectors)
         b_p           (zipmap size-keys buffers)]
    (reset! bufferPool b_p)) nil)
                                         ;Start
@@ -144,8 +144,8 @@
   (def base-trigger (base-trigger-synth [:tail main-g] base-trigger-bus base-trigger-id base-dur base-del))
   (def base-trigger-count-bus (control-bus 1))
   (def base-trigger-count (base-trigger-counter [:tail main-g] base-trigger-bus base-trigger-count-bus))
-  ;(pmap (fn [x] (pmap (fn [y] (store-buffer (buffer (+ x 1))) ) (range 200))) (range 100))
-   (generate-buffer-pool 100 100)
+  (println "Begin generating buffer pool, please wait.")
+  (generate-buffer-pool 64 32)
   (println "trigger initialized")
   (println (trigger-logo))
   )

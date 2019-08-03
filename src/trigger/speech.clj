@@ -60,53 +60,6 @@
         mkc-text       (clojure.string/join " " selected-words)]
     mkc-text) )
 
-(defn three-men-in-a-boat []
-  (->
-    (slurp "src/trigger/308.txt")
-    (clojure.string/split #"\s+")
-    (markov-chains.core/collate 2)))
-
 (defn tmoab [] (generate-markov-text  "src/trigger/308.txt" 60) )
 
 ;(doseq [x (range 1110 1169)] (trigger.speech/sayb x))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
