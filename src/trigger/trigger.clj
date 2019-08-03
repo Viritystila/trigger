@@ -46,6 +46,14 @@
                                   sp           (assoc sp (keyword name) sample-data)]
                               (reset! samplePool sp)) nil)
 
+(defn add-samples [name buf-seq]
+  (let [sz    (count buf-seq)
+        nr    (range sz)
+        names (map (fn [x] (clojure.string/join [name (str x)])) nr)
+        names (into [] names)]
+    (doseq [x nr] (add-sample (nth names x) (nth buf-seq x)))
+    nil))
+
 (defn get-sample-id [name]  (:id (name @samplePool)))
 
 (defn list-samples [] (println (keys @samplePool)))
@@ -137,7 +145,7 @@
   (def base-trigger-count-bus (control-bus 1))
   (def base-trigger-count (base-trigger-counter [:tail main-g] base-trigger-bus base-trigger-count-bus))
   ;(pmap (fn [x] (pmap (fn [y] (store-buffer (buffer (+ x 1))) ) (range 200))) (range 100))
-   (generate-buffer-pool 100 50)
+   (generate-buffer-pool 100 100)
   (println "trigger initialized")
   (println (trigger-logo))
   )
