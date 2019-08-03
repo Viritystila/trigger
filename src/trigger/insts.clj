@@ -7,7 +7,7 @@
                                         ;https://github.com/overtone/overtone/blob/master/src/overtone/inst/synth.clj
 
 
-(defsynth trg-sampler_i [in-trg 0
+(definst trg-sampler_i [in-trg 0
                          in-trg-val 0
                          in-buf 0
                          in-buf-val 0
