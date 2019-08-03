@@ -54,7 +54,7 @@
         td        (t-duty:ar dur 0 1 )
         buffer-value  (demand:ar td trg (dbufrd buf-no (dseries start-pos step  INF) loop))
         ]
-    (out out-bus (* amp buffer-value))))
+    (out out-bus (pan2 (* amp buffer-value)))))
 
 ;(defsynth smpl [buf 0] (out 0 (play-buf 1 buf :action FREE)))
 

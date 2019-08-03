@@ -21,6 +21,7 @@
 (defonce synthConfig (atom {}))
 (defonce algConfig (atom {}))
 (defonce bufferPool (atom {}))
+(defonce samplePool (atom {}))
 (def timeatom (atom 0))
 
 (defn init_groups_dur_and_del []
@@ -104,7 +105,12 @@
       (do (reset! bufferPool pool) first-buf)
       (do (buffer size)))))
 
-
+(defn generate-buffer-pool [sizes amount]
+  (let [size-vectors  (range 1 sizes)
+        size-keys     (map (fn [x] (keyword (str x))) size-vectors )
+        buffers       (pmap (fn [y]  (pmap (fn [x] (buffer x)) (repeat  amount y))) size-vectors)
+        b_p           (zipmap size-keys buffers)]
+   (reset! bufferPool b_p)) nil)
                                         ;Start
 
 (defn start-trigger []
@@ -118,7 +124,8 @@
   (def base-trigger (base-trigger-synth [:tail main-g] base-trigger-bus base-trigger-id base-dur base-del))
   (def base-trigger-count-bus (control-bus 1))
   (def base-trigger-count (base-trigger-counter [:tail main-g] base-trigger-bus base-trigger-count-bus))
-  (pmap (fn [x] (pmap (fn [y] (store-buffer (buffer (+ x 1))) ) (range 200))) (range 100))
+  ;(pmap (fn [x] (pmap (fn [y] (store-buffer (buffer (+ x 1))) ) (range 200))) (range 100))
+   (generate-buffer-pool 100 50)
   (println "trigger initialized")
   (println (trigger-logo))
   )
@@ -491,7 +498,7 @@
 
 
 (defn split-input [input]
-  (let [ ip  (into (sorted-map) (map (fn [x] {(first (first x))  (vec (parse-input-vector (last x)))})   (partition 2 (partition-by keyword? input))))]
+  (let [ip  (into (sorted-map) (map (fn [x] {(first (first x))  (vec (parse-input-vector (last x)))})   (partition 2 (partition-by keyword? input))))]
     (apply conj (map (fn [x] {(key x)  (vec (map (fn [x] (clojure.string/replace x #"\"~\"" "~") )  (map str (val x))))}) ip))))
 
 
@@ -668,6 +675,17 @@
                                  (if is-inst (clear-fx inst)))
   nil)
 
+
+                                        ;Sample handling
+
+(defn add-sample [name buf] (let [sample-data  {:id (buffer-id buf) :buf buf}
+                                  sp           @samplePool
+                                  sp           (assoc sp (keyword name) sample-data)]
+                              (reset! samplePool sp)) nil)
+
+(defn get-sample-id [name]  (:id (name @samplePool)))
+
+(defn list-samples [] (println (keys @samplePool)))
 
                                         ;Start trigger
 (start-trigger)
