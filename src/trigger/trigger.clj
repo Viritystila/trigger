@@ -39,6 +39,18 @@
     (def base-del (buffer 1))
     (buffer-write! base-del [0])))
 
+                                        ;Sample handling
+
+(defn add-sample [name buf] (let [sample-data  {:id (buffer-id buf) :buf buf}
+                                  sp           @samplePool
+                                  sp           (assoc sp (keyword name) sample-data)]
+                              (reset! samplePool sp)) nil)
+
+(defn get-sample-id [name]  (:id (name @samplePool)))
+
+(defn list-samples [] (println (keys @samplePool)))
+
+
                                         ;Synthdefs
 
 (defsynth base-trigger-synth [out-bus 0 trigger-id 0 base-dur-in 0 base-del-in 0]
@@ -497,8 +509,19 @@
                   (recur (next xv) (conj result fst))))) result ))))
 
 
+(defn special-cases [input key]
+  (let [special (key input)]
+    (cond
+      (= key :in-buf) (let [special (mapv (fn [x] (mapv (fn [y] (if (string? y) (get-sample-id (keyword y)) y ) ) x )) special)] special)
+      (= key :in-note)  (let [special (mapv (fn [x] (mapv (fn [y] (if (string? y) (note (keyword y)) y ) ) x )) special)] special)
+      (= key :in-freq)  (let [special (mapv (fn [x] (mapv (fn [y] (if (string? y) (midi->hz (note (keyword y))) y ) ) x )) special)] special))))
+
+
 (defn split-input [input]
-  (let [ip  (into (sorted-map) (map (fn [x] {(first (first x))  (vec (parse-input-vector (last x)))})   (partition 2 (partition-by keyword? input))))]
+  (let [ip  (into (sorted-map) (map (fn [x] {(first (first x))  (vec (parse-input-vector (last x)))})   (partition 2 (partition-by keyword? input))))
+        ip (assoc ip :in-buf (special-cases ip :in-buf))
+        ip (assoc ip :in-note (special-cases ip :in-note))
+        ip (assoc ip :in-freq (special-cases ip :in-freq))]
     (apply conj (map (fn [x] {(key x)  (vec (map (fn [x] (clojure.string/replace x #"\"~\"" "~") )  (map str (val x))))}) ip))))
 
 
@@ -508,13 +531,17 @@
     (if (nil? sc) new-sn
         (if (not= old-sn new-sn) old-sn new-sn))))
 
+
 ;New trigger input function, allows more terse and powerfull way to create patterns. Now clojure functions such as repeat can be used directly in the input.
 (defn trg ([pn sn & input]
            (let [pattern-name          (if (keyword? pn) (name pn) pn )
                  pattern-name-key      (keyword pattern-name)
                  synth-container       (pattern-name-key @synthConfig)
+                 ;_ (println "input" input)
                  synth-name            (synth-name-check sn synth-container)
                  input                 (split-input input)
+                 ;_ (special-cases input :in-buf)
+                 ;_ (println "input" (:in-buf input))
                  original-input        input
                  valid-keys            (concat [:pn :sn]  (vec (synth-args synth-name)))
                  input                 (select-keys input (vec valid-keys)) ; Make input valid, meaning remove control keys that are not present in the synth args
@@ -675,17 +702,6 @@
                                  (if is-inst (clear-fx inst)))
   nil)
 
-
-                                        ;Sample handling
-
-(defn add-sample [name buf] (let [sample-data  {:id (buffer-id buf) :buf buf}
-                                  sp           @samplePool
-                                  sp           (assoc sp (keyword name) sample-data)]
-                              (reset! samplePool sp)) nil)
-
-(defn get-sample-id [name]  (:id (name @samplePool)))
-
-(defn list-samples [] (println (keys @samplePool)))
 
                                         ;Start trigger
 (start-trigger)
