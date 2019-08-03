@@ -508,12 +508,15 @@
               (if (seq? fst) (recur (next xv) (apply conj result  (vec (parse-input-vector fst))))
                   (recur (next xv) (conj result fst))))) result ))))
 
+(defn string-not-r? [x] (let [is-string    (string? x)
+                              is-r         (if is-string (= r x) false)]
+                          (if (and is-string (not is-r )) true false )))
 
 (defn special-cases [input key]
   (let [special (key input)]
     (cond
       (= key :in-buf) (let [special (mapv (fn [x] (mapv (fn [y] (if (string? y) (get-sample-id (keyword y)) y ) ) x )) special)] special)
-      (= key :in-note)  (let [special (mapv (fn [x] (mapv (fn [y] (if (string? y) (note (keyword y)) y ) ) x )) special)] special)
+      (= key :in-note)  (let [special (mapv (fn [x] (mapv (fn [y] (if (string-not-r? y) (note (keyword y)) y ) ) x )) special)] special)
       (= key :in-freq)  (let [special (mapv (fn [x] (mapv (fn [y] (if (string? y) (midi->hz (note (keyword y))) y ) ) x )) special)] special))))
 
 
