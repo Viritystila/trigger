@@ -421,6 +421,7 @@
         trigger-val-id       (trig-id)
         trig-bus             (control-bus 1)
         trig-val-bus         (control-bus 1)
+
         buf-size             (count pattern-vector)
         dur-buffers          (vec (mapv (fn [x] (retrieve-buffer (count x))) pattern-vector))
         val-buffers          (vec (mapv (fn [x] (retrieve-buffer (count x))) pattern-value-vector))
@@ -428,8 +429,10 @@
         _                    (vec (mapv (fn [x y] (buffer-write-relay! x y)) val-buffers pattern-value-vector))
         pattern-id-buf       (retrieve-buffer buf-size)
         pattern-value-id-buf (retrieve-buffer buf-size)
-        _                    (buffer-write! pattern-id-buf       (vec (map (fn [x] (buffer-id x)) dur-buffers)))
-        _                    (buffer-write! pattern-value-id-buf (vec (map (fn [x] (buffer-id x)) val-buffers)))
+        dur-id-vec           (vec (map (fn [x] (buffer-id x)) dur-buffers))
+        val-id-vec           (vec (map (fn [x] (buffer-id x)) val-buffers))
+        _                    (buffer-write! pattern-id-buf dur-id-vec)
+        _                    (buffer-write! pattern-value-id-buf val-id-vec)
         trig-group           (group (str control-key) :tail pattern-group)
         trig-synth           (trigger-generator [:tail trig-group]
                                                 base-trigger-bus
@@ -527,13 +530,22 @@
       (= key :in-note)  (let [special (mapv (fn [x] (mapv (fn [y] (if (string-not-r? y) (note (keyword y)) y ) ) x )) special)] special)
       (= key :in-freq)  (let [special (mapv (fn [x] (mapv (fn [y] (if (string? y) (midi->hz (note (keyword y))) y ) ) x )) special)] special))))
 
+(defn assoc-special [input key]
+  (let [haskey   (contains? input key)
+        input    (if haskey  (assoc input key (special-cases input key)) input)]
+    input))
 
 (defn split-input [input]
-  (let [ip  (into (sorted-map) (map (fn [x] {(first (first x))  (vec (parse-input-vector (last x)))})   (partition 2 (partition-by keyword? input))))
-        ip (assoc ip :in-buf (special-cases ip :in-buf))
-        ip (assoc ip :in-note (special-cases ip :in-note))
-        ip (assoc ip :in-freq (special-cases ip :in-freq))]
-    (apply conj (map (fn [x] {(key x)  (vec (map (fn [x] (clojure.string/replace x #"\"~\"" "~") )  (map str (val x))))}) ip))))
+  (let [ip  (into
+             (sorted-map)
+             (map (fn [x] {(first (first x))  (vec (parse-input-vector (last x)))})
+                  (partition 2 (partition-by keyword? input))))
+        ip (assoc-special ip :in-buf)
+        ip (assoc-special ip :in-note)
+        ip  (assoc-special ip :in-freq)]
+    (apply conj
+           (map (fn [x] {(key x)  (vec (map (fn [x] (clojure.string/replace x #"\"~\"" "~") )  (map str (val x))))})
+                ip))))
 
 
 (defn synth-name-check [new-sn synth-container]
@@ -548,11 +560,8 @@
            (let [pattern-name          (if (keyword? pn) (name pn) pn )
                  pattern-name-key      (keyword pattern-name)
                  synth-container       (pattern-name-key @synthConfig)
-                 ;_ (println "input" input)
                  synth-name            (synth-name-check sn synth-container)
                  input                 (split-input input)
-                 ;_ (special-cases input :in-buf)
-                 ;_ (println "input" (:in-buf input))
                  original-input        input
                  valid-keys            (concat [:pn :sn]  (vec (synth-args synth-name)))
                  input                 (select-keys input (vec valid-keys)) ; Make input valid, meaning remove control keys that are not present in the synth args
@@ -560,7 +569,8 @@
                  initial-controls-only input-controls-only
                  input-check           (some? (not-empty input-controls-only))]
              (if  (= nil synth-container)
-               (do (println "Synth created") (swap! synthConfig assoc pattern-name-key (create-synth-config pattern-name synth-name)))
+               (do (println "Synth created")
+                   (swap! synthConfig assoc pattern-name-key (create-synth-config pattern-name synth-name)))
                (do (println "Synth exists")))
              (do
                (let [synth-container                              (pattern-name-key @synthConfig)
