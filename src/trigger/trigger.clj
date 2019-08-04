@@ -512,35 +512,36 @@
     (cond
       (= key :in-buf)  (if (string-not-r? y) (get-sample-id (keyword y)) y )
       (= key :in-note) (if (string-not-r? y) (note (keyword y)) y )
-      (= key :in-freq) (if (string-not-r? y) (midi->hz (note (keyword y))) y )  )))
+      (= key :in-freq) (if (string-not-r? y) (midi->hz (note (keyword y))) y )
+      :else (if (string-not-r? y) 1 y ))))
 
 
-(defn loop-nested-array [input special-cond]
+(defn apply-special-cases [input special-cond]
   (let []
     (loop [xv input
            result []]
       (if xv
         (let [fst (first xv)]
-          (if (vector? fst) (recur (next xv)  (conj result (vec (loop-nested-array fst special-cond))))
+          (if (vector? fst) (recur (next xv)  (conj result (vec (apply-special-cases fst special-cond))))
               (recur (next xv) (conj result (special-case fst special-cond))))) result ))))
 
-(defn assoc-special [input key]
-  (let [haskey   (contains? input key)
-        input    (if haskey  (assoc input key (loop-nested-array (key input) key)) input)]
-    input))
+(defn copy-key-val [input key]
+  (let [value              (key input)
+        value-size         (count value)
+        is-string          (if (= 1 value-size) (string? (first value)) false)
+        is-keyformat       (if is-string (= 2 (count (clojure.string/split (first value) #":"))) false)
+        source-key         (if is-keyformat (keyword (last (clojure.string/split (first value) #":"))) nil)
+        has-source         (contains? input source-key)]
+    (if has-source  (source-key input)  (key input))))
 
 (defn split-input [input]
-  (let [ip  (into
-             (sorted-map)
-             (map (fn [x] {(first (first x))  (vec (parse-input-vector (last x)))})
-                  (partition 2 (partition-by keyword? input))))
-        _  (println "input before" (:in-note ip))
-        _  (println "input after"  (loop-nested-array (:in-note ip) :in-note))
-        ip (assoc-special ip :in-buf)
-        ip (assoc-special ip :in-note)
-        ip (assoc-special ip :in-freq)
-        ;_ (println "input after" ip)
-        ]
+  (let [ip      (into
+                 (sorted-map)
+                 (map (fn [x] {(first (first x))  (vec (parse-input-vector (last x)))})
+                     (partition 2 (partition-by keyword? input))))
+        specip  (into {}  (map (fn [x] {x (copy-key-val ip x)}) (keys ip)))
+        ip      specip
+        ip      (into {}  (map (fn [x] {x (apply-special-cases (x ip) x)}) (keys ip))) ]
     (apply conj
            (map (fn [x] {(key x)  (vec (map (fn [x] (clojure.string/replace x #"\"~\"" "~") )  (map str (val x))))})
                 ip))))
