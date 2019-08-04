@@ -500,20 +500,33 @@
               (if (seq? fst) (recur (next xv) (apply conj result  (vec (parse-input-vector fst))))
                   (recur (next xv) (conj result fst))))) result ))))
 
+
+
+
 (defn string-not-r? [x] (let [is-string    (string? x)
                               is-r         (if is-string (= r x) false)]
                           (if (and is-string (not is-r )) true false )))
 
-(defn special-cases [input key]
-  (let [special (key input)]
+(defn special-case [input key]
+  (let [y   input]
     (cond
-      (= key :in-buf) (let [special (mapv (fn [x] (mapv (fn [y] (if (string? y) (get-sample-id (keyword y)) y ) ) x )) special)] special)
-      (= key :in-note)  (let [special (mapv (fn [x] (mapv (fn [y] (if (string-not-r? y) (note (keyword y)) y ) ) x )) special)] special)
-      (= key :in-freq)  (let [special (mapv (fn [x] (mapv (fn [y] (if (string? y) (midi->hz (note (keyword y))) y ) ) x )) special)] special))))
+      (= key :in-buf)  (if (string-not-r? y) (get-sample-id (keyword y)) y )
+      (= key :in-note) (if (string-not-r? y) (note (keyword y)) y )
+      (= key :in-freq) (if (string-not-r? y) (midi->hz (note (keyword y))) y )  )))
+
+
+(defn loop-nested-array [input special-cond]
+  (let []
+    (loop [xv input
+           result []]
+      (if xv
+        (let [fst (first xv)]
+          (if (vector? fst) (recur (next xv)  (conj result (vec (loop-nested-array fst special-cond))))
+              (recur (next xv) (conj result (special-case fst special-cond))))) result ))))
 
 (defn assoc-special [input key]
   (let [haskey   (contains? input key)
-        input    (if haskey  (assoc input key (special-cases input key)) input)]
+        input    (if haskey  (assoc input key (loop-nested-array (key input) key)) input)]
     input))
 
 (defn split-input [input]
@@ -521,9 +534,13 @@
              (sorted-map)
              (map (fn [x] {(first (first x))  (vec (parse-input-vector (last x)))})
                   (partition 2 (partition-by keyword? input))))
+        _  (println "input before" (:in-note ip))
+        _  (println "input after"  (loop-nested-array (:in-note ip) :in-note))
         ip (assoc-special ip :in-buf)
         ip (assoc-special ip :in-note)
-        ip  (assoc-special ip :in-freq)]
+        ip (assoc-special ip :in-freq)
+        ;_ (println "input after" ip)
+        ]
     (apply conj
            (map (fn [x] {(key x)  (vec (map (fn [x] (clojure.string/replace x #"\"~\"" "~") )  (map str (val x))))})
                 ip))))
