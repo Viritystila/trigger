@@ -7,6 +7,7 @@
    [trigger.misc :refer :all]
    [trigger.algo :refer :all]
    [trigger.speech :refer :all]
+   [trigger.samples :refer :all]
    [clojure.tools.namespace.repl :refer [refresh]]) )
 
                                         ;Boot Supercollider
@@ -21,7 +22,6 @@
 (defonce synthConfig (atom {}))
 (defonce algConfig (atom {}))
 (defonce bufferPool (atom {}))
-(defonce samplePool (atom {}))
 (def timeatom (atom 0))
 
 (defn init_groups_dur_and_del []
@@ -38,25 +38,6 @@
   (do
     (def base-del (buffer 1))
     (buffer-write! base-del [0])))
-
-                                        ;Sample handling
-
-(defn add-sample [name buf] (let [sample-data  {:id (buffer-id buf) :buf buf}
-                                  sp           @samplePool
-                                  sp           (assoc sp (keyword name) sample-data)]
-                              (reset! samplePool sp)) nil)
-
-(defn add-samples [name buf-seq]
-  (let [sz    (count buf-seq)
-        nr    (range sz)
-        names (map (fn [x] (clojure.string/join [name (str x)])) nr)
-        names (into [] names)]
-    (doseq [x nr] (add-sample (nth names x) (nth buf-seq x)))
-    nil))
-
-(defn get-sample-id [name]  (:id (name @samplePool)))
-
-(defn list-samples [] (println (keys @samplePool)))
 
 
                                         ;Synthdefs
