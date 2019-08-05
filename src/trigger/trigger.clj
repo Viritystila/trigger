@@ -488,7 +488,7 @@
 
                                         ;input as hashmap {:pn :sn ...:controls...}
 
-(def r "~")
+(defonce r "~")
 
 (defn parse-input-vector [input]
   (let []

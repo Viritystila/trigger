@@ -35,7 +35,7 @@
 
 (defn get-sample-id [name]  (:id (name @samplePool)))
 
-(defn list-samples [] (println (keys @samplePool)))
+(defn list-samples [] (println (keys  (into (sorted-map) @samplePool))))
 
 
                                         ;SuperDirt samples
