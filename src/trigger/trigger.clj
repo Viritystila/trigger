@@ -392,6 +392,15 @@
     (apply-control-out-bus synth-container)
     synth-container ))
 
+(defn buffer-writer [buf data] (try
+                                 (buffer-write-relay! buf data)
+                                 (catch Exception ex
+                                   (do
+                                     (store-buffer buf)
+                                     (println
+                                      (str "Exception while writing to buffer ")
+                                      (.getException ex) )))) )
+
 (defn create-trigger [control-key
                       control-val-key
                       synth-name
@@ -402,18 +411,17 @@
         trigger-val-id       (trig-id)
         trig-bus             (control-bus 1)
         trig-val-bus         (control-bus 1)
-
         buf-size             (count pattern-vector)
         dur-buffers          (vec (mapv (fn [x] (retrieve-buffer (count x))) pattern-vector))
         val-buffers          (vec (mapv (fn [x] (retrieve-buffer (count x))) pattern-value-vector))
-        _                    (vec (mapv (fn [x y] (buffer-write-relay! x y)) dur-buffers pattern-vector ))
-        _                    (vec (mapv (fn [x y] (buffer-write-relay! x y)) val-buffers pattern-value-vector))
+        _                    (vec (mapv (fn [x y] (buffer-writer x y)) dur-buffers pattern-vector ))
+        _                    (vec (mapv (fn [x y] (buffer-writer x y)) val-buffers pattern-value-vector))
         pattern-id-buf       (retrieve-buffer buf-size)
         pattern-value-id-buf (retrieve-buffer buf-size)
         dur-id-vec           (vec (map (fn [x] (buffer-id x)) dur-buffers))
         val-id-vec           (vec (map (fn [x] (buffer-id x)) val-buffers))
-        _                    (buffer-write! pattern-id-buf dur-id-vec)
-        _                    (buffer-write! pattern-value-id-buf val-id-vec)
+        _                    (buffer-writer pattern-id-buf dur-id-vec)
+        _                    (buffer-writer pattern-value-id-buf val-id-vec)
         trig-group           (group (str control-key) :tail pattern-group)
         trig-synth           (trigger-generator [:tail trig-group]
                                                 base-trigger-bus
@@ -434,7 +442,7 @@
   (let  [new-size    (count new-buf-vec)]
     (retrieve-buffer new-size)))
 
-
+;Buffer-write relays cayse timeoutexpections occasionally
 (defn update-trigger [trigger
                       pattern-vector
                       pattern-value-vector]
@@ -443,12 +451,12 @@
         old-var-buffers      (vec (map (fn [x] (store-buffer x)) (vec (:pattern-value-vector trigger))))
         dur-buffers          (vec (map (fn [x] (reuse-or-create-buffer x)) pattern-vector))
         val-buffers          (vec (map (fn [x] (reuse-or-create-buffer x)) pattern-value-vector))
-        _                    (vec (mapv (fn [x y] (buffer-write-relay! x y)) dur-buffers pattern-vector ))
-        _                    (vec (mapv (fn [x y] (buffer-write-relay! x y)) val-buffers pattern-value-vector))
+        _                    (vec (mapv (fn [x y] (buffer-writer x y)) dur-buffers pattern-vector ))
+        _                    (vec (mapv (fn [x y] (buffer-writer x y)) val-buffers pattern-value-vector))
         pattern-id-buf       (get-or-create-pattern-buf trigger buf-size)
         pattern-value-id-buf (get-or-create-pattern-value-buf trigger buf-size)
-        _                    (buffer-write! pattern-id-buf       (vec (map (fn [x] (buffer-id x)) dur-buffers)))
-        _                    (buffer-write! pattern-value-id-buf (vec (map (fn [x] (buffer-id x)) val-buffers)))
+        _                    (buffer-writer pattern-id-buf       (vec (map (fn [x] (buffer-id x)) dur-buffers)))
+        _                    (buffer-writer pattern-value-id-buf (vec (map (fn [x] (buffer-id x)) val-buffers)))
         trigger              (assoc trigger :pattern-vector dur-buffers)
         trigger              (assoc trigger :pattern-value-vector val-buffers)
         trigger              (assoc trigger :pattern-buf pattern-id-buf)

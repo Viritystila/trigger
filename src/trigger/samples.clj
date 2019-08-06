@@ -22,6 +22,8 @@
 
 (defn add-sample [name buf] (let [sample-data  {:id (buffer-id buf) :buf buf}
                                   sp           @samplePool
+                                  sample-key   (keyword name)
+                                  key-exist    (contains? sp sample-key)
                                   sp           (assoc sp (keyword name) sample-data)]
                               (reset! samplePool sp)) nil)
 
@@ -36,7 +38,6 @@
 (defn get-sample-id [name]  (:id (name @samplePool)))
 
 (defn list-samples [] (println (keys  (into (sorted-map) @samplePool))))
-
 
                                         ;SuperDirt samples
 (defn walk-dirs [path]
