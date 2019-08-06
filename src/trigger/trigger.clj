@@ -433,7 +433,9 @@
                                                 trigger-id
                                                 trigger-val-id
                                                 base-dur)]
-    (ctl synth-name  control-key trig-bus control-val-key  trig-val-bus)
+    (try (ctl synth-name  control-key trig-bus control-val-key  trig-val-bus)
+         (catch Exception ex
+           (println "CTL failed")))
     (triggerContainer. trigger-id trigger-val-id control-key control-val-key trig-group synth-name trig-bus
                        trig-val-bus  trig-synth  dur-buffers val-buffers pattern-id-buf pattern-value-id-buf pattern-vector pattern-value-vector)))
 
@@ -464,7 +466,9 @@
         trigger              (assoc trigger :original-pattern-vector pattern-vector)
         trigger              (assoc trigger :original-pattern-value-vector pattern-value-vector)
         trig-synth           (:trigger-synth trigger)]
-    (ctl trig-synth :base-pattern-buffer-in pattern-id-buf :base-pattern-value-buffer-in pattern-value-id-buf)
+    (try (ctl trig-synth :base-pattern-buffer-in pattern-id-buf :base-pattern-value-buffer-in pattern-value-id-buf)
+         (catch Exception ex
+           (println "CTL failed")))
     trigger))
 
 
