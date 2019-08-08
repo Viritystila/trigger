@@ -324,12 +324,13 @@
 
 (defprotocol trigger-control
   (kill-trg-group [this])
+  (store-buffers [this])
   (get-or-create-pattern-buf [this new-size])
   (get-or-create-pattern-value-buf [this new-size])
-  (get-trigger-bus [this])
+  ;(get-trigger-bus [this])
   (get-trigger-value-bus [this])
-  (get-trigger-id [this])
-  (get-trigger-val-id [this])
+  ;(get-trigger-id [this])
+  ;(get-trigger-val-id [this])
   (get-pattern-vector [this])
   (get-pattern-value-vector [this]))
 
@@ -356,14 +357,18 @@
                              (doseq [x pattern-value-vector] (store-buffer x))
                              (store-buffer pattern-buf)
                              (store-buffer pattern-value-buf)))
+  (store-buffers [this]      (doseq [x pattern-vector] (store-buffer x))
+                             (doseq [x pattern-value-vector] (store-buffer x))
+                             (store-buffer pattern-buf)
+                             (store-buffer pattern-value-buf))
   (get-or-create-pattern-buf [this new-size] (let [old-size (count (. this pattern-vector))]
                                                (if (= old-size new-size) (. this pattern-buf) (do (store-buffer (. this pattern-buf))  (retrieve-buffer new-size)) )))
   (get-or-create-pattern-value-buf [this new-size] (let [old-size (count (. this pattern-value-vector))]
                                                      (if (= old-size new-size) (. this pattern-value-buf) (do (store-buffer (. this pattern-value-buf ))  (retrieve-buffer new-size)) )))
-  (get-trigger-bus [this] (. this trigger-bus))
+  ;(get-trigger-bus [this] (. this trigger-bus))
   (get-trigger-value-bus [this] (. this trigger-value-bus))
-  (get-trigger-id [this] (. this trigger-id))
-  (get-trigger-val-id [this] (. this trigger-val-id))
+  ;(get-trigger-id [this] (. this trigger-id))
+  ;(get-trigger-val-id [this] (. this trigger-val-id))
   (get-pattern-vector [this] (. this pattern-vector))
   (get-pattern-value-vector [this] (. this pattern-value-vector)))
 
@@ -435,7 +440,7 @@
                                                 base-dur)]
     (try (ctl synth-name  control-key trig-bus control-val-key  trig-val-bus)
          (catch Exception ex
-           (println "CTL failed")))
+           (println "CTL failed during create trigger")))
     (triggerContainer. trigger-id trigger-val-id control-key control-val-key trig-group synth-name trig-bus
                        trig-val-bus  trig-synth  dur-buffers val-buffers pattern-id-buf pattern-value-id-buf pattern-vector pattern-value-vector)))
 
@@ -448,7 +453,8 @@
 (defn update-trigger [trigger
                       pattern-vector
                       pattern-value-vector]
-  (let [buf-size             (count pattern-vector)
+  (let [trigger_old          trigger
+        buf-size             (count pattern-vector)
         old-dur-buffers      (vec (map (fn [x] (store-buffer x)) (vec (:pattern-vector trigger))))
         old-var-buffers      (vec (map (fn [x] (store-buffer x)) (vec (:pattern-value-vector trigger))))
         dur-buffers          (vec (map (fn [x] (reuse-or-create-buffer x)) pattern-vector))
@@ -466,10 +472,13 @@
         trigger              (assoc trigger :original-pattern-vector pattern-vector)
         trigger              (assoc trigger :original-pattern-value-vector pattern-value-vector)
         trig-synth           (:trigger-synth trigger)]
-    (try (ctl trig-synth :base-pattern-buffer-in pattern-id-buf :base-pattern-value-buffer-in pattern-value-id-buf)
+    (try
+      (do (ctl trig-synth :base-pattern-buffer-in pattern-id-buf :base-pattern-value-buffer-in pattern-value-id-buf) trigger)
          (catch Exception ex
-           (println "CTL failed")))
-    trigger))
+           (do
+             (println "CTL failed during update trigger")
+             (.store-buffers trigger)
+             trigger_old)))))
 
 
 (defn changed? [trigger new-trigger-pattern  new-control-pattern]
