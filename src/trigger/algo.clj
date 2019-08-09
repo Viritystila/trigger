@@ -129,9 +129,11 @@
 
 (defn mhz [& notes] (map (fn [x] (if (keyword? x) (midi->hz (note x)) x) ) notes))
 
-(defn rep ([n input]  (let [isfn   (fn? input)]
+(defn rep ([n & input]  (let [isfn   (fn? (first input))
+                              input  (if isfn (first input) input)]
                         (if isfn (seq (piv (repeatedly n #(input))))  (seq (piv (repeat n  input))))))
-  ([n fnc & args] (seq (piv (repeatedly n #(apply fnc args) ))) ))
+  ;([n fnc & args] (seq (piv (repeatedly n #(apply fnc args) ))) )
+  )
 
 (defn sfl [& coll] (let [isseq (seq? (first coll))
                          isseq (if (= 1 (count coll )) true false )]
@@ -141,8 +143,8 @@
 (defn rpl ([n input & coll]  (let [coll_length (count coll)
                                    isseq       (seq? (first coll))
                                    isfn        (fn? input)
-                                   coll        (if  isseq (apply concat coll)
-                                                    coll )
+                                   ;coll        (if  isseq (apply concat coll) coll )
+                                   coll        (piv coll)
                                    ]
                                (if isseq (seq (assoc (vec coll) n input ))
                                    (seq (assoc (vec coll) n input))))))

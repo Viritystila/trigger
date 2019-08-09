@@ -441,8 +441,7 @@
     (try (ctl synth-name  control-key trig-bus control-val-key  trig-val-bus)
          (catch Exception ex
            (println "CTL failed during create trigger")))
-    (triggerContainer. trigger-id trigger-val-id control-key control-val-key trig-group synth-name trig-bus
-                       trig-val-bus  trig-synth  dur-buffers val-buffers pattern-id-buf pattern-value-id-buf pattern-vector pattern-value-vector)))
+    (triggerContainer. trigger-id trigger-val-id control-key control-val-key trig-group synth-name trig-bus trig-val-bus  trig-synth  dur-buffers val-buffers pattern-id-buf pattern-value-id-buf pattern-vector pattern-value-vector)))
 
 
 (defn reuse-or-create-buffer [new-buf-vec]
