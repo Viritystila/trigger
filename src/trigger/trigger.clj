@@ -284,11 +284,11 @@
                                         ;Synth trigger generation
 
 (defprotocol synth-control
-  (kill-synth [this])
+  ;(kill-synth [this])
   (kill-trg   [this])
-  (swap-synth [this synth-name])
   (ctl-synth [this var value])
   (free-default-buses [this])
+  (free-out-bus [this])
   (free-secondary-out-bus [this])
   (apply-default-buses [this])
   (apply-default-bus [this db])
@@ -306,14 +306,15 @@
                            triggers
                            synth-name
                            default-buses
-                           control-out-bus]
+                           control-out-bus
+                           out-mixer]
   synth-control
-  (kill-synth [this] (kill (. this play-synth)))
-  (kill-trg   [this] (if (. this is-inst) (do (kill play-synth))   (group-free (. this group))))
-  (swap-synth [this synth-name] (println "not implemented"))
+  ;(kill-synth [this] (kill (. this play-synth)))
+  (kill-trg   [this] (if (. this is-inst) (do (kill play-synth)) (group-free (. this group))))
   (ctl-synth [this var value] (ctl (. this play-synth) var value))
   (free-default-buses [this] ( doseq [x (vals default-buses)] (free-bus x)))
-  (free-secondary-out-bus [this] (free-bus (. this out-bus-secondary)) )
+  (free-out-bus [this] (free-bus (. this out-bus)))
+  (free-secondary-out-bus [this] (free-bus (. this out-bus-secondary)))
   (apply-default-buses [this] (doseq [x default-buses] (ctl (. this play-synth) (key x) (val x))))
   (apply-default-bus [this db] (ctl (. this play-synth) db (db default-buses)))
   (apply-control-out-bus [this] (ctl (. this play-synth) :ctrl-out (. this control-out-bus)))
@@ -362,9 +363,14 @@
                              (store-buffer pattern-buf)
                              (store-buffer pattern-value-buf))
   (get-or-create-pattern-buf [this new-size] (let [old-size (count (. this pattern-vector))]
-                                               (if (= old-size new-size) (. this pattern-buf) (do (store-buffer (. this pattern-buf))  (retrieve-buffer new-size)) )))
+                                               (if (= old-size new-size)
+                                                 (. this pattern-buf)
+                                                 (do (store-buffer (. this pattern-buf))
+                                                     (retrieve-buffer new-size)) )))
   (get-or-create-pattern-value-buf [this new-size] (let [old-size (count (. this pattern-value-vector))]
-                                                     (if (= old-size new-size) (. this pattern-value-buf) (do (store-buffer (. this pattern-value-buf ))  (retrieve-buffer new-size)) )))
+                                                     (if (= old-size new-size)
+                                                       (. this pattern-value-buf)
+                                                       (do (store-buffer (. this pattern-value-buf ))  (retrieve-buffer new-size)))))
   ;(get-trigger-bus [this] (. this trigger-bus))
   (get-trigger-value-bus [this] (. this trigger-value-bus))
   ;(get-trigger-id [this] (. this trigger-id))
@@ -372,27 +378,31 @@
   (get-pattern-vector [this] (. this pattern-vector))
   (get-pattern-value-vector [this] (. this pattern-value-vector)))
 
-(defn create-synth-config [pattern-name synth-name]
-  (let [out-bus         0
-        out-bus-secondary (audio-bus 2)
-        is_inst         (instrument? synth-name)
-        synth-group     (if is_inst (:group synth-name) (group pattern-name :tail main-g))
-        play-synth      (if is_inst (synth-name) (synth-name  [:tail synth-group] ))
-        _ (println play-synth)
-        default-buses   (generate-default-buses synth-name)
-        control-out-bus (control-bus 1)
-        triggers        {}
-        synth-container  (synthContainer.
-                          is_inst
-                          pattern-name
-                          synth-group
-                          out-bus
-                          out-bus-secondary
-                          play-synth
-                          triggers
-                          synth-name
-                          default-buses
-                          control-out-bus)]
+(defn create-synth-config [pattern-name synth-name & {:keys [s-group]
+                        :or {s-group nil}}]
+  (let [out-bus           (audio-bus 1)
+        out-bus-secondary (audio-bus 1)
+        is_inst           (instrument? synth-name)
+        synth-group       (if is_inst (:group synth-name) (group pattern-name :tail main-g))
+        play-synth        (if is_inst (synth-name) (synth-name  [:tail synth-group] :out-bus out-bus))
+        mixer-group       (group "mixer" :tail synth-group)
+        out-mixer         (mono-inst-mixer [:tail mixer-group] out-bus 0 1 0.0)
+        _                 (println play-synth)
+        default-buses     (generate-default-buses synth-name)
+        control-out-bus   (control-bus 1)
+        triggers          {}
+        synth-container   (synthContainer.
+                           is_inst
+                           pattern-name
+                           synth-group
+                           out-bus
+                           out-bus-secondary
+                           play-synth
+                           triggers
+                           synth-name
+                           default-buses
+                           control-out-bus
+                           out-mixer)]
     (apply-default-buses synth-container)
     (apply-control-out-bus synth-container)
     synth-container ))
@@ -496,17 +506,18 @@
         triggers          (:triggers synth-container)
         play-synth        (:play-synth synth-container)
         trigger-status    (control-key triggers)
-        has-changed       (if (some? trigger-status) (changed? trigger-status trig-pattern val-pattern) )
-        trigger           (if (some? trigger-status) (if(= true has-changed) (update-trigger trigger-status trig-pattern val-pattern) trigger-status)
-                              (create-trigger control-key
-                                              control-val-key
-                                              play-synth
-                                              pattern-group
-                                              trig-pattern
-                                              val-pattern))]
+        has-changed       (if (some? trigger-status)
+                            (changed? trigger-status trig-pattern val-pattern))
+        trigger           (if (some? trigger-status)
+                            (if (= true has-changed)
+                              (update-trigger trigger-status trig-pattern val-pattern) trigger-status)
+                            (create-trigger control-key
+                                            control-val-key
+                                            play-synth
+                                            pattern-group
+                                            trig-pattern
+                                            val-pattern))]
     trigger))
-
-                                        ;input as hashmap {:pn :sn ...:controls...}
 
 (defonce r "~")
 
@@ -519,8 +530,6 @@
           (if (vector? fst) (recur (next xv) (conj result (vec (parse-input-vector fst))))
               (if (seq? fst) (recur (next xv) (apply conj result  (vec (parse-input-vector fst))))
                   (recur (next xv) (conj result fst))))) result ))))
-
-
 
 
 (defn string-not-r? [x] (let [is-string    (string? x)
@@ -587,24 +596,29 @@
                  input-controls-only   input
                  initial-controls-only input-controls-only
                  input-check           (some? (not-empty input-controls-only))]
-             (if  (= nil synth-container)
+             (if
+                 (= nil synth-container)
                (do (println "Synth created")
                    (swap! synthConfig assoc pattern-name-key (create-synth-config pattern-name synth-name)))
                (do (println "Synth exists")))
              (do
-               (let [synth-container                              (pattern-name-key @synthConfig)
-                     triggers                                     (:triggers synth-container)
-                     running-trigger-keys                         (keys triggers)
-                     input-trigger-keys                           (keys initial-controls-only)
-                     triggers-running-but-not-renewd              (first (diff running-trigger-keys input-trigger-keys))
-                     _                                            (doseq [x triggers-running-but-not-renewd] (if (some? x) (do (kill-trg-group (x triggers))
-                                                                                                                               (apply-default-bus synth-container x))))
-                     triggers                                     (apply dissoc triggers triggers-running-but-not-renewd)
-                     synth-container                              (assoc synth-container :triggers triggers)]
+               (let [synth-container     (pattern-name-key @synthConfig)
+                     triggers            (:triggers synth-container)
+                     running-trigger-keys(keys triggers)
+                     input-trigger-keys  (keys initial-controls-only)
+                     triggers-not-renewd (first (diff running-trigger-keys input-trigger-keys))
+                     _                   (doseq [x triggers-not-renewd]
+                                           (if (some? x)
+                                             (do (kill-trg-group (x triggers)) (apply-default-bus synth-container x))))
+                     triggers            (apply dissoc triggers triggers-not-renewd)
+                     synth-container     (assoc synth-container :triggers triggers)]
                  (swap! synthConfig assoc pattern-name-key synth-container)))
              (swap! synthConfig assoc pattern-name-key
-                    (assoc (pattern-name-key @synthConfig) :triggers
-                           (zipmap (keys input-controls-only) (map (partial t (pattern-name-key @synthConfig)) input-controls-only)))) pattern-name)))
+                    (assoc (pattern-name-key @synthConfig)
+                           :triggers
+                           (zipmap (keys input-controls-only)
+                                   (map (partial t (pattern-name-key @synthConfig)) input-controls-only))))
+             pattern-name)))
 
 
                                         ; Misc pattern related functions
@@ -615,6 +629,7 @@
         triggers              (vals (:triggers pattern-status))]
     (if (some? pattern-status) (do (free-default-buses pattern-status)
                                    (free-control-out-bus pattern-status)
+                                   (free-out-bus pattern-status)
                                    (free-secondary-out-bus pattern-status)
                                    (doseq [x triggers] (kill-trg-group x))
                                    (kill-trg pattern-status)
@@ -719,14 +734,14 @@
 (defn volume! [pattern-name vol] (let [pat      (pattern-name @synthConfig)
                                        inst     (:synth-name pat)
                                        is-inst  (instrument? inst)]
-                                   (if is-inst (inst-volume! inst vol)))
+                                   (if is-inst (inst-volume! inst vol) (ctl (:out-mixer pat) :volume vol) ))
   nil)
 
 
 (defn pan! [pattern-name pan] (let [pat      (pattern-name @synthConfig)
                                     inst     (:synth-name pat)
                                     is-inst  (instrument? inst)]
-                                   (if is-inst (inst-pan! inst pan))))
+                                   (if is-inst (inst-pan! inst pan) (ctl (:out-mixer pat) :pan pan) )) nil )
 
 
 (defn fx! [pattern-name fx] (let [pat      (pattern-name @synthConfig)
