@@ -284,7 +284,7 @@
                                         ;Synth trigger generation
 
 (defprotocol synth-control
-  ;(kill-synth [this])
+  (kill-synth [this])
   (kill-trg   [this])
   (ctl-synth [this var value])
   (free-default-buses [this])
@@ -313,7 +313,7 @@
                            sub-synths
                            sub-synth-group]
   synth-control
-  ;(kill-synth [this] (kill (. this play-synth)))
+  (kill-synth [this] (kill (. this play-synth)))
   (kill-trg   [this] (if (. this is-inst) (do (kill play-synth)) (group-free (. this group))))
   (ctl-synth [this var value] (ctl (. this play-synth) var value))
   (free-default-buses [this] ( doseq [x (vals default-buses)] (free-bus x)))
@@ -726,13 +726,14 @@
 (defn stop-pattern [pattern-name]
   (let [pattern-name-key      pattern-name ;(keyword pattern-name)
         pattern-status        (pattern-name-key @synthConfig)
+        issub                 (:is-sub-synth pattern-status)
         triggers              (vals (:triggers pattern-status))]
-    (if (some? pattern-status) (do (free-default-buses pattern-status)
-                                   (free-control-out-bus pattern-status)
-                                   (free-out-bus pattern-status)
-                                   (free-secondary-out-bus pattern-status)
+    (if (some? pattern-status) (do (if (not issub) (free-default-buses pattern-status))
+                                   (if (not issub) (free-control-out-bus pattern-status))
+                                   (if (not issub) (free-out-bus pattern-status))
+                                   (if (not issub) (free-secondary-out-bus pattern-status))
                                    (doseq [x triggers] (kill-trg-group x))
-                                   (kill-trg pattern-status)
+                                   (if (not issub) (kill-trg pattern-status) (kill-synth pattern-status) )
                                    (swap! synthConfig dissoc pattern-name-key) (println "pattern" (:pattern-name pattern-status) "stopped")) (println "No such pattern") )))
 
 (defn stp [& pattern-names]
