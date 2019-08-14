@@ -307,7 +307,11 @@
                            synth-name
                            default-buses
                            control-out-bus
-                           out-mixer]
+                           out-mixer
+                           mixer-group
+                           is-sub-synth
+                           sub-synths
+                           sub-synth-group]
   synth-control
   ;(kill-synth [this] (kill (. this play-synth)))
   (kill-trg   [this] (if (. this is-inst) (do (kill play-synth)) (group-free (. this group))))
@@ -378,20 +382,21 @@
   (get-pattern-vector [this] (. this pattern-vector))
   (get-pattern-value-vector [this] (. this pattern-value-vector)))
 
-(defn create-synth-config [pattern-name synth-name & {:keys [s-group]
-                        :or {s-group nil}}]
+(defn create-synth-config [pattern-name synth-name & {:keys [issub]
+                        :or {issub false}}]
   (let [out-bus           (audio-bus 1)
         out-bus-secondary (audio-bus 1)
         is_inst           (instrument? synth-name)
         synth-group       (if is_inst (:group synth-name) (group pattern-name :tail main-g))
-        play-synth        (if is_inst (synth-name) (synth-name  [:tail synth-group] :out-bus out-bus))
         sub-synth-group   (group "sub-synth-group" :tail synth-group)
         mixer-group       (group "mixer-group" :tail synth-group)
+        play-synth        (if is_inst (synth-name) (synth-name  [:head synth-group] :out-bus out-bus))
         out-mixer         (mono-inst-mixer [:tail mixer-group] out-bus 0 1 0.0)
         _                 (println play-synth)
         default-buses     (generate-default-buses synth-name)
         control-out-bus   (control-bus 1)
         triggers          {}
+        sub-synths        {}
         synth-container   (synthContainer.
                            is_inst
                            pattern-name
@@ -403,10 +408,62 @@
                            synth-name
                            default-buses
                            control-out-bus
-                           out-mixer)]
+                           out-mixer
+                           mixer-group
+                           issub
+                           sub-synths
+                           sub-synth-group)]
     (apply-default-buses synth-container)
     (apply-control-out-bus synth-container)
-    synth-container ))
+    synth-container))
+
+
+(defn create-synth-config! [pattern-name sub-pattern-name synth-name & {:keys [issub]
+                        :or {issub true}}]
+  (let [out-bus           (:out-bus (@synthConfig pattern-name))
+        out-bus-secondary (:out-bus-secondary (@synthConfig pattern-name))
+        is_inst           (instrument? synth-name)
+        ;synth-group       (if is_inst (:group synth-name) (group pattern-name :tail main-g))
+        sub-synth-group   (:sub-synth-group (@synthConfig pattern-name))
+        synth-group       (:group  (@synthConfig pattern-name))
+        mixer-group       (:mixer-group  (@synthConfig pattern-name))
+        _ (println "synth and args \n "
+                   "\n synth name " synth-name
+                   "\n pattern " pattern-name
+                   "\n sub pattern " sub-pattern-name
+                   "\n out bus " out-bus
+                   "\n sub synth group " sub-synth-group
+                   "\n mixer group " mixer-group
+                   "\n synth group " synth-group)
+        play-synth        (synth-name [:tail sub-synth-group] :bus-in out-bus :out-bus out-bus)
+        ;_  (synth-name [:tail sub-synth-group] :bus-in out-bus :out-bus out-bus)
+        out-mixer         (:out-mixer (@synthConfig pattern-name))
+        _                 (println play-synth)
+        default-buses     (generate-default-buses synth-name)
+        control-out-bus   (control-bus 1)
+        triggers          {}
+        sub-synths        {}
+        synth-container   (synthContainer.
+                           is_inst
+                           sub-pattern-name
+                           sub-synth-group
+                           out-bus
+                           out-bus-secondary
+                           play-synth
+                           triggers
+                           synth-name
+                           default-buses
+                           control-out-bus
+                           out-mixer
+                           mixer-group
+                           issub
+                           sub-synths
+                           sub-synth-group)]
+    ;(apply-default-buses synth-container)
+    ;(apply-control-out-bus synth-container)
+    synth-container))
+
+
 
 (defn buffer-writer [buf data] (try
                                  (buffer-write-relay! buf data)
@@ -438,6 +495,7 @@
         val-id-vec           (vec (map (fn [x] (buffer-id x)) val-buffers))
         _                    (buffer-writer pattern-id-buf dur-id-vec)
         _                    (buffer-writer pattern-value-id-buf val-id-vec)
+        _ (println "pattern group" control-key control-val-key pattern-group)
         trig-group           (group (str control-key) :tail pattern-group)
         trig-synth           (trigger-generator [:tail trig-group]
                                                 base-trigger-bus
@@ -451,7 +509,7 @@
                                                 base-dur)]
     (try (ctl synth-name  control-key trig-bus control-val-key  trig-val-bus)
          (catch Exception ex
-           (println "CTL failed during create trigger")))
+           (println "CTL failed during create-trigger")))
     (triggerContainer. trigger-id trigger-val-id control-key control-val-key trig-group synth-name trig-bus trig-val-bus  trig-synth  dur-buffers val-buffers pattern-id-buf pattern-value-id-buf pattern-vector pattern-value-vector)))
 
 
@@ -486,7 +544,7 @@
       (do (ctl trig-synth :base-pattern-buffer-in pattern-id-buf :base-pattern-value-buffer-in pattern-value-id-buf) trigger)
          (catch Exception ex
            (do
-             (println "CTL failed during update trigger")
+             (println "CTL failed during update-trigger")
              (.store-buffers trigger)
              trigger_old)))))
 
@@ -501,6 +559,7 @@
         control-val-key   (keyword (str (name control-key) "-val"))
         control-pattern   (last control-pair)
         pattern-vectors   (generate-pattern-vector control-pattern)
+        _ (println (keys synth-container))
         trig-pattern      (:dur pattern-vectors)
         val-pattern       (:val pattern-vectors)
         pattern-group     (:group synth-container)
@@ -622,6 +681,46 @@
              pattern-name)))
 
 
+
+
+(defn trg! ([pn spn sn & input]
+           (let [pattern-name          (if (keyword? pn) (name pn) pn )
+                 pattern-name-key      (keyword pattern-name)
+                 sub-pattern-name      (if (keyword? spn) (name spn) spn )
+                 sub-pattern-name-key  (keyword sub-pattern-name)
+                 synth-container       (sub-pattern-name-key @synthConfig)
+                 synth-name            (synth-name-check sn synth-container)
+                 input                 (split-input input)
+                 original-input        input
+                 valid-keys            (concat [:pn :spn :sn]  (vec (synth-args synth-name)))
+                 input                 (select-keys input (vec valid-keys)) ; Make input valid, meaning remove control keys that are not present in the synth args
+                 input-controls-only   input
+                 initial-controls-only input-controls-only
+                 input-check           (some? (not-empty input-controls-only))]
+             (if
+                 (= nil synth-container)
+               (do (println "Synth created")
+                   (swap! synthConfig assoc sub-pattern-name-key (create-synth-config! pattern-name-key sub-pattern-name synth-name)))
+               (do (println "Synth exists")))
+             (do
+               (let [synth-container     (sub-pattern-name-key @synthConfig)
+                     triggers            (:triggers synth-container)
+                     running-trigger-keys(keys triggers)
+                     input-trigger-keys  (keys initial-controls-only)
+                     triggers-not-renewd (first (diff running-trigger-keys input-trigger-keys))
+                     _                   (doseq [x triggers-not-renewd]
+                                           (if (some? x)
+                                             (do (kill-trg-group (x triggers)) (apply-default-bus synth-container x))))
+                     triggers            (apply dissoc triggers triggers-not-renewd)
+                     synth-container     (assoc synth-container :triggers triggers)]
+                 (swap! synthConfig assoc sub-pattern-name-key synth-container)))
+             (swap! synthConfig assoc sub-pattern-name-key
+                    (assoc (sub-pattern-name-key @synthConfig)
+                           :triggers
+                           (zipmap (keys input-controls-only)
+                                   (map (partial t (sub-pattern-name-key @synthConfig)) input-controls-only))))
+             sub-pattern-name)))
+
                                         ; Misc pattern related functions
 
 (defn stop-pattern [pattern-name]
@@ -730,7 +829,7 @@
       (do (function trigger-id alg-key pat-vec pat-val-vec buf-id algConfig args)
           (swap! algConfig assoc alg-key alg-key )))))
 
-                                        ;Instrument functions
+                                        ;Mixer and Instrument effects functions
 
 (defn volume! [pattern-name vol] (let [pat      (pattern-name @synthConfig)
                                        inst     (:synth-name pat)
@@ -758,6 +857,48 @@
                                  (if is-inst (clear-fx inst)))
   nil)
 
+
+;;;;subsynth-test
+(defsynth echosynth
+  [bus-in 0
+   in-max-delay 1.0
+   in-max-delay-val 1.0
+   in-delay-time 0.4
+   in-delay-time-val 0.4
+   in-decay-time 2.0
+   in-decay-time-val 2.0
+   out-bus 0]
+  (let [source       (in bus-in)
+        max-delay    (in:kr in-max-delay-val)
+        delay-time   (in:kr in-delay-time-val)
+        decay-time   (in:kr in-decay-time-val)
+                                        ;echo (comb-n source max-delay delay-time decay-time)
+        dt (k2a decay-time)
+        ]
+    (replace-out out-bus (* decay-time source))
+                                        ;(replace-out out-bus (pan2 (+ echo source) 0))
+    )
+  )
+
+(defsynth ec
+  [bus-in 0
+   ;in-max-delay 1.0
+   ;in-max-delay-val 1.0
+   ;in-delay-time 0.4
+   ;in-delay-time-val 0.4
+   ;in-decay-time 2.0
+   ;in-decay-time-val 2.0
+   out-bus 0]
+  (let [source       (in bus-in)
+        max-delay    1.0 ;(in:kr in-max-delay-val)
+        delay-time   0.4; (in:kr in-delay-time-val)
+        decay-time   2.0;(in:kr in-decay-time-val)
+        echo (comb-n source max-delay delay-time decay-time)]
+    (replace-out out-bus (pan2 (+ echo source) 0))))
+
+
+;;;;
+;;;
 
                                         ;Start trigger
 (start-trigger)
