@@ -736,10 +736,8 @@
                                    (if (not issub)
                                      (reset! synthConfig  (apply dissoc @synthConfig sub-synth-keys))
                                      (do
-                                       (reset! synthConfig  (apply dissoc @synthConfig sub-synth-vals)) (println "ssad" sub-synth-vals)
-                                       (doseq [x sub-synth-keys]  (reset! synthConfig (assoc @synthConfig x  (assoc (x @synthConfig) :sub-synths  (apply dissoc (:sub-synths (x @synthConfig)) sub-synth-vals))) ))
-                                       )
-                                     )
+                                       (reset! synthConfig  (apply dissoc @synthConfig sub-synth-vals))
+                                       (doseq [x sub-synth-keys]  (reset! synthConfig (assoc @synthConfig x  (assoc (x @synthConfig) :sub-synths  (apply dissoc (:sub-synths (x @synthConfig)) sub-synth-vals)))))))
                                    (swap! synthConfig dissoc pattern-name-key) (println "pattern" (:pattern-name pattern-status) "stopped")) (println "No such pattern") )))
 
 (defn stp [& pattern-names]
@@ -872,13 +870,16 @@
    in-delay-time-val 0.4
    in-decay-time 2.0
    in-decay-time-val 2.0
+   in-amp 1
+   in-amp-val 1
    out-bus 0]
   (let [source       (in bus-in)
         max-delay    1
         delay-time   (in:kr in-delay-time-val)
         decay-time   (in:kr in-decay-time-val)
+        amp          (in:kr in-amp-val)
         echo (comb-n source max-delay delay-time decay-time)]
-                                        (replace-out out-bus (pan2 (+ echo source) 0))))
+    (replace-out out-bus (pan2 (+ (* amp  echo) source) 0))))
 
 
 ;;;;
