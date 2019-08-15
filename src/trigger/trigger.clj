@@ -719,6 +719,8 @@
         pattern-status        (pattern-name-key @synthConfig)
         issub                 (:is-sub-synth pattern-status)
         sub-synths            (:sub-synths pattern-status)
+        sub-synth-keys        (keys sub-synths)
+        sub-synth-vals        (vals sub-synths)
         triggers              (vals (:triggers pattern-status))]
     (if (some? pattern-status) (do (if (not issub) (free-default-buses pattern-status))
                                    (if (not issub) (free-control-out-bus pattern-status))
@@ -729,8 +731,12 @@
                                      (kill-trg pattern-status)
                                      (kill-synth pattern-status) )
                                    (if (not issub)
-                                     (swap! synthConfig  (apply dissoc @synthConfig (keys sub-synths)))
-                                     (do ()))
+                                     (reset! synthConfig  (apply dissoc @synthConfig sub-synth-keys))
+                                     (do
+                                       (reset! synthConfig  (apply dissoc @synthConfig sub-synth-vals)) (println "ssad" sub-synth-vals)
+                                       (doseq [x sub-synth-keys]  (reset! synthConfig (assoc @synthConfig x  (assoc (x @synthConfig) :sub-synths  (apply dissoc (:sub-synths (x @synthConfig)) sub-synth-vals))) ))
+                                       )
+                                     )
                                    (swap! synthConfig dissoc pattern-name-key) (println "pattern" (:pattern-name pattern-status) "stopped")) (println "No such pattern") )))
 
 (defn stp [& pattern-names]
