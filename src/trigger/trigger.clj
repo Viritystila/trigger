@@ -687,29 +687,30 @@
                  input-controls-only     input
                  initial-controls-only   input-controls-only
                  input-check             (some? (not-empty input-controls-only))]
-             (if
-                 (= nil synth-container)
-               (do (println "Synth created")
-                   (swap! synthConfig assoc pattern-name-key (assoc parent-synth-container :sub-synths  (assoc parent-sub-synths sub-pattern-name-key pattern-name-key)))
-                   (swap! synthConfig assoc sub-pattern-name-key (create-synth-config! pattern-name-key sub-pattern-name synth-name))  )
-               (do (println "Synth exists")))
-             (do
-               (let [synth-container     (sub-pattern-name-key @synthConfig)
-                     triggers            (:triggers synth-container)
-                     running-trigger-keys(keys triggers)
-                     input-trigger-keys  (keys initial-controls-only)
-                     triggers-not-renewd (first (diff running-trigger-keys input-trigger-keys))
-                     _                   (doseq [x triggers-not-renewd]
-                                           (if (some? x)
-                                             (do (kill-trg-group (x triggers)) (apply-default-bus synth-container x))))
-                     triggers            (apply dissoc triggers triggers-not-renewd)
-                     synth-container     (assoc synth-container :triggers triggers)]
-                 (swap! synthConfig assoc sub-pattern-name-key synth-container)))
-             (swap! synthConfig assoc sub-pattern-name-key
-                    (assoc (sub-pattern-name-key @synthConfig)
-                           :triggers
-                           (zipmap (keys input-controls-only)
-                                   (map (partial t (sub-pattern-name-key @synthConfig)) input-controls-only))))
+             (if (not= nil parent-synth-container)
+               (do (if
+                       (= nil synth-container)
+                     (do (println "Synth created")
+                         (swap! synthConfig assoc pattern-name-key (assoc parent-synth-container :sub-synths  (assoc parent-sub-synths sub-pattern-name-key pattern-name-key)))
+                         (swap! synthConfig assoc sub-pattern-name-key (create-synth-config! pattern-name-key sub-pattern-name synth-name))  )
+                     (do (println "Synth exists")))
+                   (do
+                     (let [synth-container     (sub-pattern-name-key @synthConfig)
+                           triggers            (:triggers synth-container)
+                           running-trigger-keys(keys triggers)
+                           input-trigger-keys  (keys initial-controls-only)
+                           triggers-not-renewd (first (diff running-trigger-keys input-trigger-keys))
+                           _                   (doseq [x triggers-not-renewd]
+                                                 (if (some? x)
+                                                   (do (kill-trg-group (x triggers)) (apply-default-bus synth-container x))))
+                           triggers            (apply dissoc triggers triggers-not-renewd)
+                           synth-container     (assoc synth-container :triggers triggers)]
+                       (swap! synthConfig assoc sub-pattern-name-key synth-container)))
+                   (swap! synthConfig assoc sub-pattern-name-key
+                          (assoc (sub-pattern-name-key @synthConfig)
+                                 :triggers
+                                 (zipmap (keys input-controls-only)
+                                         (map (partial t (sub-pattern-name-key @synthConfig)) input-controls-only))))) (println "Parent synth" pattern-name-key "does not exist.") )
              sub-pattern-name)))
 
                                         ; Misc pattern related functions
