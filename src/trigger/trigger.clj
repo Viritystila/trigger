@@ -677,9 +677,11 @@
                  sub-pattern-name        (if (keyword? spn) (name spn) spn )
                  sub-pattern-name-key    (keyword sub-pattern-name)
                  parent-synth-container  (pattern-name-key @synthConfig)
+                 is-inst-parent-synth    (:is-inst parent-synth-container)
                  parent-sub-synths       (:sub-synths parent-synth-container)
                  synth-container         (sub-pattern-name-key @synthConfig)
                  synth-name              (synth-name-check sn synth-container)
+                 is-inst-sub-synth       (instrument? sn)
                  input                   (split-input input)
                  original-input          input
                  valid-keys              (concat [:pn :spn :sn]  (vec (synth-args synth-name)))
@@ -687,7 +689,7 @@
                  input-controls-only     input
                  initial-controls-only   input-controls-only
                  input-check             (some? (not-empty input-controls-only))]
-             (if (not= nil parent-synth-container)
+             (if (and (not is-inst-parent-synth) (not is-inst-sub-synth) (not= nil parent-synth-container))
                (do (if
                        (= nil synth-container)
                      (do (println "Synth created")
