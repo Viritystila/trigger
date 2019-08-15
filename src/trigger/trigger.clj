@@ -8,6 +8,7 @@
    [trigger.algo :refer :all]
    [trigger.speech :refer :all]
    [trigger.samples :refer :all]
+   [trigger.trg_fx :refer :all]
    [clojure.tools.namespace.repl :refer [refresh]]) )
 
                                         ;Boot Supercollider
@@ -863,23 +864,24 @@
   nil)
 
 
-;;;;subsynth-test
-(defsynth echosynth
-  [bus-in 0
-   in-delay-time 0.4
-   in-delay-time-val 0.4
-   in-decay-time 2.0
-   in-decay-time-val 2.0
-   in-amp 1
-   in-amp-val 1
-   out-bus 0]
-  (let [source       (in bus-in)
-        max-delay    1
-        delay-time   (in:kr in-delay-time-val)
-        decay-time   (in:kr in-decay-time-val)
-        amp          (in:kr in-amp-val)
-        echo (comb-n source max-delay delay-time decay-time)]
-    (replace-out out-bus (pan2 (+ (* amp  echo) source) 0))))
+;; ;;;;subsynth-test
+;; ;
+;; (defsynth echosynth
+;;   [bus-in 0
+;;    in-delay-time 0.4
+;;    in-delay-time-val 0.4
+;;    in-decay-time 2.0
+;;    in-decay-time-val 2.0
+;;    in-amp 1
+;;    in-amp-val 1
+;;    out-bus 0]
+;;   (let [source       (in bus-in)
+;;         max-delay    1
+;;         delay-time   (in:kr in-delay-time-val)
+;;         decay-time   (in:kr in-decay-time-val)
+;;         amp          (in:kr in-amp-val)
+;;         echo (comb-n source max-delay delay-time decay-time)]
+;;     (replace-out out-bus (pan2 (+ (* amp  echo) source) 0))))
 
 
 ;;;;
