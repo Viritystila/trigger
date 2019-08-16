@@ -581,9 +581,16 @@
                   (recur (next xv) (conj result fst))))) result ))))
 
 
-(defn string-not-r? [x] (let [is-string    (string? x)
-                              is-r         (if is-string (= r x) false)]
-                          (if (and is-string (not is-r )) true false )))
+(defn string-not-r? [x]
+  (let [is-string    (string? x)
+        is-r         (if is-string (= r x) false)]
+    (if (and is-string (not is-r )) true false )))
+
+(defn match-special-case [x]
+  (let [is-input-string  (string-not-r? x)]
+    (if is-input-string (cond
+                          (re-matches #"n.*" x) (println "note" (note (keyword (clojure.string/trim (last (clojure.string/split x #"n"))))))) x)))
+
 
 (defn special-case [input key]
   (let [y   input]
