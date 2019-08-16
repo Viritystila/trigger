@@ -785,6 +785,12 @@
   (get-pattern-value-vector (trig-name (:triggers (pattern-name @synthConfig)))))
 
 
+(defn list-sub-synths [pattern-name] (let [pattern (pattern-name @synthConfig)
+                                           issub   (:is-sub-synth pattern)]
+                                       (if issub (println "Is a sub-synth, parent:" (keys (:sub-synths pattern)))
+                                           (println "Sub synths:" (keys (:sub-synths pattern)))))
+  nil)
+
 (defn sctl [pattern-name var value]
   (let [pattern-status (pattern-name @synthConfig)]
     (if (some? pattern-status) (ctl-synth pattern-status var value))))
