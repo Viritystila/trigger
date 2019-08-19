@@ -586,19 +586,32 @@
         is-r         (if is-string (= r x) false)]
     (if (and is-string (not is-r )) true false )))
 
+(defn split-special-string [x d]
+   (clojure.string/trim (last (clojure.string/split x  d 2))))
+
 (defn match-special-case [x]
-  (let [is-input-string  (string-not-r? x)]
+  (let [is-input-string  (string-not-r? x)
+        n-string         "n"
+        freq-string      "f"
+        buffer-string    "b"
+        ]
     (if is-input-string (cond
-                          (re-matches #"n.*" x) (println "note" (note (keyword (clojure.string/trim (last (clojure.string/split x #"n"))))))) x)))
+                          (re-matches #"n.*" x) (note (keyword (split-special-string x #"n")))
+                          (re-matches #"f.*" x) (midi->hz (note (keyword (split-special-string x #"f"))))
+                          (re-matches #"b.*" x) (get-sample-id (keyword (split-special-string x #"b")))) x)))
 
 
 (defn special-case [input key]
   (let [y   input]
-    (cond
-      (= key :in-buf)  (if (string-not-r? y) (get-sample-id (keyword y)) y )
-      (= key :in-note) (if (string-not-r? y) (note (keyword y)) y )
-      (= key :in-freq) (if (string-not-r? y) (midi->hz (note (keyword y))) y )
-      :else (if (string-not-r? y) 1 y ))))
+    ;(println (match-special-case y))
+    (match-special-case y)
+    ;; (cond
+    ;;   (= key :in-buf)  (if (string-not-r? y) (get-sample-id (keyword y)) y )
+    ;;   (= key :in-note) (if (string-not-r? y) (note (keyword y)) y )
+    ;;   (= key :in-freq) (if (string-not-r? y) (midi->hz (note (keyword y))) y )
+    ;;   :else (if (string-not-r? y) 1 y ))
+
+    ))
 
 
 (defn apply-special-cases [input special-cond]
