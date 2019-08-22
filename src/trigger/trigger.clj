@@ -296,7 +296,8 @@
   (apply-control-out-bus [this])
   (apply-out-bus [this])
   (apply-secondary-out-bus [this])
-  (free-control-out-bus [this]))
+  (free-control-out-bus [this])
+  (set-out-channel [this channel]))
 
 (defrecord synthContainer [is-inst
                            pattern-name
@@ -325,7 +326,8 @@
   (apply-control-out-bus [this] (ctl (. this play-synth) :ctrl-out (. this control-out-bus)))
   (apply-out-bus [this] (ctl (. this play-synth) :out-bus 0 ))
   (apply-secondary-out-bus [this] (ctl (. this play-synth) :out-bus (. this out-bus-secondary)))
-  (free-control-out-bus [this] (free-bus (. this control-out-bus))))
+  (free-control-out-bus [this] (free-bus (. this control-out-bus)))
+  (set-out-channel [this channel] (ctl (. this out-mixer ) :out-bus channel)))
 
 
 (defprotocol trigger-control
@@ -636,7 +638,7 @@
   (let [ip      (into
                  (sorted-map)
                  (map (fn [x] {(first (first x))  (vec (parse-input-vector (last x)))})
-                     (partition 2 (partition-by keyword? input))))
+                      (partition 2 (partition-by keyword? input))))
         specip  (into {}  (map (fn [x] {x (copy-key-val ip x)}) (keys ip)))
         ip      specip
         ip      (into {}  (map (fn [x] {x (apply-special-cases (x ip) x)}) (keys ip))) ]
@@ -777,6 +779,12 @@
         pattern-status (pattern-name-key @synthConfig)]
     (if (some? pattern-status) (apply-secondary-out-bus pattern-status) )))
 
+
+(defn set-mixer-out-channel [pattern-name channel]
+  (let [pattern-name-key    pattern-name
+        pattern-status (pattern-name-key @synthConfig)]
+    (if (some? pattern-status) (set-out-channel pattern-status channel) )) nil)
+
 (defn get-out-bus [pattern-name]
   (:out-bus (pattern-name @synthConfig)))
 
@@ -890,28 +898,9 @@
   nil)
 
 
-;; ;;;;subsynth-test
-;; ;
-;; (defsynth echosynth
-;;   [bus-in 0
-;;    in-delay-time 0.4
-;;    in-delay-time-val 0.4
-;;    in-decay-time 2.0
-;;    in-decay-time-val 2.0
-;;    in-amp 1
-;;    in-amp-val 1
-;;    out-bus 0]
-;;   (let [source       (in bus-in)
-;;         max-delay    1
-;;         delay-time   (in:kr in-delay-time-val)
-;;         decay-time   (in:kr in-decay-time-val)
-;;         amp          (in:kr in-amp-val)
-;;         echo (comb-n source max-delay delay-time decay-time)]
-;;     (replace-out out-bus (pan2 (+ (* amp  echo) source) 0))))
+                                        ;Master mixer
 
 
-;;;;
-;;;
 
                                         ;Start trigger
 (start-trigger)
