@@ -819,6 +819,22 @@
                                            (println "Sub synths:" (keys (:sub-synths pattern)))))
   nil)
 
+
+                             ;pattern-vector
+                             ;pattern-value-vector
+                             ;pattern-buf
+                             ;pattern-value-buf
+                             ;original-pattern-vector
+                             ;original-pattern-value-vector
+
+(defn get-buffer-ids [pattern-name bt]
+  (let [pattern-status (pattern-name @synthConfig)
+        triggers       (:triggers pattern-status)]
+    (println (count triggers))
+    (map (fn [x] (bt ((first x) triggers))) triggers)
+    )
+  )
+
 (defn sctl [pattern-name var value]
   (let [pattern-status (pattern-name @synthConfig)]
     (if (some? pattern-status) (ctl-synth pattern-status var value))))
