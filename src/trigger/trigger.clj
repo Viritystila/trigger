@@ -545,8 +545,8 @@
            (do
              (println "CTL failed during update-trigger")
              (.store-buffers trigger)
-             (vec (map (fn [x] (store-buffer x)) old-dur-buffers))
-             (vec (map (fn [x] (store-buffer x)) old-var-buffers))
+             ;(vec (map (fn [x] (store-buffer x)) old-dur-buffers))
+             ;(vec (map (fn [x] (store-buffer x)) old-var-buffers))
              trigger_old)))))
 
 (defn changed? [trigger new-trigger-pattern  new-control-pattern]
