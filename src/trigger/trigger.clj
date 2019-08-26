@@ -515,8 +515,10 @@
                       pattern-value-vector]
   (let [trigger_old          trigger
         buf-size             (count pattern-vector)
-        old-dur-buffers      (vec (map (fn [x] (store-buffer x)) (vec (:pattern-vector trigger))))
-        old-var-buffers      (vec (map (fn [x] (store-buffer x)) (vec (:pattern-value-vector trigger))))
+        old-dur-buffers      (vec (:pattern-vector trigger))
+        old-var-buffers      (vec (:pattern-value-vector trigger))
+        ;old-dur-buffers      (vec (map (fn [x] (store-buffer x)) old-dur-buffers))
+        ;old-var-buffers      (vec (map (fn [x] (store-buffer x)) old-var-buffers))
         dur-buffers          (vec (map (fn [x] (reuse-or-create-buffer x)) pattern-vector))
         val-buffers          (vec (map (fn [x] (reuse-or-create-buffer x)) pattern-value-vector))
         _                    (vec (mapv (fn [x y] (buffer-writer x y)) dur-buffers pattern-vector ))
@@ -533,13 +535,19 @@
         trigger              (assoc trigger :original-pattern-value-vector pattern-value-vector)
         trig-synth           (:trigger-synth trigger)]
     (try
-      (do (ctl trig-synth :base-pattern-buffer-in pattern-id-buf :base-pattern-value-buffer-in pattern-value-id-buf) trigger)
+      (do (ctl trig-synth
+               :base-pattern-buffer-in pattern-id-buf
+               :base-pattern-value-buffer-in pattern-value-id-buf)
+          (vec (map (fn [x] (store-buffer x)) old-dur-buffers))
+          (vec (map (fn [x] (store-buffer x)) old-var-buffers))
+          trigger)
          (catch Exception ex
            (do
              (println "CTL failed during update-trigger")
              (.store-buffers trigger)
+             (vec (map (fn [x] (store-buffer x)) old-dur-buffers))
+             (vec (map (fn [x] (store-buffer x)) old-var-buffers))
              trigger_old)))))
-
 
 (defn changed? [trigger new-trigger-pattern  new-control-pattern]
   (let [old-trigger-pattern  (:original-pattern-vector trigger)
