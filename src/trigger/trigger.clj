@@ -509,7 +509,7 @@
   (let  [new-size    (count new-buf-vec)]
     (retrieve-buffer new-size)))
 
-;Buffer-write relays cayse timeoutexpections occasionally
+;Buffer-write relays cayse timeout expections occasionally
 (defn update-trigger [trigger
                       pattern-vector
                       pattern-value-vector]
@@ -552,7 +552,7 @@
 (defn changed? [trigger new-trigger-pattern  new-control-pattern]
   (let [old-trigger-pattern  (:original-pattern-vector trigger)
         old-control-pattern  (:original-pattern-value-vector trigger)]
-    (or (not= new-trigger-pattern old-trigger-pattern) (not= new-control-pattern old-control-pattern))))
+    (or (not= new-trigger-pattern old-trigger-pattern) (not= new-control-pattern old-control-pattern))) true)
 
 (defn t [synth-container control-pair]
   (let [control-key       (first control-pair)
