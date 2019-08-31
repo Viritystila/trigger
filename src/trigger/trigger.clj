@@ -613,15 +613,7 @@
 
 (defn special-case [input key]
   (let [y   input]
-    ;(println (match-special-case y))
-    (match-special-case y)
-    ;; (cond
-    ;;   (= key :in-buf)  (if (string-not-r? y) (get-sample-id (keyword y)) y )
-    ;;   (= key :in-note) (if (string-not-r? y) (note (keyword y)) y )
-    ;;   (= key :in-freq) (if (string-not-r? y) (midi->hz (note (keyword y))) y )
-    ;;   :else (if (string-not-r? y) 1 y ))
-
-    ))
+    (match-special-case y)))
 
 
 (defn apply-special-cases [input special-cond]
@@ -661,10 +653,15 @@
     (if (nil? sc) new-sn
         (if (not= old-sn new-sn) old-sn new-sn))))
 
+;Laternative input system
+(defn inp [& input] (if (even? (count input))
+                      (let [])
+                      (println "Require even number of inputs")))
 
-;New trigger input function, allows more terse and powerfull way to create patterns. Now clojure functions such as repeat can be used directly in the input.
+;New trigger input function, allows more terse and powerful way to create patterns. Now clojure functions such as repeat can be used directly in the input.
 (defn trg ([pn sn & input]
-           (let [pattern-name          (if (keyword? pn) (name pn) pn )
+           (let [input                 (seq (parse-input-vector input))
+                 pattern-name          (if (keyword? pn) (name pn) pn )
                  pattern-name-key      (keyword pattern-name)
                  synth-container       (pattern-name-key @synthConfig)
                  synth-name            (synth-name-check sn synth-container)

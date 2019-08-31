@@ -56,7 +56,94 @@
         ]
     (out out-bus (pan2 (* amp buffer-value)))))
 
-;(defsynth smpl [buf 0] (out 0 (play-buf 1 buf :action FREE)))
+
+(defsynth smp [in-trg 0
+               in-trg-val 0
+               in-buf 0
+               in-buf-val 0
+               in-rate 24000
+               in-rate-val 24000
+               in-start-pos 0
+               in-start-pos-val 0
+               in-step 2
+               in-step-val 2
+               in-loop 0
+               in-loop-val 0
+               in-amp 1
+               in-amp-val 1
+               out-bus 0
+               ctrl-out 0
+               bus-in 0]
+  (let [trg       (in:kr in-trg)
+        buf-trg   (in:kr in-buf)
+        buf-no    (in:kr in-buf-val)
+        amp       (in:kr in-amp-val)
+        rate      (in:kr in-rate-val)
+        start-pos (in:kr in-start-pos-val)
+        step      (in:kr in-step-val)
+        loop      (in:kr in-loop-val)
+        dur       (/ 1.0 24000)
+        td        (t-duty:ar dur 0 1 )
+        buffer-value  (demand:ar td trg (dbufrd buf-no (dseries start-pos step  INF) loop))
+        ]
+    (out out-bus (pan2 (* amp buffer-value)))))
+
+
+(defsynth smp2 [in-trg1 0
+                in-trg1-val 0
+                in-buf1 0
+                in-buf1-val 0
+                in-rate1 24000
+                in-rate1-val 24000
+                in-start-pos1 0
+                in-start-pos1-val 0
+                in-step1 2
+                in-step1-val 2
+                in-loop1 0
+                in-loop1-val 0
+                in-amp1 1
+                in-amp1-val 1
+                in-trg2 0
+                in-trg2-val 0
+                in-buf2 0
+                in-buf2-val 0
+                in-rate2 24000
+                in-rate2-val 24000
+                in-start-pos2 0
+                in-start-pos2-val 0
+                in-step2 2
+                in-step2-val 2
+                in-loop2 0
+                in-loop2-val 0
+                in-amp2 1
+                in-amp2-val 1
+                out-bus 0
+                ctrl-out 0
+                bus-in 0]
+  (let [trg1       (in:kr in-trg1)
+        buf-trg1   (in:kr in-buf1)
+        buf-no1    (in:kr in-buf1-val)
+        amp1       (in:kr in-amp1-val)
+        rate1      (in:kr in-rate1-val)
+        start-pos1 (in:kr in-start-pos1-val)
+        step1      (in:kr in-step1-val)
+        loop1      (in:kr in-loop1-val)
+        dur1       (/ 1.0 24000)
+        td1        (t-duty:ar dur1 0 1 )
+        buffer-value1  (demand:ar td1 trg1 (dbufrd buf-no1 (dseries start-pos1 step1  INF) loop1))
+        trg2       (in:kr in-trg2)
+        buf-trg2   (in:kr in-buf2)
+        buf-no2    (in:kr in-buf2-val)
+        amp2       (in:kr in-amp2-val)
+        rate2      (in:kr in-rate2-val)
+        start-pos2 (in:kr in-start-pos2-val)
+        step2      (in:kr in-step2-val)
+        loop2      (in:kr in-loop2-val)
+        dur2       (/ 1.0 24000)
+        td2        (t-duty:ar dur2 0 1 )
+        buffer-value2  (demand:ar td2 trg2 (dbufrd buf-no2 (dseries start-pos2 step2  INF) loop2))
+        ]
+    (out out-bus (pan2 (+ (* amp1 buffer-value1) (* amp2 buffer-value2) )))))
 
 
 (defsynth simple-flute [in-trg 0
