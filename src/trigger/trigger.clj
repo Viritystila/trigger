@@ -591,6 +591,17 @@
                   (recur (next xv) (conj result fst))))) result ))))
 
 
+(defn parse-input-vector-string [input idx]
+  (let []
+    (loop [xv     (seq input)
+           result []]
+      (if xv
+        (let [fst     (first xv) ]
+          (if (vector? fst) (recur (next xv) (conj result (vec (parse-input-vector-string fst idx))))
+              (if (seq? fst) (recur (next xv) (apply conj result  (vec (parse-input-vector-string fst idx))))
+                  (recur (next xv) (conj result  (clojure.string/trim (nth (clojure.string/split fst #",") idx))))))) result ))))
+
+
 (defn string-not-r? [x]
   (let [is-string    (string? x)
         is-r         (if is-string (= r x) false)]
@@ -604,11 +615,14 @@
         n-string         "n"
         freq-string      "f"
         buffer-string    "b"
+        value-string     "v"
         ]
     (if is-input-string (cond
                           (re-matches #"n.*" x) (note (keyword (split-special-string x #"n")))
                           (re-matches #"f.*" x) (midi->hz (note (keyword (split-special-string x #"f"))))
-                          (re-matches #"b.*" x) (get-sample-id (keyword (split-special-string x #"b")))) x)))
+                          (re-matches #"b.*" x) (get-sample-id (keyword (split-special-string x #"b")))
+                          (re-matches #"v.*" x) (Float/parseFloat (split-special-string x #"v")))
+        x)))
 
 
 (defn special-case [input key]
@@ -653,10 +667,20 @@
     (if (nil? sc) new-sn
         (if (not= old-sn new-sn) old-sn new-sn))))
 
-;Laternative input system
-(defn inp [& input] (if (even? (count input))
-                      (let [])
-                      (println "Require even number of inputs")))
+;Alternative input system
+(defn inp [keys & input]
+  (if true
+    (let [no_keys    (count keys)
+          output      (map (fn [x] (seq [(keyword (nth keys x))  (vec (apply concat (parse-input-vector-string input x)))])) (range no_keys) )]
+      ;(println "keys" keys no_keys)
+                                        ;(println "input" (parse-input-vector-string input 1))
+      ;(println "input" output)
+      (apply concat output)
+      )
+
+    input))
+
+;(trg :kick kick (inp ["in-trg" "in-f3"] ["v 1, v 400" "v 3, v 1400"]))
 
 ;New trigger input function, allows more terse and powerful way to create patterns. Now clojure functions such as repeat can be used directly in the input.
 (defn trg ([pn sn & input]
