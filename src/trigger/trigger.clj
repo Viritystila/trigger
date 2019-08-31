@@ -270,9 +270,16 @@
         vals                (mapv (fn [x]
                                     (let [cur-idx            x
                                           cur-vec            (nth vals cur-idx)]
-                                      (concat [0] cur-vec))) (range (count vals)))]
+                                      (concat [0] cur-vec))) (range (count vals)))
+        vals_range          (range (count vals))
+        vals  (mapv (fn [x] (seq (assoc  (vec (nth vals x)) 0 (last (nth vals (mod (- x 1) (count vals) ))))))  vals_range)
+        ]
+    (println "durs" durs)
+    (println "vals" vals)
+    ;(println "vals2" (mapv (fn [x] (seq (assoc  (vec (nth vals x)) 0 (last (nth vals (mod (- x 1) (count vals) ))))))  vals_range) )
     {:dur durs :val vals}))
 
+;(map (fn [x] (assoc  (nth vvv x) 0 (last (nth vvv (mod (- x 1) (count vvv) ))))) (range (count vvv)))
                                   ;pattern timing adjustments
 (defn set-pattern-duration [dur]
   (buffer-write! base-dur [dur])nil)
