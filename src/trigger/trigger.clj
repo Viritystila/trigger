@@ -671,13 +671,8 @@
 (defn inp [keys & input]
   (if true
     (let [no_keys    (count keys)
-          output      (map (fn [x] (seq [(keyword (nth keys x))  (vec (apply concat (parse-input-vector-string input x)))])) (range no_keys) )]
-      ;(println "keys" keys no_keys)
-                                        ;(println "input" (parse-input-vector-string input 1))
-      ;(println "input" output)
-      (apply concat output)
-      )
-
+          output      (map (fn [x] (seq [(keyword (nth keys x))  (seq (parse-input-vector-string input x))])) (range no_keys) )]
+      (seq (parse-input-vector output)))
     input))
 
 ;(trg :kick kick (inp ["in-trg" "in-f3"] ["v 1, v 400" "v 3, v 1400"]))
