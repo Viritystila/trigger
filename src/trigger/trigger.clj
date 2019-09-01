@@ -239,7 +239,6 @@
               value-i (nth inputvec idx)]
           (if (= cond-i false) (do (recur (next xv) (conj result value-i))) (do (recur (next xv) result )) )) result))))
 
-
 (defn dur-and-val-zero [durs vals]
   (map (fn [x y] (= x y 0)) durs vals))
 
@@ -248,6 +247,18 @@
 
 (defn string-hyphen-to-zero [str-in]
   (clojure.string/replace str-in #"~" "0") )
+
+
+(defn fix-pattern-borders [input-vector]
+  (loop [xv (range (count input-vector))
+         result input-vector]
+    (if xv
+      (let [x              (first xv)
+            pattern-x      (vec (nth result x ))
+            pattern-x-prev (vec (nth result (mod (- x 1) (count result))))
+            pattern-mod    (assoc pattern-x 0 (last pattern-x-prev))]
+        (if true (do (recur (next xv) (assoc result x  (seq pattern-mod)))) nil)) result)))
+
 
 (defn generate-pattern-vector [new-buf-data]
   (let [new-trig-data       (vec (map (fn [x] (string-zero-to-one x)) new-buf-data))
@@ -272,7 +283,11 @@
                                           cur-vec            (nth vals cur-idx)]
                                       (concat [0] cur-vec))) (range (count vals)))
         vals_range          (range (count vals))
-        vals                (mapv (fn [x] (seq (assoc  (vec (nth vals x)) 0 (last (nth vals (mod (- x 1) (count vals)))))))  vals_range)]
+        vals                (fix-pattern-borders vals)
+        vals                (fix-pattern-borders vals)] ;need to run fix-pattern-birders twice to make things work
+    ;(println "durs" durs)
+    ;(println "vals" vals)
+    ;(println "max xmilar" (fix-pattern-borders vals))
     {:dur durs :val vals}))
 
                                   ;pattern timing adjustments
