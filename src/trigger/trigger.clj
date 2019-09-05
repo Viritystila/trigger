@@ -9,7 +9,8 @@
    [trigger.speech :refer :all]
    [trigger.samples :refer :all]
    [trigger.trg_fx :refer :all]
-   [clojure.tools.namespace.repl :refer [refresh]]) )
+   [clojure.tools.namespace.repl :refer [refresh]]
+   [overtone.sc.machinery.server.comms :refer [with-server-sync server-sync]]))
 
                                         ;Boot Supercollider
 
@@ -407,9 +408,11 @@
   (let [out-bus           (audio-bus 1)
         out-bus-secondary (audio-bus 1)
         is_inst           (instrument? synth-name)
-        synth-group       (if is_inst (:group synth-name) (group pattern-name :tail main-g))
-        sub-synth-group   (group "sub-synth-group" :tail synth-group)
-        mixer-group       (group "mixer-group" :tail synth-group)
+        synth-group       (if is_inst
+                            (:group synth-name)
+                            (with-server-sync #(group pattern-name :tail main-g) "synth group"))
+        sub-synth-group   (with-server-sync #(group "sub-synth-group" :tail synth-group) "sub-synth group")
+        mixer-group       (with-server-sync #(group "mixer-group" :tail synth-group) "mixer group")
         play-synth        (if is_inst (synth-name) (synth-name  [:head synth-group] :out-bus out-bus))
         out-mixer         (mono-inst-mixer [:tail mixer-group] out-bus 0 1 0.0)
         _                 (println play-synth)
@@ -492,6 +495,7 @@
                       pattern-value-vector]
   (let [trigger-id           (trig-id)
         trigger-val-id       (trig-id)
+        trig-group           (with-server-sync #(group (str control-key) :tail pattern-group) (str "trigger-group" control-key))
         trig-bus             (control-bus 1)
         trig-val-bus         (control-bus 1)
         buf-size             (count pattern-vector)
@@ -505,7 +509,6 @@
         val-id-vec           (vec (map (fn [x] (buffer-id x)) val-buffers))
         _                    (buffer-writer pattern-id-buf dur-id-vec)
         _                    (buffer-writer pattern-value-id-buf val-id-vec)
-        trig-group           (group (str control-key) :tail pattern-group)
         trig-synth           (trigger-generator [:tail trig-group]
                                                 base-trigger-bus
                                                 base-trigger-count-bus
@@ -526,11 +529,12 @@
   (let  [new-size    (count new-buf-vec)]
     (retrieve-buffer new-size)))
 
-;Buffer-write relays cayse timeout expections occasionally
+;Buffer-write relays cause timeout expections occasionally
 (defn update-trigger [trigger
                       pattern-vector
                       pattern-value-vector]
   (let [trigger_old          trigger
+        control-key          (:control-key trigger)
         buf-size             (count pattern-vector)
         old-dur-buffers      (vec (:pattern-vector trigger))
         old-var-buffers      (vec (:pattern-value-vector trigger))
@@ -560,7 +564,8 @@
           trigger)
          (catch Exception ex
            (do
-             (println "CTL failed during update-trigger")
+             (println "CTL failed during update-trigger" control-key)
+             (println (str (.getMessage ex)))
              (.store-buffers trigger)
              ;(vec (map (fn [x] (store-buffer x)) old-dur-buffers))
              ;(vec (map (fn [x] (store-buffer x)) old-var-buffers))
@@ -569,7 +574,7 @@
 (defn changed? [trigger new-trigger-pattern  new-control-pattern]
   (let [old-trigger-pattern  (:original-pattern-vector trigger)
         old-control-pattern  (:original-pattern-value-vector trigger)]
-    (or (not= new-trigger-pattern old-trigger-pattern) (not= new-control-pattern old-control-pattern))) true)
+    (or (not= new-trigger-pattern old-trigger-pattern) (not= new-control-pattern old-control-pattern))))
 
 (defn t [synth-container control-pair]
   (let [control-key       (first control-pair)
@@ -953,9 +958,6 @@
                                        is-inst  (instrument? inst)]
                                  (if is-inst (clear-fx inst)))
   nil)
-
-
-                                        ;Master mixer
 
 
 
