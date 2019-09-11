@@ -162,18 +162,20 @@
 
 (defn traverse-vector ([input-array]
                        (let [input-vec input-array
+                             xvv    (vec input-vec)
                              result []]
                          (if true
-                           (loop [xv (seq input-vec)
+                           (loop [xv input-vec
                                   result []]
                              (if xv
                                (let [ length (count input-vec)
                                      x (first xv)]
                                  (if (vector? x) (recur (next xv) (conj result (traverse-vector x length)))
                                      (recur (next xv) (conj result (/ 1 length 1))))) result)))))
-  ([input-array bl] (let [input-vec input-array]
+  ([input-array bl] (let [input-vec input-array
+                          xvv       (vec input-vec)]
                       (if (vector? input-vec)
-                        (loop [xv (seq input-vec)
+                        (loop [xv input-vec
                                result []]
                           (if xv
                             (let [length (count input-vec)
@@ -183,13 +185,14 @@
 
 
 (defn sum-zero-durs [idxs input-vector full-durs]
-  (loop [xv (seq idxs)
-         sum 0]
-    (if xv
-      (let [x       (first xv)
-            zero-x  (nth input-vector x )
-            dur-x   (nth full-durs x)]
-        (if (= zero-x 0) (do (recur (next xv) (+ dur-x sum))) sum)) sum)))
+  (let [idxsv  (vec idxs)]
+      (loop [xv idxsv
+             sum 0]
+        (if xv
+          (let [x       (first xv)
+                zero-x  (nth input-vector x )
+                dur-x   (nth full-durs x)]
+            (if (= zero-x 0) (do (recur (next xv) (+ dur-x sum))) sum)) sum))))
 
 
 (defn adjust-duration [input-vector input-original]
@@ -197,7 +200,7 @@
         full-durs input-vector
         input-vector (into [] (map * input-vector input-original))
         idxs (vec (range length))]
-    (loop [xv (seq idxs)
+    (loop [xv idxs
            result []]
       (if xv
         (let [xidx      (first xv)
@@ -231,14 +234,14 @@
 
 (defn conditional-remove-zero [cond inputvec]
   (let [size      (count inputvec)
-        idxs      (range size)]
-    (loop [xv     (seq idxs)
+        idxs      (vec (range size))]
+    (loop [xv     idxs
            result []]
       (if xv
         (let [idx     (first xv)
               cond-i  (nth cond idx )
               value-i (nth inputvec idx)]
-          (if (= cond-i false) (do (recur (next xv) (conj result value-i))) (do (recur (next xv) result )) )) result))))
+          (if (= cond-i false) (do (recur (next xv) (conj result value-i))) (do (recur (next xv) result )))) result))))
 
 (defn dur-and-val-zero [durs vals]
   (map (fn [x y] (= x y 0)) durs vals))
@@ -251,14 +254,15 @@
 
 
 (defn fix-pattern-borders [input-vector]
-  (loop [xv (range (count input-vector))
-         result input-vector]
-    (if xv
-      (let [x              (first xv)
-            pattern-x      (vec (nth result x ))
-            pattern-x-prev (vec (nth result (mod (- x 1) (count result))))
-            pattern-mod    (assoc pattern-x 0 (last pattern-x-prev))]
-        (if true (do (recur (next xv) (assoc result x  (seq pattern-mod)))) nil)) result)))
+  (let [xvr  (vec (range (count input-vector)))]
+    (loop [xv xvr
+           result input-vector]
+      (if xv
+        (let [x              (first xv)
+              pattern-x      (vec (nth result x ))
+              pattern-x-prev (vec (nth result (mod (- x 1) (count result))))
+              pattern-mod    (assoc pattern-x 0 (last pattern-x-prev))]
+          (if true (do (recur (next xv) (assoc result x  (seq pattern-mod)))) nil)) result))))
 
 
 (defn generate-pattern-vector [new-buf-data]
@@ -285,10 +289,7 @@
                                       (concat [0] cur-vec))) (range (count vals)))
         vals_range          (range (count vals))
         vals                (fix-pattern-borders vals)
-        vals                (fix-pattern-borders vals)] ;need to run fix-pattern-birders twice to make things work
-    ;(println "durs" durs)
-    ;(println "vals" vals)
-    ;(println "max xmilar" (fix-pattern-borders vals))
+        vals                (fix-pattern-borders vals)]
     {:dur durs :val vals}))
 
                                   ;pattern timing adjustments
@@ -353,10 +354,7 @@
   (store-buffers [this])
   (get-or-create-pattern-buf [this new-size])
   (get-or-create-pattern-value-buf [this new-size])
-  ;(get-trigger-bus [this])
   (get-trigger-value-bus [this])
-  ;(get-trigger-id [this])
-  ;(get-trigger-val-id [this])
   (get-pattern-vector [this])
   (get-pattern-value-vector [this]))
 
@@ -396,10 +394,7 @@
                                                      (if (= old-size new-size)
                                                        (. this pattern-value-buf)
                                                        (do (store-buffer (. this pattern-value-buf ))  (retrieve-buffer new-size)))))
-  ;(get-trigger-bus [this] (. this trigger-bus))
   (get-trigger-value-bus [this] (. this trigger-value-bus))
-  ;(get-trigger-id [this] (. this trigger-id))
-  ;(get-trigger-val-id [this] (. this trigger-val-id))
   (get-pattern-vector [this] (. this pattern-vector))
   (get-pattern-value-vector [this] (. this pattern-value-vector)))
 
@@ -604,7 +599,7 @@
 
 (defn parse-input-vector [input]
   (let []
-    (loop [xv     (seq input)
+    (loop [xv     input
            result []]
       (if xv
         (let [fst     (first xv) ]
@@ -615,7 +610,7 @@
 
 (defn parse-input-vector-string [input idx]
   (let []
-    (loop [xv     (seq input)
+    (loop [xv     input
            result []]
       (if xv
         (let [fst     (first xv) ]
