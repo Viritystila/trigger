@@ -299,8 +299,6 @@
 (defn set-pattern-delay [delay]
   (buffer-write! base-del [delay]) nil)
 
-
-
                                         ;Synth trigger generation
 
 (defprotocol synth-control
@@ -409,6 +407,7 @@
         sub-synth-group   (with-server-sync #(group "sub-synth-group" :tail synth-group) "sub-synth group")
         mixer-group       (with-server-sync #(group "mixer-group" :tail synth-group) "mixer group")
         play-synth        (if is_inst (synth-name) (synth-name  [:head synth-group] :out-bus out-bus))
+        ;_                 (node-pause (:id play-synth))
         out-mixer         (mono-inst-mixer [:tail mixer-group] out-bus 0 1 0.0)
         _                 (println play-synth)
         default-buses     (generate-default-buses synth-name)
@@ -444,7 +443,9 @@
         sub-synth-group   (:sub-synth-group (@synthConfig pattern-name))
         synth-group       (:group  (@synthConfig pattern-name))
         mixer-group       (:mixer-group  (@synthConfig pattern-name))
-        play-synth        (synth-name [:tail sub-synth-group] :bus-in out-bus :out-bus out-bus)
+        play-synth        (with-server-sync
+                            #(synth-name [:tail sub-synth-group] :bus-in out-bus :out-bus out-bus)
+                            (str "create synth config" sub-pattern-name))
         out-mixer         (:out-mixer (@synthConfig pattern-name))
         _                 (println play-synth)
         default-buses     (generate-default-buses synth-name)
@@ -504,17 +505,25 @@
         val-id-vec           (vec (map (fn [x] (buffer-id x)) val-buffers))
         _                    (buffer-writer pattern-id-buf dur-id-vec)
         _                    (buffer-writer pattern-value-id-buf val-id-vec)
-        trig-synth           (trigger-generator [:tail trig-group]
-                                                base-trigger-bus
-                                                base-trigger-count-bus
-                                                pattern-id-buf
-                                                pattern-value-id-buf
-                                                trig-bus
-                                                trig-val-bus
-                                                trigger-id
-                                                trigger-val-id
-                                                base-dur)]
-    (try (ctl synth-name  control-key trig-bus control-val-key  trig-val-bus)
+        trig-synth           (with-server-sync
+                               #(trigger-generator [:tail trig-group]
+                                                   base-trigger-bus
+                                                   base-trigger-count-bus
+                                                   pattern-id-buf
+                                                   pattern-value-id-buf
+                                                   trig-bus
+                                                   trig-val-bus
+                                                   trigger-id
+                                                   trigger-val-id
+                                                   base-dur)
+                               (str "trigger" control-key))]
+    (try
+      (do
+                                        ;(node-pause (:id trig-synth))
+        ;(Thread/sleep (* 1000 (nth (buffer-read base-dur) 0)))
+        (ctl synth-name  control-key trig-bus control-val-key  trig-val-bus)
+        ;(node-start (:id trig-synth))
+        )
          (catch Exception ex
            (println "CTL failed during create-trigger")))
     (triggerContainer. trigger-id trigger-val-id control-key control-val-key trig-group synth-name trig-bus trig-val-bus  trig-synth  dur-buffers val-buffers pattern-id-buf pattern-value-id-buf pattern-vector pattern-value-vector)))
@@ -730,6 +739,7 @@
                            :triggers
                            (zipmap (keys input-controls-only)
                                    (map (partial t (pattern-name-key @synthConfig)) input-controls-only))))
+             ;(node-start (:id (:play-synth (pattern-name-key @synthConfig))))
              pattern-name)))
 
 
@@ -776,7 +786,7 @@
                           (assoc (sub-pattern-name-key @synthConfig)
                                  :triggers
                                  (zipmap (keys input-controls-only)
-                                         (map (partial t (sub-pattern-name-key @synthConfig)) input-controls-only))))) (println "Parent synth" pattern-name-key "does not exist or one of the inputs is an inst.") )
+                                         (pmap (partial t (sub-pattern-name-key @synthConfig)) input-controls-only))))) (println "Parent synth" pattern-name-key "does not exist or one of the inputs is an inst.") )
              sub-pattern-name)))
 
                                         ; Misc pattern related functions

@@ -381,3 +381,25 @@
         fb-out (local-out (* decay snd))
         snd (select (in:kr in-out-select-val) [snd input])]
     (replace-out out-bus (pan2 snd))))
+
+
+(defsynth trg-fx-pitch-shift
+  "A pitch shifter"
+  [bus-in 0
+   in-pitch-ratio 1.0
+   in-pitch-dispersion 0.0
+   in-time-dispersion 0.0
+   in-pitch-ratio-val 1.0
+   in-pitch-dispersion-val 0.0
+   in-time-dispersion-val 0.1
+   in-out-select 0
+   in-out-select-val 0
+   out-bus 0]
+  (let [src               (in bus-in)
+        pitch-ratio       (in:kr in-pitch-ratio-val)
+        pitch-dispersion  (in:kr in-pitch-dispersion-val)
+        time-dispersion   (in:kr in-time-dispersion-val)
+        window-cize       0.05
+        sig               (pitch-shift src window-cize pitch-ratio pitch-dispersion time-dispersion)
+        snd (select (in:kr in-out-select-val) [sig src])]
+    (replace-out out-bus (pan2 snd))))
