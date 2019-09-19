@@ -591,7 +591,8 @@
    out-bus 0]
   (let [gate       (in:kr in-trg)
         gate-val   (in:kr in-trg-val)
-        gate       (select:kr (in:kr in-gate-select-val)  [gate-val gate])
+        trg-gate   (trig gate gate-val)
+        gate       (select:kr (in:kr in-gate-select-val)  [trg-gate gate])
         note       (in:kr in-note-val)
         amp        (in:kr in-amp-val)
         attack     (in:kr in-attack-val)

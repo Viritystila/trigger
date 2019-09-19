@@ -406,7 +406,7 @@
                             (with-server-sync #(group pattern-name :tail main-g) "synth group"))
         sub-synth-group   (with-server-sync #(group "sub-synth-group" :tail synth-group) "sub-synth group")
         mixer-group       (with-server-sync #(group "mixer-group" :tail synth-group) "mixer group")
-        play-synth        (if is_inst (synth-name) (synth-name  [:head synth-group] :out-bus out-bus))
+        play-synth        (if is_inst (synth-name) (with-server-sync #(synth-name  [:head synth-group] :out-bus out-bus) "synth creation"))
         ;_                 (node-pause (:id play-synth))
         out-mixer         (mono-inst-mixer [:tail mixer-group] out-bus 0 1 0.0)
         _                 (println play-synth)
