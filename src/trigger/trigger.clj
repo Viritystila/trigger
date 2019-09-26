@@ -922,28 +922,33 @@
 
                                         ;Mixer and Instrument effects functions
 
-(defn volume! [pattern-name vol] (let [pat      (pattern-name @synthConfig)
-                                       inst     (:synth-name pat)]
+(defn volume! [pattern-name vol] (let [pat      (pattern-name @synthConfig)]
                                    (ctl (:out-mixer pat) :volume vol) )
   nil)
 
 
-(defn pan! [pattern-name pan] (let [pat      (pattern-name @synthConfig)
-                                    inst     (:synth-name pat)]
+(defn pan! [pattern-name pan] (let [pat      (pattern-name @synthConfig)]
                                 (ctl (:out-mixer pat) :pan pan) ) nil )
 
 
-(defn fx! [pattern-name fx] (let [pat      (pattern-name @synthConfig)
-                                       inst     (:synth-name pat) ]
-                              (inst-fx! inst fx))
-  nil)
-
 
 (defn clrfx! [pattern-name] (let [pat      (pattern-name @synthConfig)
-                                       inst     (:synth-name pat) ]
+                                  inst     (:synth-name pat) ]
                               (clear-fx inst))
   nil)
 
+(defn pause! [pattern-name] (let [pat    (pattern-name @synthConfig)
+                                  synth  (:play-synth pat)
+                                  s-id   (to-id synth)]
+                              (node-pause s-id)
+                              ) nil)
+
+
+(defn start! [pattern-name] (let [pat    (pattern-name @synthConfig)
+                                  synth  (:play-synth pat)
+                                  s-id   (to-id synth)]
+                              (node-start s-id)
+                              ) nil)
 
 
                                         ;Start trigger
