@@ -843,11 +843,11 @@
   (get-pattern-value-vector (trig-name (:triggers (pattern-name @synthConfig)))))
 
 
-(defn pse [pattern-name trig-name]
+(defn pat [pattern-name trig-name]
   (pause-trigger (trig-name (:triggers (pattern-name @synthConfig)))))
 
 
-(defn sta [pattern-name trig-name]
+(defn stt [pattern-name trig-name]
   (play-trigger (trig-name (:triggers (pattern-name @synthConfig)))))
 
 
