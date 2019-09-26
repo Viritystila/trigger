@@ -347,7 +347,9 @@
   (get-or-create-pattern-value-buf [this new-size])
   (get-trigger-value-bus [this])
   (get-pattern-vector [this])
-  (get-pattern-value-vector [this]))
+  (get-pattern-value-vector [this])
+  (pause-trigger [this])
+  (play-trigger  [this]))
 
 (defrecord triggerContainer [trigger-id
                              trigger-val-id
@@ -387,7 +389,9 @@
                                                        (do (store-buffer (. this pattern-value-buf ))  (retrieve-buffer new-size)))))
   (get-trigger-value-bus [this] (. this trigger-value-bus))
   (get-pattern-vector [this] (. this pattern-vector))
-  (get-pattern-value-vector [this] (. this pattern-value-vector)))
+  (get-pattern-value-vector [this] (. this pattern-value-vector))
+  (pause-trigger [this] (node-pause (to-id (. this trigger-synth))))
+  (play-trigger [this] (node-start (to-id (. this trigger-synth)))))
 
 (defn create-synth-config [pattern-name synth-name & {:keys [issub]
                         :or {issub false}}]
@@ -504,14 +508,9 @@
                                                    base-dur)
                                (str "trigger" control-key))]
     (try
-      (do
-                                        ;(node-pause (:id trig-synth))
-        ;(Thread/sleep (* 1000 (nth (buffer-read base-dur) 0)))
-        (ctl synth-name  control-key trig-bus control-val-key  trig-val-bus)
-        ;(node-start (:id trig-synth))
-        )
-         (catch Exception ex
-           (println "CTL failed during create-trigger")))
+      (do (ctl synth-name  control-key trig-bus control-val-key  trig-val-bus))
+      (catch Exception ex
+        (println "CTL failed during create-trigger")))
     (triggerContainer. trigger-id trigger-val-id control-key control-val-key trig-group synth-name trig-bus trig-val-bus  trig-synth  dur-buffers val-buffers pattern-id-buf pattern-value-id-buf pattern-vector pattern-value-vector)))
 
 
@@ -528,8 +527,6 @@
         buf-size             (count pattern-vector)
         old-dur-buffers      (vec (:pattern-vector trigger))
         old-var-buffers      (vec (:pattern-value-vector trigger))
-        ;old-dur-buffers      (vec (map (fn [x] (store-buffer x)) old-dur-buffers))
-        ;old-var-buffers      (vec (map (fn [x] (store-buffer x)) old-var-buffers))
         dur-buffers          (vec (map (fn [x] (reuse-or-create-buffer x)) pattern-vector))
         val-buffers          (vec (map (fn [x] (reuse-or-create-buffer x)) pattern-value-vector))
         _                    (vec (mapv (fn [x y] (buffer-writer x y)) dur-buffers pattern-vector ))
@@ -557,8 +554,6 @@
              (println "CTL failed during update-trigger" control-key)
              (println (str (.getMessage ex)))
              (.store-buffers trigger)
-             ;(vec (map (fn [x] (store-buffer x)) old-dur-buffers))
-             ;(vec (map (fn [x] (store-buffer x)) old-var-buffers))
              trigger_old)))))
 
 (defn changed? [trigger new-trigger-pattern  new-control-pattern]
@@ -848,6 +843,14 @@
   (get-pattern-value-vector (trig-name (:triggers (pattern-name @synthConfig)))))
 
 
+(defn pse [pattern-name trig-name]
+  (pause-trigger (trig-name (:triggers (pattern-name @synthConfig)))))
+
+
+(defn sta [pattern-name trig-name]
+  (play-trigger (trig-name (:triggers (pattern-name @synthConfig)))))
+
+
 (defn list-sub-synths [pattern-name] (let [pattern (pattern-name @synthConfig)
                                            issub   (:is-sub-synth pattern)]
                                        (if issub (println "Is a sub-synth, parent:" (keys (:sub-synths pattern)))
@@ -944,7 +947,7 @@
                               ) nil)
 
 
-(defn start! [pattern-name] (let [pat    (pattern-name @synthConfig)
+(defn play! [pattern-name] (let [pat    (pattern-name @synthConfig)
                                   synth  (:play-synth pat)
                                   s-id   (to-id synth)]
                               (node-start s-id)
