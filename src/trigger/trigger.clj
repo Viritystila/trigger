@@ -32,13 +32,10 @@
   (do
     (def base-dur (buffer 1))
     (buffer-write! base-dur [1]))
-
                                         ; Base trigger delay
   (do
     (def base-del (buffer 1))
     (buffer-write! base-del [0])))
-
-
                                         ;Synthdefs
 
 (defsynth base-trigger-synth [out-bus 0 trigger-id 0 base-dur-in 0 base-del-in 0]
@@ -313,8 +310,7 @@
   (free-control-out-bus [this])
   (set-out-channel [this channel]))
 
-(defrecord synthContainer [is-inst
-                           pattern-name
+(defrecord synthContainer [pattern-name
                            group
                            out-bus
                            out-bus-secondary
@@ -330,7 +326,7 @@
                            sub-synth-group]
   synth-control
   (kill-synth [this] (kill (. this play-synth)))
-  (kill-trg   [this] (if (. this is-inst) (do (kill play-synth)) (group-free (. this group))))
+  (kill-trg   [this] (group-free (. this group)))
   (ctl-synth [this var value] (ctl (. this play-synth) var value))
   (free-default-buses [this] ( doseq [x (vals default-buses)] (free-bus x)))
   (free-out-bus [this] (free-bus (. this out-bus)))
@@ -397,14 +393,10 @@
                         :or {issub false}}]
   (let [out-bus           (audio-bus 1)
         out-bus-secondary (audio-bus 1)
-        is_inst           (instrument? synth-name)
-        synth-group       (if is_inst
-                            (:group synth-name)
-                            (with-server-sync #(group pattern-name :tail main-g) "synth group"))
+        synth-group       (with-server-sync #(group pattern-name :tail main-g) "synth group")
         sub-synth-group   (with-server-sync #(group "sub-synth-group" :tail synth-group) "sub-synth group")
         mixer-group       (with-server-sync #(group "mixer-group" :tail synth-group) "mixer group")
-        play-synth        (if is_inst (synth-name) (with-server-sync #(synth-name  [:head synth-group] :out-bus out-bus) "synth creation"))
-        ;_                 (node-pause (:id play-synth))
+        play-synth        (with-server-sync #(synth-name  [:head synth-group] :out-bus out-bus) "synth creation")
         out-mixer         (mono-inst-mixer [:tail mixer-group] out-bus 0 1 0.0)
         _                 (println play-synth)
         default-buses     (generate-default-buses synth-name)
@@ -412,7 +404,6 @@
         triggers          {}
         sub-synths        {}
         synth-container   (synthContainer.
-                           is_inst
                            pattern-name
                            synth-group
                            out-bus
@@ -436,7 +427,6 @@
                         :or {issub true}}]
   (let [out-bus           (:out-bus (@synthConfig pattern-name))
         out-bus-secondary (:out-bus-secondary (@synthConfig pattern-name))
-        is_inst           (instrument? synth-name)
         sub-synth-group   (:sub-synth-group (@synthConfig pattern-name))
         synth-group       (:group  (@synthConfig pattern-name))
         mixer-group       (:mixer-group  (@synthConfig pattern-name))
@@ -450,7 +440,6 @@
         triggers          {}
         sub-synths        {pattern-name (keyword sub-pattern-name)}
         synth-container   (synthContainer.
-                           is_inst
                            sub-pattern-name
                            sub-synth-group
                            out-bus
@@ -748,11 +737,9 @@
                  sub-pattern-name        (if (keyword? spn) (name spn) spn )
                  sub-pattern-name-key    (keyword sub-pattern-name)
                  parent-synth-container  (pattern-name-key @synthConfig)
-                 is-inst-parent-synth    (:is-inst parent-synth-container)
                  parent-sub-synths       (:sub-synths parent-synth-container)
                  synth-container         (sub-pattern-name-key @synthConfig)
                  synth-name              (synth-name-check sn synth-container)
-                 is-inst-sub-synth       (instrument? sn)
                  input                   (split-input input)
                  original-input          input
                  valid-keys              (concat [:pn :spn :sn]  (vec (synth-args synth-name)))
@@ -760,7 +747,7 @@
                  input-controls-only     input
                  initial-controls-only   input-controls-only
                  input-check             (some? (not-empty input-controls-only))]
-             (if (and (not is-inst-parent-synth) (not is-inst-sub-synth) (not= nil parent-synth-container))
+             (if  (not= nil parent-synth-container)
                (do (if
                        (= nil synth-container)
                      (do (println "Synth created")
@@ -783,7 +770,7 @@
                           (assoc (sub-pattern-name-key @synthConfig)
                                  :triggers
                                  (zipmap (keys input-controls-only)
-                                         (map (partial t (sub-pattern-name-key @synthConfig)) input-controls-only))))) (println "Parent synth" pattern-name-key "does not exist or one of the inputs is an inst.") )
+                                         (map (partial t (sub-pattern-name-key @synthConfig)) input-controls-only))))) (println "Parent synth" pattern-name-key "does not exist.") )
              sub-pattern-name)))
 
                                         ; Misc pattern related functions
@@ -936,29 +923,25 @@
                                         ;Mixer and Instrument effects functions
 
 (defn volume! [pattern-name vol] (let [pat      (pattern-name @synthConfig)
-                                       inst     (:synth-name pat)
-                                       is-inst  (instrument? inst)]
-                                   (if is-inst (inst-volume! inst vol) (ctl (:out-mixer pat) :volume vol) ))
+                                       inst     (:synth-name pat)]
+                                   (ctl (:out-mixer pat) :volume vol) )
   nil)
 
 
 (defn pan! [pattern-name pan] (let [pat      (pattern-name @synthConfig)
-                                    inst     (:synth-name pat)
-                                    is-inst  (instrument? inst)]
-                                   (if is-inst (inst-pan! inst pan) (ctl (:out-mixer pat) :pan pan) )) nil )
+                                    inst     (:synth-name pat)]
+                                (ctl (:out-mixer pat) :pan pan) ) nil )
 
 
 (defn fx! [pattern-name fx] (let [pat      (pattern-name @synthConfig)
-                                       inst     (:synth-name pat)
-                                       is-inst  (instrument? inst)]
-                              (if is-inst (inst-fx! inst fx)))
+                                       inst     (:synth-name pat) ]
+                              (inst-fx! inst fx))
   nil)
 
 
 (defn clrfx! [pattern-name] (let [pat      (pattern-name @synthConfig)
-                                       inst     (:synth-name pat)
-                                       is-inst  (instrument? inst)]
-                                 (if is-inst (clear-fx inst)))
+                                       inst     (:synth-name pat) ]
+                              (clear-fx inst))
   nil)
 
 
