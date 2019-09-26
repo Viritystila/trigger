@@ -15,11 +15,8 @@
                                         ;Boot Supercollider
 
 (def port 57111)
-
 (defn boot-ext [] (if (server-connected?) nil (boot-external-server port {:max-buffers 2621440 :max-control-bus 80960}) ))
 (boot-ext)
-
-
                                         ;State atoms
 (defonce synthConfig (atom {}))
 (defonce algConfig (atom {}))
@@ -786,7 +783,7 @@
                           (assoc (sub-pattern-name-key @synthConfig)
                                  :triggers
                                  (zipmap (keys input-controls-only)
-                                         (pmap (partial t (sub-pattern-name-key @synthConfig)) input-controls-only))))) (println "Parent synth" pattern-name-key "does not exist or one of the inputs is an inst.") )
+                                         (map (partial t (sub-pattern-name-key @synthConfig)) input-controls-only))))) (println "Parent synth" pattern-name-key "does not exist or one of the inputs is an inst.") )
              sub-pattern-name)))
 
                                         ; Misc pattern related functions
