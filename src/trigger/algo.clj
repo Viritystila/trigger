@@ -32,16 +32,12 @@
   (on-trigger t-id
               (fn [val] (try (let [fobm_args (first (first args))
                                   buf  (nth pat-vec buf-id)
-                                  rnmd (+ 1 (rand-int 7))
-                                  dur  (/ 1 rnmd)]  (vec (take 1 (markov-chains.core/generate @fobm_args)))
-                              (buffer-write! buf 1 dur)
-                              )
+                                  dur (vec (take 1 (markov-chains.core/generate @fobm_args)))]
+                              (buffer-write! buf 1 dur))
                             (catch Exception e (do (println "Excpetion " e)
                                                    (swap! alg-config dissoc alg-key)
                                                    (remove-event-handler alg-key)))))
               alg-key))
-
-
 
 (defn example_markov2 [t-id alg-key pat-vec pat-val-vec buf-id alg-config & args]
   (on-trigger t-id
