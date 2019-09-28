@@ -40,6 +40,22 @@ Trigger includex some built in synths already, with more added form time to time
 Here, in-trg and in-attack are specified as control values in trigger. The software also connects automatically to in-trg-val and in-attack-val. No trigger is created if no corresponding argument is found in the synthdef.
 
 ##### start the pattern
+
+The functions below assume the following
+
+```
+(ns test
+  (:use [trigger.trigger]
+        [trigger.synths]
+        [trigger.algo]
+        [trigger.speech]
+        [trigger.samples]
+        [trigger.trg_fx] 
+        [overtone.core]) )
+
+```
+
+
 ```
 (trg :png ping :in-trg [1] :in-note [72])
 ```
@@ -72,6 +88,44 @@ In,
 (trg :png ping :in-trg [1 1] [(repeat 4 1)] [r] [1 [r 1]] :in-note [ 72 75] [72] [72] [70 [72 72]])
 ```
 the in:trg and in:note loop 4 patterns, each 1 second long. Here, 'r' denotes a rest. 
+
+Trigger includes few scpecial strigns to be sued with the patterns. For example ["n c1"] inputs the midi note of c1 into the patterns and ["f c1"] inputs the frequency of c1. ["b audio-buffer"] input the bufer id of an audio buffer into the pattern to be used with the ``` smp ``` sampler synth. For example, if the SuperDirst samples have been installed via SuperColliderm they can be loaded using function
+
+```
+(load-all-SuperDirt-samples)
+```
+
+After this, the samples can be used 
+
+```
+(trg :smp smp
+     :in-trg [1]
+     :in-step [2]
+      :in-buf ["b hc4" "b hc3" "b hc4" "b hc3"] )
+```
+
+Alternatively, a trigger pattern can be coped to another pattern, for example as.
+
+```
+(trg :smp smp
+     :in-trg ["b hc4" "b hc3" "b hc4" "b hc3"]
+     :in-step [2]
+      :in-buf ":in-trg" )
+```
+
+##### Text-to-Speech. 
+
+Trigger utilizes MaryTTS for generating spoken words from text. For example
+
+```
+(add-sample "test" (string-to-buffer "This is a test))
+
+(trg :smp smp
+     :in-trg ["b test"]
+     :in-step [2]
+      :in-buf ":in-trg" )
+
+```
 
 
 ##### Simple modular synthesis
