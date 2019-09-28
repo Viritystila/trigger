@@ -100,16 +100,16 @@
         pool          (assoc pool size-key  rest-buf )]
     (if buffers-left
       (do (reset! bufferPool pool) first-buf)
-      (do (buffer size)))))
+      (do (with-server-sync #(buffer size) "Whilst retrieve-buffer")))))
 
 (defn generate-buffer-pool [sizes amount]
-  (let [size-vectors  (range 1 sizes)
-        size-keys     (map (fn [x] (keyword (str x))) size-vectors )
-        buffers       (doall (pmap (fn [y]  (doall (map (fn [x] (buffer x)) (repeat  amount y)))) size-vectors))
-        b_p           (zipmap size-keys buffers)]
-   (reset! bufferPool b_p)) nil)
-                                        ;Start
+  (let [size-vectors   (vec (range 1 sizes))
+        size-keys      (pmap (fn [x] (keyword (str x))) size-vectors)
+        buffers        (doall (pmap (fn [y]  (doall (map (fn [x] (with-server-sync #(buffer x) "Whilst generate-buffer-pool")) (repeat  amount y)))) size-vectors))
+        b_p            (zipmap size-keys buffers)]
+    (reset! bufferPool b_p)) nil)
 
+                                        ;Start
 (defn start-trigger []
   (init_groups_dur_and_del)
   (def base-trigger-id (trig-id))

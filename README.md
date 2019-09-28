@@ -13,6 +13,19 @@
 
 A program designed to create control patterns for Overtone synths.
 
+## Requirements
+
+- SuperCollider
+- Leiningen
+- Overtone
+
+
+## Installation
+
+- git clone https://github.com/Viritystila/trigger.git
+- cd trigger
+- lein install
+
 ## Usage
 
 #### Define synth with control-bus inputs
@@ -89,7 +102,7 @@ In,
 ```
 the in:trg and in:note loop 4 patterns, each 1 second long. Here, 'r' denotes a rest. 
 
-Trigger includes few scpecial strigns to be sued with the patterns. For example ["n c1"] inputs the midi note of c1 into the patterns and ["f c1"] inputs the frequency of c1. ["b audio-buffer"] input the bufer id of an audio buffer into the pattern to be used with the ``` smp ``` sampler synth. For example, if the SuperDirst samples have been installed via SuperColliderm they can be loaded using function
+Trigger includes few scpecial strigns to be sued with the patterns. For example ["n c1"] inputs the midi note of c1 into the patterns and ["f c1"] inputs the frequency of c1. ["b audio-buffer"] input the bufer id of an audio buffer into the pattern to be used with the ``` smp ``` sampler synth. For example, if the SuperDirst samples have been installed via SuperCollider, they can be loaded using function
 
 ```
 (load-all-SuperDirt-samples)
