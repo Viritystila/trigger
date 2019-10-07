@@ -83,6 +83,29 @@
                                              (if (seq? fst) (recur (next xv) (apply conj result  (vec (piv fst))))
                                                  (recur (next xv) (conj result fst))))) result ))))
 
+
+(defn map-inner [input fnc & args]
+  (let [;_ (println "input" input)
+        ;_ (println "fnc" fnc)
+        ;args  (flatten (conj [input] args))
+        ;_ (println "args" args)
+        input   (vec input)
+        ] (loop [xv      input
+                 result  []]
+            (if xv
+              (let [fst    (first xv)
+                    targs  ()]
+                (if (or (number? fst) (string? fst))
+                  (if (number? fst)
+                    (recur (next xv) (conj result (apply fnc (flatten (conj [fst] args)))))
+                    (recur (next xv) (conj result fst)))
+                  (recur (next xv) (conj result (apply map-inner (seq [fst fnc args]))) )) ) result))))
+
+
+(defn map-in [input fnc & args]
+  (let [input (piv input)]
+    (apply map-inner (seq [input fnc args]))))
+
 ;trg-related
 (defn urn [n]
   "Unique random numbers, e.g. (1 3 2  5)"
@@ -211,4 +234,7 @@
                   rcoll   (mapv (fn [x]  (repeat x "~")) rcollr )
                   coll    (partition 1 coll)
                   pcoll   (vec (interleave rcoll coll))
-                        pcoll   (apply concat pcoll)] (piv pcoll))))
+                  pcoll   (apply concat pcoll)] (piv pcoll))))
+
+
+(defn scl [scale_value x]  (if (number? x) (+ 0  (* x scale_value)) x ) )
