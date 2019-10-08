@@ -837,6 +837,14 @@
    in-vib-gain-val 0.2
    in-gate-select 0
    in-gate-select-val 0
+   in-attack 0.01
+   in-attack-val 0.01
+   in-decay 0.005
+   in-decay-val 0.005
+   in-sustain 0.01
+   in-sustain-val 0.01
+   in-release 2
+   in-release-val 2
    ctrl-out 0
    out-bus 0]
   (let [gate         (in:kr in-trg)
@@ -851,6 +859,10 @@
         bow-position (in:kr in-bow-position-val)
         vib-freq     (in:kr in-vib-freq-val)
         vib-gain     (in:kr in-vib-gain-val)
+        attack       (in:kr in-attack-val)
+        decay        (in:kr in-decay-val)
+        sustain      (in:kr in-sustain-val)
+        release      (in:kr in-release-val)
         freq         (midicps note)
         velocity     (/ velocity 127)
         beta-ratio   (+ 0.027236 (* 0.2 bow-position))
@@ -863,7 +875,7 @@
         bridge       (delay-l fb2 0.025 (* base-delay beta-ratio))
         string-filt  (one-pole (* bridge 0.95) 0.55)
         bridge-refl  (neg string-filt)
-        adsr         (* amp (env-gen (adsr 0.01 0.005 0.1 0.01) :gate gate))
+        adsr         (* amp (env-gen (adsr attack decay sustain release) :gate gate))
         string-vel   (+ bridge-refl nut-refl)
         vel-diff     (- adsr string-vel)
         slope        (- 5.0 (* 4 bow-slope))

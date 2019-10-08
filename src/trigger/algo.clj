@@ -236,5 +236,7 @@
                   pcoll   (vec (interleave rcoll coll))
                   pcoll   (apply concat pcoll)] (piv pcoll))))
 
+; function to be used with the map-in function
+(defn scl [value x]  (if (number? x) (* x value) x ))
 
-(defn scl [scale_value x]  (if (number? x) (+ 0  (* x scale_value)) x ) )
+(defn ofs [value x]  (if (number? x) (+ x value) x ))
