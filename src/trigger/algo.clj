@@ -161,7 +161,8 @@
   ([degree root mode num-notes] (seq (chord-degree degree root mode num-notes))))
 
 
-(defn mhz [& notes] (map (fn [x] (if (keyword? x) (midi->hz (note x)) x) ) notes))
+(defn mhz [& notes] (let [nts (map (fn [x] (if (keyword? x) (midi->hz (note x)) x) ) notes)]
+                      (if (= (count nts) 1) (nth nts 0) nts)))
 
 (defn rep ([n & input]  (let [isfn   (fn? (first input))
                               args   (if isfn (rest input) input)
