@@ -117,10 +117,10 @@
                                   a-set))))
 
 
-(defn fst ([factor input] (piv (vec (repeat factor (seq input ) ))))
+(defn fst ([factor & input] (piv (vec (repeat factor (seq input ) ))))
   ([input] (piv (vec (repeat 2 (seq input))))))
 
-(defn slw ([factor input] (let [input      (piv input)
+(defn slw ([factor & input] (let [input      (piv input)
                                 input-size (count input)
                                 factor     (int (/  input-size factor))]
                             (seq (piv (map vec (partition factor input))))))
@@ -173,7 +173,7 @@
 (defn sfl [& coll] (let [isseq (seq? (first coll))
                          isseq (if (= 1 (count coll )) true false )]
                      (if isseq (vec (shuffle (first coll)))
-                         (seq (shuffle coll)))))
+                         (vec (shuffle coll)))))
 
 (defn rpl ([n input & coll]  (let [coll_length (count coll)
                                    isseq       (seq? (first coll))
