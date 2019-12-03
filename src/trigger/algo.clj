@@ -62,10 +62,13 @@
                                         ;Functions
                                         ;General
 (defn func-val [input & args] (let [isfn  (fn? input)
-                                    coll_length (count args)
-                                    args        (if (= 1 coll_length) (apply concat args) args )]
+                                    ;coll_length (count args)
+                                    ;args        (if (= 1 coll_length) (apply concat args) args )
+                                    ]
                                 (if isfn (apply input args) input )
                                 ) )
+
+;(defn func-args [& input])
 
 (defn cnc [& input] (let [isseq (seq input)
                           ;input  (vec (reverse input))
@@ -108,7 +111,7 @@
 
 ;trg-related
 (defn urn [n]
-  "Unique random numbers, e.g. (1 3 2  5)"
+  "Unique random numbers, e.g. (1 3 2 5)"
   (let [a-set (set (take n (repeatedly #(rand-int n))))]
     (concat a-set (set/difference (set (take n (range)))
                                   a-set))))
@@ -134,9 +137,21 @@
                              ]
                          (if isfn
                            (map-indexed #(if (zero? (mod (inc %1) n))  (f %2) %2) coll)
-                            (map-indexed #(if (zero? (mod (inc %1) n)) f %2) coll) )))
+                           (map-indexed #(if (zero? (mod (inc %1) n)) f %2) coll) )))
 
-(defn rtm [pulses steps & args]  (map (fn [x] (if (zero? x) "-" x))  (vec (euclidean-rhythm (max 1 (func-val pulses args)) steps))))
+;; (defn rtm [pulses steps & args] (let [] (map (fn [x] (if (zero? x) r x))  (vec (euclidean-rhythm (max 1 (func-val (min pulses steps) args)) steps)))))
+
+
+(defn rtm [& args] (let [args   (map func-val args)
+                          pulses (nth args 0)
+                          steps  (nth args 1)
+                          pulses (max 1 pulses)
+                          steps (max 1 steps)
+                          pulses (min pulses steps)
+                          ]
+                      (mapv (fn [x] (if (zero? x) "~" x))  (vec (euclidean-rhythm pulses steps)) )
+                      ))
+
 
 (defn nts [& notes] (map (fn [x] (if (keyword? x) (note x) x) ) notes))
 
@@ -149,8 +164,9 @@
 (defn mhz [& notes] (map (fn [x] (if (keyword? x) (midi->hz (note x)) x) ) notes))
 
 (defn rep ([n & input]  (let [isfn   (fn? (first input))
+                              args   (if isfn (rest input) input)
                               input  (if isfn (first input) input)]
-                        (if isfn (seq (piv (repeatedly n #(input))))  (seq (piv (repeat n  input))))))
+                          (if isfn (seq (piv (repeatedly n #(vec (apply input args)))))  (seq (piv (repeat n  input))))))
   ;([n fnc & args] (seq (piv (repeatedly n #(apply fnc args) ))) )
   )
 
@@ -162,11 +178,18 @@
 (defn rpl ([n input & coll]  (let [coll_length (count coll)
                                    isseq       (seq? (first coll))
                                    isfn        (fn? input)
+                                   n           (mod n (count coll))
                                    ;coll        (if  isseq (apply concat coll) coll )
                                    coll        (piv coll)
+                                   ncoll       (nth coll n)
+                                   input       (if isfn (input ncoll) input)
+                                   _ (println input)
                                    ]
-                               (if isseq (seq (assoc (vec coll) n input ))
-                                   (seq (assoc (vec coll) n input))))))
+                               (if isfn (seq (assoc (vec coll) n input))
+                                   (seq (assoc (vec coll) n input)))
+                               ;; (if isseq (seq (assoc (vec coll) n input ))
+                               ;;     (seq (assoc (vec coll) n input)))
+                               )))
 
 (defn sir [n range center period] (map (fn [x] (sinr x range center period)) (clojure.core/range n)))
 
@@ -178,7 +201,7 @@
 
 (defn sqr [n x1 x2 high low] (map (fn [x] (if (and (>= x x1) (< x x2)) high low )) (range n) ))
 
-(defn rot [n coll] (rotate n (piv coll)))
+(defn rot [n coll] (rotate (mod n (count coll)) n (piv coll)))
 
 (defn fll [size coll] (fill size coll))
 
