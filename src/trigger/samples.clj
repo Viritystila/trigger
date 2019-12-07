@@ -35,6 +35,8 @@
     (doseq [x nr] (add-sample (nth names x) (nth buf-seq x)))
     nil))
 
+
+
 (defn get-sample-id [name]  (:id (name @samplePool)))
 
 (defn list-samples [] (println (keys  (into (sorted-map) @samplePool))))
@@ -86,8 +88,10 @@
 
 
 (defn load-all-SuperDirt-samples []
-  (find-SD-sample-names)
-  (let [sample-count    (count @superDirtSampleNames)]
-    (doseq [sample-name-idx (range sample-count)]
-      (doseq [sample-no-id (nth @superDirtSampleCount sample-name-idx)]
-        (dirt (nth @superDirtSampleNames sample-name-idx) sample-no-id) ))))
+  (future
+    (find-SD-sample-names)
+    (let [sample-count    (count @superDirtSampleNames)]
+      (doseq [sample-name-idx (range sample-count)]
+        (doseq [sample-no-id (nth @superDirtSampleCount sample-name-idx)]
+          (dirt (nth @superDirtSampleNames sample-name-idx) sample-no-id) ))))
+  )
