@@ -124,6 +124,12 @@
            (piv (vec (repeat factor (seq input ) ))))
   ([input] (piv (vec (repeat 2 (seq input))))))
 
+
+(defn fst2 ([input factor]
+           (piv (vec (repeat factor (seq input ) ))))
+  ([input] (piv (vec (repeat 2 (seq input))))))
+
+
 (defn slw ([factor & input]
            (let [input      (piv input)
                  input-size (count input)
@@ -133,6 +139,18 @@
                   input-size (count input)
                   factor     (int (/  input-size 2))]
              (seq (piv (map vec (partition factor input)))))))
+
+
+(defn slw2 ([input factor]
+           (let [input      (piv input)
+                 input-size (count input)
+                 factor     (int (/  input-size factor))]
+             (seq (piv (map vec (partition factor input))))))
+  ([input] (let  [input   (piv input)
+                  input-size (count input)
+                  factor     (int (/  input-size 2))]
+             (seq (piv (map vec (partition factor input)))))))
+
 
 (defn rev [coll]  (piv (reverse (piv coll))))
 
@@ -144,6 +162,18 @@
     (if isfn
       (map-indexed #(if (zero? (mod (inc %1) n))  (f %2) %2) coll)
       (map-indexed #(if (zero? (mod (inc %1) n)) f %2) coll) )))
+
+(defn evr2 [coll n f & args]
+  (let [isfn        (fn? f)
+        coll        (piv coll)
+        coll_length (count coll)
+        ]
+    (if isfn
+      (map-indexed #(if (zero? (mod (inc %1) n))  (apply f (conj args %2 ) ) %2) coll)
+      (map-indexed #(if (zero? (mod (inc %1) n)) f %2) coll) )))
+
+
+(defn cnc [x & y] (apply concat x [y]))
 
 ;; (defn rtm [pulses steps & args] (let [] (map (fn [x] (if (zero? x) r x))  (vec (euclidean-rhythm (max 1 (func-val (min pulses steps) args)) steps)))))
 
@@ -176,6 +206,13 @@
                  input  (if isfn (first input) input)]
              (if isfn (seq (piv (repeatedly n #(vec (apply input args)))))  (seq (piv (repeat n  input)))))))
 
+(defn rep2 ([input n & args]
+            (let [isfn     (fn? (first args))
+                  fn_i     (if isfn (first args) (fn [x] x))
+                  args     (rest args)]
+              (if isfn (seq (piv (repeatedly n #(vec (apply fn_i  args)))))  (seq (piv (repeat n  input)))))))
+
+
 (defn sfl [& coll]
   (let [isseq (seq? (first coll))
         isseq (if (= 1 (count coll )) true false )]
@@ -194,7 +231,29 @@
              (if isfn (seq (assoc (vec coll) n input))
                  (seq (assoc (vec coll) n input))))))
 
-(defn asc [n input coll]
+(defn rpl2 ([coll n input & args]
+            ;(println input)
+           (let [coll        (piv coll)
+                 coll_length (count coll)
+                 isseq       (seq? (first coll))
+                 isfn        (fn? input)
+                 n           (mod n (count  coll))
+                 coll        (piv coll)
+                 ncoll       (nth coll n)
+                 input       (if isfn (apply input (conj args ncoll)) input) ]
+             (if isfn (seq (assoc (vec coll) n input))
+                 (seq (assoc (vec coll) n input))))))
+
+
+(defn sfl2 [coll]
+  (let [isseq (seq? (first coll))
+        isseq (if (= 1 (count coll )) true false )]
+    (if isseq (vec (shuffle (first coll)))
+        (vec (shuffle coll)))))
+
+
+(defn asc [coll n input]
+  ;(println coll)
   (let [coll_length   (count coll)
         n             (mod n coll_length)
         isfn          (fn? input)
@@ -238,6 +297,20 @@
     (assoc coll beat delay_vector)))
 
 
+(defn del2 [coll beat del_val]
+  (let [coll        (piv coll)
+        coll_length (count coll)
+        beat        (mod beat coll_length)
+        coll_val    (nth coll beat)
+        is_coll_val_vec (vector? coll_val)
+        delay_count  (+ 1 del_val)
+        delay_vector (vec (repeat delay_count "~"))
+        delay_vector (if is_coll_val_vec
+                       (assoc delay_vector del_val (seq coll_val))
+                       (assoc delay_vector del_val coll_val) )]
+    (assoc coll beat delay_vector)))
+
+
 (defn adv [coll beat del_val]
   (let [
                                         ;coll_length    (count coll)
@@ -266,6 +339,26 @@
                   pcoll   (apply concat pcoll)] (piv pcoll))))
 
 
+
+(defn acc2 ([coll]
+           (let [coll    (piv coll)
+                 s       (count coll)
+                 rcollr  (range s)
+                 rcoll   (mapv (fn [x]  (repeat x "~")) rcollr )
+                 rcoll   (reverse rcoll)
+                 coll    (partition 1 coll)
+                 pcoll   (vec (interleave coll rcoll))
+                 pcoll   (apply concat pcoll)] (piv pcoll)))
+  ([coll n] (let [coll    (piv coll)
+                  s       (count coll)
+                  rcollr  (range n (+ n s))
+                  rcoll   (mapv (fn [x]  (repeat x "~")) rcollr )
+                  rcoll   (reverse rcoll)
+                  coll    (partition 1 coll)
+                  pcoll   (vec (interleave coll rcoll))
+                  pcoll   (apply concat pcoll)] (piv pcoll))))
+
+
 (defn dcl ([coll]
            (let [coll    (piv coll)
                  s       (count coll)
@@ -281,6 +374,24 @@
                   coll    (partition 1 coll)
                   pcoll   (vec (interleave rcoll coll))
                   pcoll   (apply concat pcoll)] (piv pcoll))))
+
+
+(defn dcl2 ([coll]
+           (let [coll    (piv coll)
+                 s       (count coll)
+                 rcollr  (range s)
+                 rcoll   (mapv (fn [x]  (repeat x "~")) rcollr )
+                 coll    (partition 1 coll)
+                 pcoll   (vec (interleave rcoll coll))
+                 pcoll   (apply concat pcoll)] (piv pcoll)))
+  ([coll n] (let [coll    (piv coll)
+                  s       (count coll)
+                  rcollr  (range n (+ n s))
+                  rcoll   (mapv (fn [x]  (repeat x "~")) rcollr )
+                  coll    (partition 1 coll)
+                  pcoll   (vec (interleave rcoll coll))
+                  pcoll   (apply concat pcoll)] (piv pcoll))))
+
 
                                         ; function to be used with the map-in function
 (defn scl [value x]
