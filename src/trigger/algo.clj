@@ -183,15 +183,26 @@
         (vec (shuffle coll)))))
 
 (defn rpl ([n input & coll]
-           (let [coll_length (count coll)
+           (let [coll        (piv coll)
+                 coll_length (count coll)
                  isseq       (seq? (first coll))
                  isfn        (fn? input)
-                 n           (mod n (count coll))
+                 n           (mod n (count  coll))
                  coll        (piv coll)
                  ncoll       (nth coll n)
                  input       (if isfn (input ncoll) input) ]
              (if isfn (seq (assoc (vec coll) n input))
                  (seq (assoc (vec coll) n input))))))
+
+(defn asc [n input coll]
+  (let [coll_length   (count coll)
+        n             (mod n coll_length)
+        isfn          (fn? input)
+        nth_element   (nth coll n)
+        input         (if isfn (input nth_element) input)
+        ]
+    (assoc coll n input)
+    ))
 
 (defn sir [n range center period]
   (map (fn [x] (sinr x range center period)) (clojure.core/range n)))
