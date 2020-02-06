@@ -10,13 +10,18 @@
    [trigger.samples :refer :all]
    [trigger.trg_fx :refer :all]
    [clojure.tools.namespace.repl :refer [refresh]]
-   [overtone.sc.machinery.server.comms :refer [with-server-sync server-sync]]))
+   [overtone.sc.machinery.server.comms :refer [with-server-sync server-sync]]
+   [overtone.sc.machinery.server.connection :refer [boot]]))
 
                                         ;Boot Supercollider
 
 (def port 57111)
 (defn boot-ext [] (if (server-connected?) nil (boot-external-server port {:max-buffers 2621440 :max-control-bus 80960}) ))
 (boot-ext)
+
+(defn boot-int [] (if (server-connected?) nil (boot :internal port {:max-buffers 2621440 :max-control-bus 80960}) ))
+;;(boot-int)
+
                                         ;State atoms
 (defonce synthConfig (atom {}))
 (defonce algConfig (atom {}))
@@ -51,6 +56,13 @@
 (def dbg (control-bus 1))
 (def dbg2 (control-bus 1))
 
+(defsynth vol-send [in-bus 0 base-dur 0.017 trigger-id 0]
+  (let [trg    (t-duty:kr (dseq [base-dur] INF) )
+        inar   (in:ar in-bus)
+        inkr   (a2k   inar)]
+    (send-trig trg trigger-id inkr)
+    (out 0 0)))
+
 (defsynth trigger-generator [base-trigger-bus-in 0
                              base-counter-bus-in 0
                              base-pattern-buffer-in 0
@@ -82,6 +94,8 @@
     (send-trig trg trigger-val-id pattern-item-value)
     (out:kr trigger-value-bus-out pattern-item-value)
     (out:kr trigger-bus-out trg)))
+
+
 
                                         ;Buffer pool functions
 (defn store-buffer [buf]
