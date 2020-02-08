@@ -63,6 +63,13 @@
                                         ;General
 (defn func-val [input & args]
   (let [isfn  (fn? input)
+
+
+(def populated-vector?
+  (fn
+    [item]
+    (not= item [])))
+
                                         ;coll_length (count args)
                                         ;args        (if (= 1 coll_length) (apply concat args) args )
         ]
@@ -233,16 +240,26 @@
 
 (defn rpl ([coll n input & args]
             ;(println input)
-           (let [coll        (piv coll)
+           (let [isseq       (seq? coll)
+                 isvec       (vector? coll)
+                 coll        (piv coll)
                  coll_length (count coll)
-                 isseq       (seq? (first coll))
                  isfn        (fn? input)
                  n           (mod n (count  coll))
                  coll        (piv coll)
                  ncoll       (nth coll n)
-                 input       (if isfn (apply input (conj args ncoll)) input) ]
-             (if isfn (seq (assoc (vec coll) n input))
-                 (seq (assoc (vec coll) n input))))))
+                 ncollseq    (seq? ncoll)
+                 last_arg    (nil? (last args))
+                 args        (if last_arg (seq [ncoll (drop-last args)]) args )
+                 args        (seq (piv (filter trigger.algo/populated-vector? args)))
+                 ;_ (println args)
+                 input       (if isfn (apply input args) input)
+                 input       (if isvec (if (seq? input) (into [] input) input) input)
+                 seqvec      (if isvec vec seq)]
+             ;(println isvec)
+             ;(println seqvec)
+             (if isfn (seqvec (assoc (vec coll) n input))
+                 (seqvec (assoc (vec coll) n input))))))
 
 
 (defn sfl [coll]
@@ -252,13 +269,13 @@
         (vec (shuffle coll)))))
 
 
-(defn asc [coll n input]
+(defn asc [coll n input & args]
   ;(println coll)
   (let [coll_length   (count coll)
         n             (mod n coll_length)
         isfn          (fn? input)
         nth_element   (nth coll n)
-        input         (if isfn (input nth_element) input)
+        input         (if isfn (apply input (conj args nth_element)) input)
         ]
     (assoc coll n input)
     ))
@@ -280,7 +297,7 @@
 (defn rot [n coll]
   (rotate (mod n (count coll)) n (piv coll)))
 
-(defn fll [size coll]
+(defn fll [coll size]
   (fill size coll))
 
 ;; (defn del [beat del_val coll]
