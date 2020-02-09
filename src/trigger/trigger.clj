@@ -95,8 +95,6 @@
     (out:kr trigger-value-bus-out pattern-item-value)
     (out:kr trigger-bus-out trg)))
 
-
-
                                         ;Buffer pool functions
 (defn store-buffer [buf]
   (let [size      (buffer-size buf)
@@ -337,7 +335,9 @@
                            mixer-group
                            is-sub-synth
                            sub-synths
-                           sub-synth-group]
+                           sub-synth-group
+                           trigger-vol-id
+                           vol-sender]
   synth-control
   (kill-synth [this] (kill (. this play-synth)))
   (kill-trg   [this] (group-free (. this group)))
@@ -415,6 +415,8 @@
         sub-synth-group   (with-server-sync #(group "sub-synth-group" :tail synth-group) "sub-synth group")
         mixer-group       (with-server-sync #(group "mixer-group" :tail synth-group) "mixer group")
         play-synth        (with-server-sync #(synth-name  [:head synth-group] :out-bus out-bus) "synth creation")
+        trigger-vol-id    (trig-id)
+        vol-sender        (vol-send [:tail mixer-group] out-bus 0.017 trigger-vol-id)
         out-mixer         (mono-inst-mixer [:tail mixer-group] out-bus 0 1 0.0)
         _                 (println play-synth)
         default-buses     (generate-default-buses synth-name)
@@ -435,7 +437,9 @@
                            mixer-group
                            issub
                            sub-synths
-                           sub-synth-group)]
+                           sub-synth-group
+                           trigger-vol-id
+                           vol-sender)]
     (apply-default-buses synth-container)
     (apply-control-out-bus synth-container)
     synth-container))
@@ -452,6 +456,8 @@
                             #(synth-name [:tail sub-synth-group] :bus-in out-bus :out-bus out-bus)
                             (str "create synth config" sub-pattern-name))
         out-mixer         (:out-mixer (@synthConfig pattern-name))
+        trigger-vol-id    (:trigger-vol-id  (@synthConfig pattern-name))
+        vol-sender        (:vol-sender  (@synthConfig pattern-name))
         _                 (println play-synth)
         default-buses     (generate-default-buses synth-name)
         control-out-bus   (control-bus 1)
@@ -471,7 +477,9 @@
                            mixer-group
                            issub
                            sub-synths
-                           sub-synth-group)]
+                           sub-synth-group
+                           trigger-vol-id
+                           vol-sender)]
     (apply-default-buses synth-container)
     (apply-control-out-bus synth-container)
     synth-container))
@@ -838,6 +846,9 @@
 (defn get-ctrl-bus [pattern-name]
   (:control-out-bus (pattern-name @synthConfig)))
 
+(defn get-trigger-vol-id [pattern-name]
+  (:trigger-vol-id (pattern-name @synthConfig)))
+
 (defn get-trigger-bus [pattern-name trig-name]
   (:trigger-bus (trig-name (:triggers (pattern-name @synthConfig)))))
 
@@ -900,16 +911,16 @@
 
                                         ; OSC
 ;(var addr=NetAddr.new("127.0.0.1", 3333);  OSCdef ('/tidalplay2', { arg msg; addr.sendMsg("/play2", *msg);}, '/play2', n);)
-(defn init-osc [port]
-  (def oscserver (osc-server port "osc-clj"))
-  (def client (osc-client "localhost" port))
-  (zero-conf-on)
-  (java.net.InetAddress/getLocalHost))
+;; (defn init-osc [port]
+;;   (def oscserver (osc-server port "osc-clj"))
+;;   (def client (osc-client "localhost" port))
+;;   (zero-conf-on)
+;;   (java.net.InetAddress/getLocalHost))
 
-(defn osc-extract-tidal [msg key]
-  (let [submsg  (into [] (subvec (vec (key msg)) 1))
-        part     (mapv (fn [x] [(keyword (first x)) (last x)]) (partition 2 submsg))]
-    (into {} part)))
+;; (defn osc-extract-tidal [msg key]
+;;   (let [submsg  (into [] (subvec (vec (key msg)) 1))
+;;         part     (mapv (fn [x] [(keyword (first x)) (last x)]) (partition 2 submsg))]
+;;     (into {} part)))
 
                                         ;Algorithm
 
