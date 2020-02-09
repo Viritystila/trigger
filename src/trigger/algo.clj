@@ -176,6 +176,7 @@
         coll        (piv coll)
         coll_length (count coll)
         seqvec      (if isvec vec seq)]
+    ;(println args)
     (if isfn
       (seqvec (map-indexed #(if (zero? (mod (inc %1) n))  (apply f (conj args %2 ) ) %2) coll))
       (seqvec (map-indexed #(if (zero? (mod (inc %1) n)) f %2) coll)) )))
