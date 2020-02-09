@@ -65,16 +65,16 @@
   (let [isfn  (fn? input)
 
 
-(def populated-vector?
-  (fn
-    [item]
-    (not= item [])))
-
                                         ;coll_length (count args)
                                         ;args        (if (= 1 coll_length) (apply concat args) args )
         ]
     (if isfn (apply input args) input )
     ) )
+
+(def populated-vector?
+  (fn
+    [item]
+    (not= item [])))
 
 ;(defn func-args [& input])
 
@@ -171,13 +171,14 @@
 ;;       (map-indexed #(if (zero? (mod (inc %1) n)) f %2) coll) )))
 
 (defn evr [coll n f & args]
-  (let [isfn        (fn? f)
+  (let [isvec       (vector? coll)
+        isfn        (fn? f)
         coll        (piv coll)
         coll_length (count coll)
-        ]
+        seqvec      (if isvec vec seq)]
     (if isfn
-      (map-indexed #(if (zero? (mod (inc %1) n))  (apply f (conj args %2 ) ) %2) coll)
-      (map-indexed #(if (zero? (mod (inc %1) n)) f %2) coll) )))
+      (seqvec (map-indexed #(if (zero? (mod (inc %1) n))  (apply f (conj args %2 ) ) %2) coll))
+      (seqvec (map-indexed #(if (zero? (mod (inc %1) n)) f %2) coll)) )))
 
 
 (defn cnc [x & y] (apply concat x [y]))
@@ -214,9 +215,10 @@
  ;            (if isfn (seq (piv (repeatedly n #(vec (apply input args)))))  (seq (piv (repeat n  input)))))))
 
 (defn rep ([input n & args]
-            (let [isfn     (fn? (first args))
-                  fn_i     (if isfn (first args) (fn [x] x))
-                  args     (rest args)]
+            (let [isfn     (fn? input)
+                  fn_i     (if isfn input (fn [x] x))
+                  args     args]
+              ;(println isfn)
               (if isfn (seq (piv (repeatedly n #(vec (apply fn_i  args)))))  (seq (piv (repeat n  input)))))))
 
 
