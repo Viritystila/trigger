@@ -6,6 +6,7 @@
   :repositories [["jcenter" "https://jcenter.bintray.com/"]]
   :dependencies [[org.clojure/clojure "1.10.0"]
                 [org.clojure/tools.namespace "0.2.11"]
+                [org.clojure/core.async "0.4.490"]
                 [overtone            "0.10.6"]
                 [rm-hull/markov-chains "0.1.1"]
                 [org.clojure/math.numeric-tower "0.0.4"]

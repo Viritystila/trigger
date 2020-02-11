@@ -9,6 +9,7 @@
    [trigger.speech :refer :all]
    [trigger.samples :refer :all]
    [trigger.trg_fx :refer :all]
+   [clojure.core.async :as async]
    [clojure.tools.namespace.repl :refer [refresh]]
    [overtone.sc.machinery.server.comms :refer [with-server-sync server-sync]]
    [overtone.sc.machinery.server.connection :refer [boot]]))
@@ -954,6 +955,45 @@
                                    (ctl (:out-mixer pat) :volume vol) )
   nil)
 
+(defn fade-out! [pattern-name & args] (let [pat     (pattern-name @synthConfig)
+                                            synth   (:out-mixer pat)
+                                            s-id    (to-id synth)
+                                            ivol    (node-get-control s-id :volume)
+                                            isargs  (not (empty? args))
+                                            ;args    (if isargs (first args) args)
+                                            args    (into {} (mapv vec (vec (partition 2 args))))
+                                            time    (if isargs (:t args) 1000)
+                                            time    (if (nil? time) 1000 time)
+                                            steps   100
+                                            step    (/ ivol steps)
+                                            rang    (range ivol 0 (* -1 step))
+                                            st      (/ time (count rang))]
+                                        ;(println step)
+                                        ;(println (count rang))
+                                        ;(println st)
+                                        (doseq [x rang]
+                                          (async/go
+                                            (volume! pattern-name x)
+                                            (Thread/sleep st)))))
+
+(defn fade-in! [pattern-name dvol & args] (let [pat     (pattern-name @synthConfig)
+                                                synth   (:out-mixer pat)
+                                                s-id    (to-id synth)
+                                                ivol    (node-get-control s-id :volume)
+                                                isargs  (not (empty? args))
+                                        ;args    (if isargs (first args) args)
+                                                args    (into {} (mapv vec (vec (partition 2 args))))
+                                                time    (if isargs (:t args) 1000)
+                                                time    (if (nil? time) 1000 time)
+                                                steps   100
+                                                step    (/ (- dvol ivol) steps)
+                                                rang    (range ivol dvol step)
+                                                st      (/ time (count rang))]
+                                            (println time)
+                                            (doseq [x rang]
+                                              (async/go
+                                                (volume! pattern-name x)
+                                                (Thread/sleep st)))))
 
 (defn pan! [pattern-name pan] (let [pat      (pattern-name @synthConfig)]
                                 (ctl (:out-mixer pat) :pan pan) ) nil )
