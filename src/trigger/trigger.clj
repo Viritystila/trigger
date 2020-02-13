@@ -1007,15 +1007,21 @@
 
 (defn pause! [pattern-name] (let [pat    (pattern-name @synthConfig)
                                   synth  (:play-synth pat)
-                                  s-id   (to-id synth)]
+                                  vo     (:vol-sender pat)
+                                  s-id   (to-id synth)
+                                  vo-id  (to-id vo)]
                               (node-pause s-id)
+                              (node-pause vo-id)
                               ) nil)
 
 
 (defn play! [pattern-name] (let [pat    (pattern-name @synthConfig)
-                                  synth  (:play-synth pat)
-                                  s-id   (to-id synth)]
-                              (node-start s-id)
+                                 synth  (:play-synth pat)
+                                 vo     (:vol-sender pat)
+                                 s-id   (to-id synth)
+                                 vo-id  (to-id vo)]
+                             (node-start s-id)
+                             (node-start vo-id)
                               ) nil)
 
 
