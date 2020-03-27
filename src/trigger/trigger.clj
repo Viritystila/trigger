@@ -11,17 +11,38 @@
    [trigger.trg_fx :refer :all]
    [clojure.core.async :as async]
    [clojure.tools.namespace.repl :refer [refresh]]
+   [clj-native.structs :refer [byref]]
    [overtone.sc.machinery.server.comms :refer [with-server-sync server-sync]]
-   [overtone.sc.machinery.server.connection :refer [boot]]))
+   [overtone.sc.machinery.server.connection :refer [boot]]
+   [overtone.sc.machinery.server native])
+  (:import
+   (java.nio IntBuffer ByteBuffer FloatBuffer ByteOrder)))
 
                                         ;Boot Supercollider
 
 (def port 57111)
 (defn boot-ext [] (if (server-connected?) nil (boot-external-server port {:max-buffers 2621440 :max-control-bus 80960}) ))
-(boot-ext)
+;(boot-ext)
 
 (defn boot-int [] (if (server-connected?) nil (boot :internal port {:max-buffers 2621440 :max-control-bus 80960}) ))
-;;(boot-int)
+(boot-int)
+
+
+;; (defn cb
+;;   "Get a an array of floats for the synthesis sound buffer with the given ID."
+;;   [sc buf-id]
+;;   (let [buf (byref overtone.sc.machinery.server.native/sound-buffer)
+;;         changed? (byref  overtone.sc.machinery.server.native/bool-val)
+;;         ;; changed? (java.nio.ByteBuffer/allocate 1)
+;;         cc  (ByteBuffer/allocate 1)
+;;         ]
+;;                                         ;(.samples buf)
+;;     (println buf)
+;;     (println (:value changed?))
+;;      ;(.getFloatArray (.data buf) 0 (.samples buf))
+;;     ( overtone.sc.machinery.server.native/world-copy-sound-buffer (:world sc) buf-id buf 0 cc)
+;;     ;(.getFloatArray (.data buf) 0 (.samples buf))
+;;     ))
 
                                         ;State atoms
 (defonce synthConfig (atom {}))

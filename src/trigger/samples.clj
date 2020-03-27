@@ -36,6 +36,7 @@
     nil))
 
 
+(defn get-sample [name]  (name @samplePool))
 
 (defn get-sample-id [name]  (:id (name @samplePool)))
 

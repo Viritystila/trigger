@@ -271,8 +271,35 @@
     (if isseq (vec (shuffle (first coll)))
         (vec (shuffle coll)))))
 
+%       
 
 (defn asc [coll n input & args]
+  ;(println coll)
+  (let [is_n_vec      (vector? n)
+        isfn          (fn? input)
+
+        coll_length   (count coll)
+        max_n         (if is_n_vec
+                        (mod (apply max n) (+ 1 coll_length))
+                        (mod n (+ 1 coll_length)))
+
+        nth_element   (nth coll (mod max_n coll_length))
+        input         (if isfn (apply input (conj args nth_element)) input)
+        is_input_vec  (vector? input)
+        bothvec       (and is_n_vec is_input_vec)
+        min_length    (if bothvec
+                        (min (count n) (count input))
+                        0)
+        nmap          (if is_n_vec
+                        (map (fn [x] (mod x (+ 1 coll_length))) n)
+                       n)
+        ]
+    (if bothvec
+      (apply assoc coll (interleave nmap input) )
+      (assoc coll max_n input))
+    ))
+
+(defn asc_deprecated [coll n input & args]
   ;(println coll)
   (let [coll_length   (count coll)
         n             (mod n coll_length)
