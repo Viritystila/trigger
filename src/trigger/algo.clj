@@ -271,7 +271,6 @@
     (if isseq (vec (shuffle (first coll)))
         (vec (shuffle coll)))))
 
-%       
 
 (defn asc [coll n input & args]
   ;(println coll)
