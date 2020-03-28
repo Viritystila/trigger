@@ -241,6 +241,40 @@
 ;;              (if isfn (seq (assoc (vec coll) n input))
 ;;                  (seq (assoc (vec coll) n input))))))
 
+(defn mpa [coll input & args]
+  ;(println coll n input)
+  (mapv input coll))
+
+
+(defn ins ([coll n input & args]
+            ;(println input)
+           (let [isseq       (seq? coll)
+                 isvec       (vector? coll)
+                 coll        (piv coll)
+                 coll_length (count coll)
+                 isfn        (fn? input)
+                 n_orig      n
+                 n           (mod n (count  coll))
+                 coll        (piv coll)
+                 ncoll       (nth coll n)
+                 ncollseq    (seq? ncoll)
+                 last_arg    (nil? (last args))
+                 args        (if last_arg (seq [ncoll (drop-last args)]) args )
+                 args        (seq (piv (filter trigger.algo/populated-vector? args)))
+                 ;_ (println args)
+                 input       (if isfn (apply input args) input)
+                 input       (if isvec (if (seq? input) (into [] input) input) input)
+                 seqvec      (if isvec vec seq)
+                 split_coll  (split-at n_orig coll)]
+             ;(println isvec)
+             ;(println seqvec)
+             (if isfn (seqvec  (concat (first split_coll) [input] (last split_coll)))
+                 (seqvec  (concat (first split_coll) [input] (last split_coll)))))))
+
+
+
+
+
 (defn rpl ([coll n input & args]
             ;(println input)
            (let [isseq       (seq? coll)
