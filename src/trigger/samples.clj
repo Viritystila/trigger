@@ -89,10 +89,12 @@
 
 
 (defn load-all-SuperDirt-samples []
+  (println "Begin loading SuperDirt samples")
   (future
     (find-SD-sample-names)
     (let [sample-count    (count @superDirtSampleNames)]
       (doseq [sample-name-idx (range sample-count)]
         (doseq [sample-no-id (nth @superDirtSampleCount sample-name-idx)]
-          (dirt (nth @superDirtSampleNames sample-name-idx) sample-no-id) ))))
+          (dirt (nth @superDirtSampleNames sample-name-idx) sample-no-id) )))
+            (println "SuperDirt samples loaded"))
   )
