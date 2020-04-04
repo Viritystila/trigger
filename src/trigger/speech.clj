@@ -4,6 +4,7 @@
   (:require [markov-chains.core]
             [clojure.set :as set]
             [overtone.algo.euclidean-rhythm :refer :all]
+            [trigger.samples :refer :all]
             [clojure.math.numeric-tower :as math]
             [clojure.java.io :as io])
   (:import [marytts LocalMaryInterface]
@@ -62,4 +63,27 @@
 
 (defn tmoab [] (generate-markov-text  "src/trigger/308.txt" 60) )
 
-;(doseq [x (range 1110 1169)] (trigger.speech/sayb x))
+
+(defn split_text [text]
+  (let [ s_txt  (clojure.string/split text #" ")
+         s_txt  (mapv (fn [x] (apply str (filter #(Character/isLetter %) x)) ) s_txt )
+        s_txt  (remove (fn [x] (= (count x) 0) ) s_txt )]
+    (into [] s_txt)))
+
+(defn sentence_to_buffer
+  ([text]
+   (let [b_txt  (map (fn [x] (string-to-buffer x)) text)
+         d_txt  (into (sorted-map) (mapv
+                                    (fn [x] (let [bf     (string-to-buffer x)
+                                                 bfstr  (str x)
+                                                 bfkw   (keyword bfstr)
+                                                 id     (:id bf)
+                                                 sid    (str id)
+                                                 kid    (keyword sid)]
+                                             (add-sample bfstr bf)
+                                             [kid bfstr])) text))]
+     d_txt)))
+
+
+(defn parse_buffer_name [txt]
+   (mapv vec (partition 4  (map (fn [x] (str "b " x))  txt))))

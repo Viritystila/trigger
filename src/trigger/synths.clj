@@ -364,7 +364,6 @@
 
 
 
-
 (defsynth mooger
   "Choose 0, 1, or 2 for saw, sin, or pulse"
   [in-trg 0
@@ -425,8 +424,8 @@
         freq           (midicps note)
         osc-bank-1     [(saw freq) (sin-osc freq) (pulse freq)]
         osc-bank-2     [(saw freq) (sin-osc freq) (pulse freq)]
-        amp-env        (env-gen (adsr attack decay sustain release) :gate gate-val)
-        f-env          (env-gen (adsr fattack fdecay fsustain frelease) :gate gate-val)
+        amp-env        (env-gen (adsr attack decay sustain release) :gate gate)
+        f-env          (env-gen (adsr fattack fdecay fsustain frelease) :gate gate)
         s1             (* osc1-level (select osc1 osc-bank-1))
         s2             (* osc2-level (select osc2 osc-bank-2))
         filt           (moog-ff (+ s1 s2) (* cutoff f-env) 3)]
