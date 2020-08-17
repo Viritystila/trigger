@@ -515,7 +515,8 @@
                                      (store-buffer buf)
                                      (println
                                       (str "Exception while writing to buffer ")
-                                      (.getException ex) )))) )
+                                      ;(.getException ex)
+                                      )))) )
 
 (defn create-trigger [control-key
                       control-val-key

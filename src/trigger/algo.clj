@@ -88,6 +88,7 @@
 
 (defn piv [input]
   (let []
+    ;(println input)
     (loop [xv     (seq input)
            result []]
       (if xv
@@ -173,6 +174,7 @@
 (defn evr [coll n f & args]
   (let [isvec       (vector? coll)
         isfn        (fn? f)
+        ;_ (println coll)
         coll        (piv coll)
         coll_length (count coll)
         seqvec      (if isvec vec seq)]
