@@ -762,7 +762,6 @@
                            :triggers
                            (zipmap (keys input-controls-only)
                                    (map (partial t (pattern-name-key @synthConfig)) input-controls-only))))
-             ;(node-start (:id (:play-synth (pattern-name-key @synthConfig))))
              pattern-name)))
 
 
