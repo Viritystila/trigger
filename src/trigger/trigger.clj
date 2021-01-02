@@ -510,13 +510,9 @@
 
 (defn buffer-writer [buf data] (try
                                  (buffer-write-relay! buf data)
-                                 (catch Exception ex
-                                   (do
-                                     (store-buffer buf)
-                                     (println
-                                      (str "Exception while writing to buffer ")
-                                      ;(.getException ex)
-                                      )))) )
+                                 (do
+                                   (store-buffer buf)
+                                    )) )
 
 (defn create-trigger [control-key
                       control-val-key
@@ -731,6 +727,7 @@
 
 ;New trigger input function, allows more terse and powerful way to create patterns. Now clojure functions such as repeat can be used directly in the input.
 (defn trg ([pn sn & input]
+           ;(println input)
            (let [input                 (seq (parse-input-vector input))
                  pattern-name          (if (keyword? pn) (name pn) pn )
                  pattern-name-key      (keyword pattern-name)
