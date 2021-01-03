@@ -13,6 +13,7 @@
    [clojure.tools.namespace.repl :refer [refresh]]
    [clj-native.structs :refer [byref]]
    [overtone.sc.machinery.server.comms :refer [with-server-sync server-sync]]
+   [clojure.walk :only prewalk]
    [overtone.sc.machinery.server.connection :refer [boot]]
    [overtone.sc.machinery.server native])
   (:import
@@ -774,8 +775,6 @@
              pattern-name)))
 
 
-
-
 (defn trg! ([pn spn sn & input]
            (let [pattern-name            (if (keyword? pn) (name pn) pn )
                  pattern-name-key        (keyword pattern-name)
@@ -819,10 +818,39 @@
              (make-helper-function sub-pattern-name synth-name input)
              sub-pattern-name)))
 
-(defonce | "|")
-(defn gtc [& input]
-  (let []))
+;;Functions to set patterns to multiple synths at once, for example to
+;;play chords.
+(defn | [& input]
+  (let [lenip (count input)
+        ranip (mapv keyword (mapv str(vec (range lenip))))
+        ip    (zipmap ranip input)]
+    ;(println ranip)
+    ip))
 
+(defn condition-pattern [pattern key replace-with-r]
+  (let [mod-pat   (clojure.walk/prewalk
+                   #(condp apply [%]
+                      number? (if replace-with-r r %)
+                      map? (key %)
+                      keyword? %
+                      %)
+                   pattern)]
+    mod-pat))
+
+(defn gtc [synths & input]
+  (let [synths         synths
+        last-synths    (subvec synths 1)
+        lensynths      (count synths)
+        ransynths      (range lensynths)
+                                        ;_ (println (split-input input))
+        ;_ (println input)
+        patterns       (condition-pattern input :0 true)
+        ;pat-per-synth
+        ]
+    patterns))
+
+;;(clojure.walk/prewalk #(if (number? %) (inc %) %) [1 [1 [6 7]] 3])
+;;(clojure.walk/prewalk #(condp apply [%] number? (+ % 1) map? (:0 %) %) [1 [1 [{:0 300} 7]] 3])
                                         ; Misc pattern related functions
 
 (defn stop-pattern [pattern-name]
