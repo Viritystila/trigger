@@ -813,6 +813,7 @@
                                  :triggers
                                  (zipmap (keys input-controls-only)
                                          (map (partial t (sub-pattern-name-key @synthConfig)) input-controls-only))))) (println "Parent synth" pattern-name-key "does not exist.") )
+             (make-helper-function sub-pattern-name synth-name input)
              sub-pattern-name)))
 
                                         ; Misc pattern related functions
