@@ -721,6 +721,12 @@
           output      (map (fn [x] (seq [(keyword (nth keys x))  (seq (parse-input-vector-string input x))])) (range no_keys) )]
       (seq (parse-input-vector output)))
     input))
+;(intern (ns-name *ns*) (symbol f-name) f)
+(defn make-helper-function [pattern-name synth-name & input]
+  (let [fname (symbol pattern-name)]
+    (if (nil? (resolve (symbol pattern-name)))
+      (do (intern (ns-name *ns*) fname (fn [& input] (trg (keyword pattern-name) synth-name input ))))
+      (do (println "Definition exists")))))
 
 ;(trg :kick kick (inp ["in-trg" "in-f3"] ["v 1, v 400" "v 3, v 1400"]))
 
@@ -761,6 +767,7 @@
                            :triggers
                            (zipmap (keys input-controls-only)
                                    (map (partial t (pattern-name-key @synthConfig)) input-controls-only))))
+             (make-helper-function pattern-name synth-name input)
              pattern-name)))
 
 
