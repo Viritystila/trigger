@@ -183,11 +183,10 @@
         buses      (apply conj buses)]
     buses))
 
-
-                                        ;Pattern generation functions
 (defn trigger-dur [dur]
   (if (= dur 0) 0 1) )
 
+                                        ;Pattern generation functions
 (defn traverse-vector ([input-array]
                        (let [input-vec input-array
                              xvv    (vec input-vec)
@@ -751,9 +750,9 @@
                      running-trigger-keys(keys triggers)
                      input-trigger-keys  (keys initial-controls-only)
                      triggers-not-renewd (first (diff running-trigger-keys input-trigger-keys))
-                     _                   (doseq [x triggers-not-renewd]
-                                           (if (some? x)
-                                             (do (kill-trg-group (x triggers)) (apply-default-bus synth-container x))))
+                     ;; _                   (doseq [x triggers-not-renewd]
+                     ;;                       (if (some? x)
+                     ;;                         (do (kill-trg-group (x triggers)) (apply-default-bus synth-container x))))
                      triggers            (apply dissoc triggers triggers-not-renewd)
                      synth-container     (assoc synth-container :triggers triggers)]
                  (swap! synthConfig assoc pattern-name-key synth-container)))
@@ -796,9 +795,9 @@
                            running-trigger-keys(keys triggers)
                            input-trigger-keys  (keys initial-controls-only)
                            triggers-not-renewd (first (diff running-trigger-keys input-trigger-keys))
-                           _                   (doseq [x triggers-not-renewd]
-                                                 (if (some? x)
-                                                   (do (kill-trg-group (x triggers)) (apply-default-bus synth-container x))))
+                           ;; _                   (doseq [x triggers-not-renewd]
+                           ;;                       (if (some? x)
+                           ;;                         (do (kill-trg-group (x triggers)) (apply-default-bus synth-container x))))
                            triggers            (apply dissoc triggers triggers-not-renewd)
                            synth-container     (assoc synth-container :triggers triggers)]
                        (swap! synthConfig assoc sub-pattern-name-key synth-container)))
