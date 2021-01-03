@@ -824,7 +824,7 @@
   (let [lenip (count input)
         ranip (mapv keyword (mapv str(vec (range lenip))))
         ip    (zipmap ranip input)]
-    ;(println ranip)
+    (println ip)
     ip))
 
 (defn condition-pattern [pattern key replace-with-r]
@@ -833,6 +833,7 @@
                       number? (if replace-with-r r %)
                       map? (key %)
                       keyword? %
+                      string? %
                       %)
                    pattern)]
     mod-pat))
@@ -841,12 +842,8 @@
   (let [synths         synths
         last-synths    (subvec synths 1)
         lensynths      (count synths)
-        ransynths      (range lensynths)
-                                        ;_ (println (split-input input))
-        ;_ (println input)
-        patterns       (condition-pattern input :0 true)
-        ;pat-per-synth
-        ]
+        ransynths      (mapv keyword (mapv str (vec (range lensynths))))
+        patterns       (condition-pattern input :1 true)]
     patterns))
 
 ;;(clojure.walk/prewalk #(if (number? %) (inc %) %) [1 [1 [6 7]] 3])
