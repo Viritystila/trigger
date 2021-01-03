@@ -721,7 +721,9 @@
           output      (map (fn [x] (seq [(keyword (nth keys x))  (seq (parse-input-vector-string input x))])) (range no_keys) )]
       (seq (parse-input-vector output)))
     input))
-;(intern (ns-name *ns*) (symbol f-name) f)
+
+
+(declare trg)
 (defn make-helper-function [pattern-name synth-name & input]
   (let [fname (symbol pattern-name)]
     (if (nil? (resolve (symbol pattern-name)))
@@ -733,6 +735,7 @@
 ;New trigger input function, allows more terse and powerful way to create patterns. Now clojure functions such as repeat can be used directly in the input.
 (defn trg ([pn sn & input]
            ;(println input)
+           ;(println (type (first (first input))))
            (let [input                 (seq (parse-input-vector input))
                  pattern-name          (if (keyword? pn) (name pn) pn )
                  pattern-name-key      (keyword pattern-name)
@@ -815,6 +818,10 @@
                                          (map (partial t (sub-pattern-name-key @synthConfig)) input-controls-only))))) (println "Parent synth" pattern-name-key "does not exist.") )
              (make-helper-function sub-pattern-name synth-name input)
              sub-pattern-name)))
+
+(defonce | "|")
+(defn gtc [& input]
+  (let []))
 
                                         ; Misc pattern related functions
 
