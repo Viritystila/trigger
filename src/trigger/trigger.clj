@@ -849,8 +849,9 @@
         lensynths      (count synths)
         ransynths      (mapv keyword (mapv str (vec (range lensynths))))
         synmap         (zipmap synths (vec (range (count synths))))
-        patterns       (condition-pattern input :1 true true)]
-    (doseq [x last-synths] (trg x  (:synth-name (:x @synthConfig))  (condition-pattern input (keyword (str (x synmap))) true true )))
+        patterns       (condition-pattern input :0 false true)]
+    (trg (first synths)  (:synth-name ((first synths) @synthConfig))  (condition-pattern input (keyword (str ((first synths) synmap))) false true ))
+    (doseq [x last-synths] (trg x  (:synth-name (:x @synthConfig))  (condition-pattern input (keyword (str (x synmap))) true true )) )
     ;patterns
     ))
 
