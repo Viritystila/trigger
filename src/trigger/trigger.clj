@@ -824,27 +824,35 @@
   (let [lenip (count input)
         ranip (mapv keyword (mapv str(vec (range lenip))))
         ip    (zipmap ranip input)]
-    (println ip)
-    ip))
+    ;(println ip)
+    (fn [] ip)))
 
-(defn condition-pattern [pattern key replace-with-r]
-  (let [mod-pat   (clojure.walk/prewalk
+(defn condition-pattern [pattern key replace-with-r open-map]
+  (let [mod-pat1   (clojure.walk/prewalk
                    #(condp apply [%]
                       number? (if replace-with-r r %)
-                      map? (key %)
+                      %)
+                   pattern)
+        mod-pat2   (clojure.walk/prewalk
+                   #(condp apply [%]
+                      map? (if open-map (key %) %)
                       keyword? %
+                      fn?  (if (and (map? (%)) open-map) (key (%)) (%))
                       string? %
                       %)
-                   pattern)]
-    mod-pat))
-
+                   mod-pat1)]
+    mod-pat2))
+;(trg :kick_1 (:synth-name (:kick_1 @synthConfig)) :in-f3 [100])
 (defn gtc [synths & input]
   (let [synths         synths
         last-synths    (subvec synths 1)
         lensynths      (count synths)
         ransynths      (mapv keyword (mapv str (vec (range lensynths))))
-        patterns       (condition-pattern input :1 true)]
-    patterns))
+        synmap         (zipmap synths (vec (range (count synths))))
+        patterns       (condition-pattern input :1 true true)]
+    (doseq [x last-synths] (trg x  (:synth-name (:x @synthConfig))  (condition-pattern input (keyword (str (x synmap))) true true )))
+    ;patterns
+    ))
 
 ;;(clojure.walk/prewalk #(if (number? %) (inc %) %) [1 [1 [6 7]] 3])
 ;;(clojure.walk/prewalk #(condp apply [%] number? (+ % 1) map? (:0 %) %) [1 [1 [{:0 300} 7]] 3])
