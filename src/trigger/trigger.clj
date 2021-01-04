@@ -837,11 +837,14 @@
                    #(condp apply [%]
                       map? (if open-map (key %) %)
                       keyword? %
-                      fn?  (if (and (map? (%)) open-map) (key (%)) (%))
+                      fn?  (if (and (map? (%)) open-map)
+                             (if (nil? (key (%))) r (key (%)) ) (%))
                       string? %
                       %)
                    mod-pat1)]
+    ;(println "mod-pat2" mod-pat2)
     mod-pat2))
+
 ;(trg :kick_1 (:synth-name (:kick_1 @synthConfig)) :in-f3 [100])
 (defn gtc [synths & input]
   (let [synths         synths
@@ -850,11 +853,12 @@
         ransynths      (mapv keyword (mapv str (vec (range lensynths))))
         synmap         (zipmap synths (vec (range (count synths))))
         patterns       (condition-pattern input :0 false true)]
+    ;(println synmap)
     (trg (first synths)  (:synth-name ((first synths) @synthConfig))  (condition-pattern input (keyword (str ((first synths) synmap))) false true ))
     (doseq [x last-synths] (trg x  (:synth-name (:x @synthConfig))  (condition-pattern input (keyword (str (x synmap))) true true )) )
-    ;patterns
+    ;(println patterns)
     ))
-
+;; (gtc [:op_1 :op_2 :png_1] :in-trg [(| [1] [1] [1])] [(| [1] [1] [1])] [(| [1] [1] [1 1])] [(| [1] [1] [(acc (rep 1 32))])]  :in-note [(| ["ne3" ["nd3" "ne3"]] "ng3" "ng4")] [(| ["nf3" "nc3" "nd3"] ["na3""nb3" r  "nd4"] ["nd4"])]  )
 ;;(clojure.walk/prewalk #(if (number? %) (inc %) %) [1 [1 [6 7]] 3])
 ;;(clojure.walk/prewalk #(condp apply [%] number? (+ % 1) map? (:0 %) %) [1 [1 [{:0 300} 7]] 3])
                                         ; Misc pattern related functions
