@@ -861,6 +861,7 @@
 ;; (gtc [:op_1 :op_2 :png_1] :in-trg [(| [1] [1] [1])] [(| [1] [1] [1])] [(| [1] [1] [1 1])] [(| [1] [1] [(acc (rep 1 32))])]  :in-note [(| ["ne3" ["nd3" "ne3"]] "ng3" "ng4")] [(| ["nf3" "nc3" "nd3"] ["na3""nb3" r  "nd4"] ["nd4"])]  )
 ;;(clojure.walk/prewalk #(if (number? %) (inc %) %) [1 [1 [6 7]] 3])
 ;;(clojure.walk/prewalk #(condp apply [%] number? (+ % 1) map? (:0 %) %) [1 [1 [{:0 300} 7]] 3])
+; (gtc [:op_1 :op_2 :png_1] :in-trg [(| [1 1 r 1] 1 1)] [(| [1 1] 1 1)] [(| 1 1 [1 1])] [(| 1 1 [(acc (rep 1 32))])]  :in-note [(| ["ne3" ["nd3" "ne3"]] "ng3" "ng4")] [(| ["nf3" "ne3" "nd3"] ["na3" "nb3" r  "nd4"] ["nd4"])]  )
                                         ; Misc pattern related functions
 
 (defn stop-pattern [pattern-name]
