@@ -157,7 +157,7 @@
   (def base-trigger-count-bus (control-bus 1))
   (def base-trigger-count (base-trigger-counter [:tail main-g] base-trigger-bus base-trigger-count-bus))
   (println "Begin generating buffer pool, please wait.")
-  (generate-buffer-pool 64 256)
+  (generate-buffer-pool 128 256)
   (println "trigger initialized")
   (println (trigger-logo))
   )
