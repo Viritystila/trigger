@@ -821,7 +821,8 @@
 ;;Functions to set patterns to multiple synths at once, for example to
 ;;play chords.
 (defn | [& input]
-  (let [lenip (count input)
+  (let [input (piv input)
+        lenip (count input)
         ranip (mapv keyword (mapv str(vec (range lenip))))
         ip    (zipmap ranip input)]
     ;(println ip)
@@ -854,14 +855,16 @@
         synmap         (zipmap synths (vec (range (count synths))))
         patterns       (condition-pattern input :0 false true)]
     ;(println synmap)
-    (trg (first synths)  (:synth-name ((first synths) @synthConfig))  (condition-pattern input (keyword (str ((first synths) synmap))) false true ))
-    (doseq [x last-synths] (trg x  (:synth-name (:x @synthConfig))  (condition-pattern input (keyword (str (x synmap))) true true )) )
+    ;(trg (first synths)  (:synth-name ((first synths) @synthConfig))  (condition-pattern input (keyword (str ((first synths) synmap))) false true ))
+    (doseq [x synths] (trg x  (:synth-name (:x @synthConfig))  (condition-pattern input (keyword (str (x synmap))) false true )) )
     ;(println patterns)
     ))
 ;; (gtc [:op_1 :op_2 :png_1] :in-trg [(| [1] [1] [1])] [(| [1] [1] [1])] [(| [1] [1] [1 1])] [(| [1] [1] [(acc (rep 1 32))])]  :in-note [(| ["ne3" ["nd3" "ne3"]] "ng3" "ng4")] [(| ["nf3" "nc3" "nd3"] ["na3""nb3" r  "nd4"] ["nd4"])]  )
 ;;(clojure.walk/prewalk #(if (number? %) (inc %) %) [1 [1 [6 7]] 3])
 ;;(clojure.walk/prewalk #(condp apply [%] number? (+ % 1) map? (:0 %) %) [1 [1 [{:0 300} 7]] 3])
-; (gtc [:op_1 :op_2 :png_1] :in-trg [(| [1 1 r 1] 1 1)] [(| [1 1] 1 1)] [(| 1 1 [1 1])] [(| 1 1 [(acc (rep 1 32))])]  :in-note [(| ["ne3" ["nd3" "ne3"]] "ng3" "ng4")] [(| ["nf3" "ne3" "nd3"] ["na3" "nb3" r  "nd4"] ["nd4"])]  )
+                                        ; (gtc [:op_1 :op_2 :png_1] :in-trg [(| [1 1 r 1] 1 1)] [(| [1 1] 1 1)] [(| 1 1 [1 1])] [(| 1 1 [(acc (rep 1 32))])]  :in-note [(| ["ne3" ["nd3" "ne3"]] "ng3" "ng4")] [(| ["nf3" "ne3" "nd3"] ["na3" "nb3" r  "nd4"] ["nd4"])]  )
+                                        ;
+;(gtc [:op_1 :op_2 :png_1] :in-trg [1 (| [1 1 r 1]) 1 1] [(| [1 1] 1 1)] [(| 1 1 [1 1 r 1]) 1 r 1] [(| [r 1 r r] r (acc (rep 1 32)))]  :in-note [(| nn)] [(| ["ng3" "nd3" "nbb3" r] ["nc3" "ng3" r  "nd3"] ["nbb3"])]  )
                                         ; Misc pattern related functions
 
 (defn stop-pattern [pattern-name]

@@ -206,6 +206,10 @@
 (defn chd ([degree root mode] (seq (chord-degree degree root mode)))
   ([degree root mode num-notes] (seq (chord-degree degree root mode num-notes))))
 
+(defn crn [root chord-name]  (map (fn [x] (str "n" x)) (map name (map find-note-name (chr root chord-name)))))
+
+(defn cdn [degree root mode]  (map (fn [x] (str "n" x)) (map name (map find-note-name (chd degree root mode)))))
+
 
 (defn mhz [& notes]
   (let [nts (map (fn [x] (if (keyword? x) (midi->hz (note x)) x) ) notes)]
