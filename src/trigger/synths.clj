@@ -184,8 +184,8 @@
 (defsynth cs80lead
   [in-trg 0
    in-trg-val 0
-   in-freq 880
-   in-freq-val 880
+   in-note 60
+   in-note-val 60
    in-amp 0.5
    in-amp-val 0.5
    in-attack 0.001
@@ -218,7 +218,7 @@
    in-gate-select-val 0
    out-bus 0
    ctrl-out 0]
-  (let [freq     (in:kr in-freq-val)
+  (let [freq     (midicps (in:kr in-note-val))
         freq-lag (in:kr in-fre-lag-val)
         freq     (lag freq freq-lag)
         amp      (in:kr in-amp-val)
