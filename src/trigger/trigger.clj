@@ -121,23 +121,33 @@
 
                                         ;Buffer pool functions
 (defn store-buffer [buf]
-  (let [size      (buffer-size buf)
-        size-key  (keyword (str size))
-        pool      @bufferPool
-        pool      (update pool size-key (fnil concat []) [buf])]
-    (reset! bufferPool pool)))
+  (let [size          (buffer-size buf)
+        buf-id-key    (keyword (str (buffer-id buf)))
+        size-key      (keyword (str size))
+        pool          @bufferPool
+        pool          (update pool size-key (fnil concat []) [buf])]
+    (reset! bufferPool pool)
+    (reset! buffersInUse (dissoc @buffersInUse buf-id-key))))
 
 (defn retrieve-buffer [size]
   ;(println size)
-  (let [size-key      (keyword (str size))
-        pool          @bufferPool
-        buffers-left  (and (contains? pool size-key) (< 0 (count (size-key pool))))
-        first-buf     (first (size-key pool))
-        rest-buf      (rest  (size-key pool))
-        pool          (assoc pool size-key  rest-buf )]
-    (if buffers-left
-      (do (reset! bufferPool pool) first-buf)
-      (do (with-server-sync #(buffer size) "Whilst retrieve-buffer")))))
+  (let [size-key          (keyword (str size))
+        pool              @bufferPool
+        buffers-left      (and (contains? pool size-key) (< 0 (count (size-key pool))))
+        first-buf         (first (size-key pool))
+        first-buf-id-key  (keyword (str (buffer-id first-buf)))
+        ;_ (println first-buf-id)
+        rest-buf          (rest  (size-key pool))
+        pool              (assoc pool size-key  rest-buf )]
+    (if (and buffers-left (not (contains? @buffersInUse first-buf-id-key)))
+      (do (reset! bufferPool pool)
+          (reset! buffersInUse (assoc @buffersInUse first-buf-id-key first-buf))
+          first-buf)
+      (do (let [new-buf      (with-server-sync #(buffer size) "Whilst retrieve-buffer")]
+            (reset! buffersInUse (assoc @buffersInUse
+                                        (keyword
+                                         (str (buffer-id new-buf))) new-buf))
+            new-buf)))))
 
 (defn generate-buffer-pool [sizes amount]
   (let [size-vectors   (vec (range 1 sizes))
