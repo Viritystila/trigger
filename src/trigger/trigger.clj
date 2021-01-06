@@ -135,19 +135,29 @@
         pool              @bufferPool
         buffers-left      (and (contains? pool size-key) (< 0 (count (size-key pool))))
         first-buf         (first (size-key pool))
-        first-buf-id-key  (keyword (str (buffer-id first-buf)))
-        ;_ (println first-buf-id)
+        ;first-buf-id-key  (keyword (str (buffer-id first-buf)))
+                                        ;_ (println first-buf-id)
+        ;; (not (contains? @buffersInUse first-buf-id-key))
         rest-buf          (rest  (size-key pool))
         pool              (assoc pool size-key  rest-buf )]
-    (if (and buffers-left (not (contains? @buffersInUse first-buf-id-key)))
-      (do (reset! bufferPool pool)
-          (reset! buffersInUse (assoc @buffersInUse first-buf-id-key first-buf))
+    (if (and buffers-left true )
+      (do (let [first-buf-id-key  (keyword (str (buffer-id first-buf)))]
+            (if (not (contains? @buffersInUse first-buf-id-key))
+                (do (reset! bufferPool pool)
+                    (reset! buffersInUse (assoc @buffersInUse first-buf-id-key first-buf))
+                    first-buf)
+                (do (let [new-buf      (with-server-sync #(buffer size) "Whilst retrieve-buffer")]
+                      (reset! buffersInUse (assoc @buffersInUse
+                                                  (keyword
+                                                   (str (buffer-id new-buf))) new-buf))
+                      new-buf))
+                ))
           first-buf)
       (do (let [new-buf      (with-server-sync #(buffer size) "Whilst retrieve-buffer")]
             (reset! buffersInUse (assoc @buffersInUse
                                         (keyword
                                          (str (buffer-id new-buf))) new-buf))
-            new-buf)))))
+            new-buf)) )))
 
 (defn generate-buffer-pool [sizes amount]
   (let [size-vectors   (vec (range 1 sizes))
@@ -585,13 +595,15 @@
         control-key          (:control-key trigger)
         buf-size             (count pattern-vector)
         old-dur-buffers      (vec (:pattern-vector trigger))
-        old-var-buffers      (vec (:pattern-value-vector trigger))
+        old-val-buffers      (vec (:pattern-value-vector trigger))
+        old-id-buffers       (:pattern-buf trigger)
+        old-value-id-buffers (:pattern-value-buf trigger)
         dur-buffers          (vec (map (fn [x] (reuse-or-create-buffer x)) pattern-vector))
         val-buffers          (vec (map (fn [x] (reuse-or-create-buffer x)) pattern-value-vector))
         _                    (vec (mapv (fn [x y] (buffer-writer x y)) dur-buffers pattern-vector ))
         _                    (vec (mapv (fn [x y] (buffer-writer x y)) val-buffers pattern-value-vector))
-        pattern-id-buf       (get-or-create-pattern-buf trigger buf-size)
-        pattern-value-id-buf (get-or-create-pattern-value-buf trigger buf-size)
+        pattern-id-buf       (retrieve-buffer buf-size)
+        pattern-value-id-buf (retrieve-buffer buf-size)
         _                    (buffer-writer pattern-id-buf       (vec (map (fn [x] (buffer-id x)) dur-buffers)))
         _                    (buffer-writer pattern-value-id-buf (vec (map (fn [x] (buffer-id x)) val-buffers)))
         trigger              (assoc trigger :pattern-vector dur-buffers)
@@ -601,12 +613,17 @@
         trigger              (assoc trigger :original-pattern-vector pattern-vector)
         trigger              (assoc trigger :original-pattern-value-vector pattern-value-vector)
         trig-synth           (:trigger-synth trigger)]
+    ;(println old-dur-buffers)
+    ;(println old-id-buffers)
+    ;(println old-value-id-buffers)
     (try
       (do (ctl trig-synth
                :base-pattern-buffer-in pattern-id-buf
                :base-pattern-value-buffer-in pattern-value-id-buf)
           (vec (map (fn [x] (store-buffer x)) old-dur-buffers))
-          (vec (map (fn [x] (store-buffer x)) old-var-buffers))
+          (vec (map (fn [x] (store-buffer x)) old-val-buffers))
+          (vec (map (fn [x] (store-buffer x)) [old-id-buffers]))
+          (vec (map (fn [x] (store-buffer x)) [old-value-id-buffers]))
           trigger)
          (catch Exception ex
            (do
