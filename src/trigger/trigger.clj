@@ -127,6 +127,7 @@
     (reset! bufferPool pool)))
 
 (defn retrieve-buffer [size]
+  ;(println size)
   (let [size-key      (keyword (str size))
         pool          @bufferPool
         buffers-left  (and (contains? pool size-key) (< 0 (count (size-key pool))))
@@ -508,11 +509,16 @@
 
 
 
-(defn buffer-writer [buf data] (try
-                                 (buffer-write-relay! buf data)
-                                 (do
-                                   (store-buffer buf)
-                                    )) )
+(defn buffer-writer [buf data]
+  (with-server-sync #(buffer-write-relay! buf data) "Whlist buffer-writer")
+  ;; (try
+  ;;                                 ;(buffer-write-relay! buf data)
+  ;;                                (do
+  ;;                                   (println "Buffer write failed")
+  ;;                                  ;(store-buffer buf)
+  ;;                                   ))
+
+  )
 
 (defn create-trigger [control-key
                       control-val-key
