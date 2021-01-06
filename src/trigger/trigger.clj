@@ -49,6 +49,7 @@
 (defonce synthConfig (atom {}))
 (defonce algConfig (atom {}))
 (defonce bufferPool (atom {}))
+(defonce buffersInUse (atom {}))
 (def timeatom (atom 0))
 
 (defn init_groups_dur_and_del []
@@ -510,6 +511,7 @@
 
 
 (defn buffer-writer [buf data]
+  ;(println (buffer-id buf))
   (with-server-sync #(buffer-write-relay! buf data) "Whlist buffer-writer")
   ;; (try
   ;;                                 ;(buffer-write-relay! buf data)
@@ -526,11 +528,11 @@
                       pattern-group
                       pattern-vector
                       pattern-value-vector]
-  (let [trigger-id           (trig-id)
-        trigger-val-id       (trig-id)
+  (let [trigger-id           (with-server-sync #(trig-id) "create-trigger, trigger-id")
+        trigger-val-id       (with-server-sync #(trig-id) "create-trigger, trigger-val-id")
         trig-group           (with-server-sync #(group (str control-key) :tail pattern-group) (str "trigger-group" control-key))
-        trig-bus             (control-bus 1)
-        trig-val-bus         (control-bus 1)
+        trig-bus             (with-server-sync #(control-bus 1) "create-trigger, trig-bus")
+        trig-val-bus         (with-server-sync #(control-bus 1) "create-trigger, trig-val-bus")
         buf-size             (count pattern-vector)
         dur-buffers          (vec (mapv (fn [x] (retrieve-buffer (count x))) pattern-vector))
         val-buffers          (vec (mapv (fn [x] (retrieve-buffer (count x))) pattern-value-vector))
