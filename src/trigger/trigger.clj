@@ -1067,54 +1067,57 @@
                                    (ctl (:out-mixer pat) :volume vol) )
   nil)
 
-(defn fade-out! [pattern-name & args] (let [pat     (pattern-name @synthConfig)
-                                            synth   (:out-mixer pat)
-                                            s-id    (to-id synth)
-                                            ivol    (node-get-control s-id :volume)
-                                            isargs  (not (empty? args))
-                                            ;args    (if isargs (first args) args)
-                                            args    (into {} (mapv vec (vec (partition 2 args))))
-                                            time    (if isargs (:t args) 1000)
-                                            time    (if (nil? time) 1000 time)
+(defn fade-out! [pattern-name & args]
+  (let [pat     (pattern-name @synthConfig)
+        synth   (:out-mixer pat)
+        s-id    (to-id synth)
+        ivol    (node-get-control s-id :volume)
+        isargs  (not (empty? args))
+                                        ;args    (if isargs (first args) args)
+        args    (into {} (mapv vec (vec (partition 2 args))))
+        time    (if (and isargs (contains? args :t)) (:t args) 5000)
+        time    (if (nil? time) 1000 time)
                                             steps   100
-                                            step    (/ ivol steps)
-                                            rang    (range ivol 0 (* -1 step))
-                                            st      (/ time (count rang))]
+        step    (/ ivol steps)
+        rang    (range ivol 0 (* -1 step))
+        st      (/ time (count rang))]
                                         ;(println step)
                                         ;(println (count rang))
-                                        (println st)
+    ;(println st)
 
-                                        (async/go
-                                          (doseq [x rang]
-                                            (volume! pattern-name x)
-                                            ;(println x)
-                                            (async/<! (async/timeout (* 1 st))))
-                                          (volume! pattern-name 0)
+    (async/go
+      (doseq [x rang]
+        (volume! pattern-name x)
+                                        ;(println x)
+        (async/<! (async/timeout (* 1 st))))
+      (volume! pattern-name 0)
                                         ;(Thread/sleep (* st 1))
-                                          )))
+      )))
 
-(defn fade-in! [pattern-name dvol & args] (let [pat     (pattern-name @synthConfig)
-                                                synth   (:out-mixer pat)
-                                                s-id    (to-id synth)
-                                                ivol    (node-get-control s-id :volume)
-                                                isargs  (not (empty? args))
+(defn fade-in! [pattern-name & args]
+  (let [pat     (pattern-name @synthConfig)
+        synth   (:out-mixer pat)
+        s-id    (to-id synth)
+        ivol    (node-get-control s-id :volume)
+        isargs  (not (empty? args))
                                         ;args    (if isargs (first args) args)
-                                                args    (into {} (mapv vec (vec (partition 2 args))))
-                                                time    (if isargs (:t args) 1000)
-                                                time    (if (nil? time) 1000 time)
-                                                steps   100
-                                                step    (/ (- dvol ivol) steps)
-                                                rang    (range ivol dvol step)
-                                                st      (/ time (count rang))]
-                                            ;(println time)
-                                            ;(println st)
-                                            (async/go
-                                              (doseq [x rang]
-                                                (volume! pattern-name x)
-                                                (async/<! (async/timeout st))
-                                                ;(Thread/sleep (* 1000 st))
-                                                )
-                                              (volume! pattern-name dvol))))
+        args    (into {} (mapv vec (vec (partition 2 args))))
+        time    (if (and isargs (contains? args :t)) (:t args) 5000)
+        time    (if (nil? time) 1000 time)
+        dvol    (if (and  isargs (contains?  args :dvol)) (:dvol args) 1)
+        steps   100
+        step    (/ (- dvol ivol) steps)
+        rang    (range ivol dvol step)
+        st      (/ time (count rang))]
+                                        ;(println time)
+                                        ;(println st)
+    (async/go
+      (doseq [x rang]
+        (volume! pattern-name x)
+        (async/<! (async/timeout st))
+                                        ;(Thread/sleep (* 1000 st))
+        )
+      (volume! pattern-name dvol))))
 
 (defn pan! [pattern-name pan] (let [pat      (pattern-name @synthConfig)]
                                 (ctl (:out-mixer pat) :pan pan) ) nil )
