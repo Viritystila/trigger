@@ -380,8 +380,9 @@
                            is-sub-synth
                            sub-synths
                            sub-synth-group
-                           trigger-vol-id
-                           vol-sender]
+                           ;;trigger-vol-id
+                           ;;vol-sender
+                           ]
   synth-control
   (kill-synth [this] (kill (. this play-synth)))
   (kill-trg   [this] (group-free (. this group)))
@@ -459,8 +460,8 @@
         sub-synth-group   (with-server-sync #(group "sub-synth-group" :tail synth-group) "sub-synth group")
         mixer-group       (with-server-sync #(group "mixer-group" :tail synth-group) "mixer group")
         play-synth        (with-server-sync #(synth-name  [:head synth-group] :out-bus out-bus) "synth creation")
-        trigger-vol-id    (trig-id)
-        vol-sender        (vol-send [:tail mixer-group] out-bus 0.017 trigger-vol-id)
+        ;;trigger-vol-id    (trig-id)
+        ;;vol-sender        (vol-send [:tail mixer-group] out-bus 0.017 trigger-vol-id)
         out-mixer         (mono-inst-mixer [:tail mixer-group] out-bus 0 1 0.0)
         _                 (println play-synth)
         default-buses     (generate-default-buses synth-name)
@@ -482,8 +483,9 @@
                            issub
                            sub-synths
                            sub-synth-group
-                           trigger-vol-id
-                           vol-sender)]
+                           ;;trigger-vol-id
+                           ;;vol-sender
+                           )]
     (apply-default-buses synth-container)
     (apply-control-out-bus synth-container)
     synth-container))
@@ -500,8 +502,8 @@
                             #(synth-name [:tail sub-synth-group] :bus-in out-bus :out-bus out-bus)
                             (str "create synth config" sub-pattern-name))
         out-mixer         (:out-mixer (@synthConfig pattern-name))
-        trigger-vol-id    (:trigger-vol-id  (@synthConfig pattern-name))
-        vol-sender        (:vol-sender  (@synthConfig pattern-name))
+        ;;trigger-vol-id    (:trigger-vol-id  (@synthConfig pattern-name))
+        ;;vol-sender        (:vol-sender  (@synthConfig pattern-name))
         _                 (println play-synth)
         default-buses     (generate-default-buses synth-name)
         control-out-bus   (control-bus 1)
@@ -522,8 +524,9 @@
                            issub
                            sub-synths
                            sub-synth-group
-                           trigger-vol-id
-                           vol-sender)]
+                           ;;trigger-vol-id
+                           ;;vol-sender
+                           )]
     (apply-default-buses synth-container)
     (apply-control-out-bus synth-container)
     synth-container))
@@ -1079,11 +1082,16 @@
                                             st      (/ time (count rang))]
                                         ;(println step)
                                         ;(println (count rang))
-                                        ;(println st)
-                                        (doseq [x rang]
-                                          (async/go
+                                        (println st)
+
+                                        (async/go
+                                          (doseq [x rang]
                                             (volume! pattern-name x)
-                                            (Thread/sleep st)))))
+                                            ;(println x)
+                                            (async/<! (async/timeout (* 1 st))))
+                                          (volume! pattern-name 0)
+                                        ;(Thread/sleep (* st 1))
+                                          )))
 
 (defn fade-in! [pattern-name dvol & args] (let [pat     (pattern-name @synthConfig)
                                                 synth   (:out-mixer pat)
@@ -1098,11 +1106,15 @@
                                                 step    (/ (- dvol ivol) steps)
                                                 rang    (range ivol dvol step)
                                                 st      (/ time (count rang))]
-                                            (println time)
-                                            (doseq [x rang]
-                                              (async/go
+                                            ;(println time)
+                                            ;(println st)
+                                            (async/go
+                                              (doseq [x rang]
                                                 (volume! pattern-name x)
-                                                (Thread/sleep st)))))
+                                                (async/<! (async/timeout st))
+                                                ;(Thread/sleep (* 1000 st))
+                                                )
+                                              (volume! pattern-name dvol))))
 
 (defn pan! [pattern-name pan] (let [pat      (pattern-name @synthConfig)]
                                 (ctl (:out-mixer pat) :pan pan) ) nil )
@@ -1116,21 +1128,23 @@
 
 (defn pause! [pattern-name] (let [pat    (pattern-name @synthConfig)
                                   synth  (:play-synth pat)
-                                  vo     (:vol-sender pat)
+                                  ;;vo     (:vol-sender pat)
                                   s-id   (to-id synth)
-                                  vo-id  (to-id vo)]
+                                  ;;vo-id  (to-id vo)
+                                  ]
                               (node-pause s-id)
-                              (node-pause vo-id)
+                              ;;(node-pause vo-id)
                               ) nil)
 
 
 (defn play! [pattern-name] (let [pat    (pattern-name @synthConfig)
                                  synth  (:play-synth pat)
-                                 vo     (:vol-sender pat)
+                                 ;;vo     (:vol-sender pat)
                                  s-id   (to-id synth)
-                                 vo-id  (to-id vo)]
+                                 ;;vo-id  (to-id vo)
+                                 ]
                              (node-start s-id)
-                             (node-start vo-id)
+                             ;;(node-start vo-id)
                               ) nil)
 
 
