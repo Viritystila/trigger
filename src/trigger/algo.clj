@@ -201,25 +201,28 @@
 
 (defn nts [& notes] (map (fn [x] (if (keyword? x) (note x) x) ) notes))
 
-(defn chr [root chord-name] (seq (chord root chord-name)) )
+;(defn chr [root chord-name] (seq (chord root chord-name)) )
 
-(defn chd ([degree root mode] (seq (chord-degree degree root mode)))
-  ([degree root mode num-notes] (seq (chord-degree degree root mode num-notes))))
+(defn chr [root chord-name] (map midi->hz (map note (map find-note-name  (seq (chord root chord-name))))) )
 
-(defn crn [root chord-name]  (map (fn [x] (str "n" x)) (map name (map find-note-name (chr root chord-name)))))
 
-(defn cdn [degree root mode]  (map (fn [x] (str "n" x)) (map name (map find-note-name (chd degree root mode)))))
+(defn chd ([degree root mode] (map midi->hz (map note (seq (chord-degree degree root mode)))))
+  ([degree root mode num-notes] (map midi->hz (map note (seq (chord-degree degree root mode num-notes))))))
+
+;(defn crn [root chord-name]  (map (fn [x] (str "n" x)) (map name (map find-note-name (chr root chord-name)))))
+
+;(defn cdn [degree root mode]  (map (fn [x] (str "n" x)) (map name (map find-note-name (chd degree root mode)))))
 
 
 (defn mhz [& notes]
   (let [nts (map (fn [x] (if (keyword? x) (midi->hz (note x)) x) ) notes)]
     (if (= (count nts) 1) (nth nts 0) nts)))
- ;
- ;defn rep ([n & input]
- ;          (let [isfn   (fn? (first input))
- ;                args   (if isfn (rest input) input)
- ;                input  (if isfn (first input) input)]
- ;            (if isfn (seq (piv (repeatedly n #(vec (apply input args)))))  (seq (piv (repeat n  input)))))))
+
+
+(defn n [& notes]
+  (let [nts (map (fn [x] (if (keyword? x) (midi->hz (note x)) x) ) notes)]
+    (if (= (count nts) 1) (nth nts 0) nts)))
+
 
 (defn rep ([input n & args]
             (let [isfn     (fn? input)
