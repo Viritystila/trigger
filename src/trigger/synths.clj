@@ -184,8 +184,8 @@
 (defsynth cs80lead
   [in-trg 0
    in-trg-val 0
-   in-note 60
-   in-note-val 60
+   in-freq 60
+   in-freq-val 60
    in-amp 0.5
    in-amp-val 0.5
    in-attack 0.001
@@ -218,7 +218,7 @@
    in-gate-select-val 0
    out-bus 0
    ctrl-out 0]
-  (let [freq     (midicps (in:kr in-note-val))
+  (let [freq     (in:kr in-freq-val)
         freq-lag (in:kr in-fre-lag-val)
         freq     (lag freq freq-lag)
         amp      (in:kr in-amp-val)
@@ -284,19 +284,19 @@
    in-trg-val 0
    in-amp 0.8
    in-amp-val 0.8
-   in-note 72
-   in-note-val 72
+   in-freq 72
+   in-freq-val 72
    in-attack 0.02
    in-attack-val 0.02
    in-decay 0.3
    in-decay-val 0.3
    ctrl-out 0
    out-bus 0]
-  (let [note   (in:kr in-note-val)
+  (let [note   (in:kr in-freq-val)
         amp    (in:kr in-amp-val)
         attack (in:kr in-attack-val)
         decay  (in:kr in-decay-val)
-        snd    (sin-osc (midicps note))
+        snd    (sin-osc note)
         env    (env-gen (perc attack decay) :gate (in:kr in-trg))]
     (out out-bus (pan2 (* amp env snd)))))
 ;(-> {:pn "ping" :sn ping :in-trg ["[1]"]} trg)
@@ -310,8 +310,8 @@
    in-wave-val 1
    in-r 0.8
    in-r-val 0.8
-   in-note 60
-   in-note-val 60
+   in-freq 60
+   in-freq-val 60
    in-attack 0.01
    in-attack-val 0.01
    in-decay 0.1
@@ -330,7 +330,7 @@
    in-gate-select-val 0
    ctrl-out 0
    out-bus 0]
-  (let [note       (in:kr in-note-val)
+  (let [note       (in:kr in-freq-val)
         wave       (in:kr in-wave-val)
         r          (in:kr in-r-val)
         attack     (in:kr in-attack-val)
@@ -340,7 +340,7 @@
         cutoff     (in:kr in-cutoff-val)
         env-amount (in:kr in-env-amount-val)
         amp        (in:kr in-amp-val)
-        freq       (midicps note)
+        freq       note
         freqs      [freq (* 1.01 freq)]
         gate       (in:kr in-trg)
         gate-val   (in:kr in-trg-val)
@@ -368,8 +368,8 @@
   "Choose 0, 1, or 2 for saw, sin, or pulse"
   [in-trg 0
    in-trg-val 0
-   in-note 60
-   in-note-val 60
+   in-freq 60
+   in-freq-val 60
    in-amp 1
    in-amp-val 1
    in-osc1 1
@@ -406,7 +406,7 @@
         gate-val       (in:kr in-trg-val)
         trg-gate       (trig gate gate-val)
         gate           (select:kr (in:kr in-gate-select-val)  [trg-gate gate])
-        note           (in:kr in-note-val)
+        note           (in:kr in-freq-val)
         amp            (in:kr in-amp-val)
         osc1           (in:kr in-osc1-val)
         osc2           (in:kr in-osc2-val)
@@ -421,7 +421,7 @@
         frelease       (in:kr in-frelease-val)
         osc1-level     (in:kr in-osc1-level-val)
         osc2-level     (in:kr in-osc2-level-val)
-        freq           (midicps note)
+        freq           note
         osc-bank-1     [(saw freq) (sin-osc freq) (pulse freq)]
         osc-bank-2     [(saw freq) (sin-osc freq) (pulse freq)]
         amp-env        (env-gen (adsr attack decay sustain release) :gate gate)
@@ -560,8 +560,8 @@
 (defsynth overpad
   [in-trg 0
    in-trg-val 0
-   in-note 60
-   in-note-val 60
+   in-freq 60
+   in-freq-val 60
    in-amp 0.7
    in-amp-val 0.7
    in-attack 0.001
@@ -581,13 +581,13 @@
         trg-gate   (trig gate gate-val)
         trg-gate   (trig gate gate-val)
         gate       (select:kr (in:kr in-gate-select-val)  [trg-gate gate])
-        note       (in:kr in-note-val)
+        note       (in:kr in-freq-val)
         amp        (in:kr in-amp-val)
         attack     (in:kr in-attack-val)
         decay      (in:kr in-decay-val)
         sustain    (in:kr in-sustain-val)
         release    (in:kr in-release-val)
-        freq       (midicps note)
+        freq       note
         env        (env-gen (adsr attack decay sustain release) :gate gate)
         f-env      (+ freq (* 3 freq (env-gen (perc 0.012 (- release 0.1)) :gate gate)))
         bfreq      (/ freq 2)
@@ -647,8 +647,8 @@
 (defsynth grunge-bass
   [in-trg 0
    in-trg-val 0
-   in-note 48
-   in-note-val 48
+   in-freq 48
+   in-freq-val 48
    in-amp 0.5
    in-amp-val 0.5
    in-dur 0.1
@@ -669,8 +669,8 @@
         gate-val   (in:kr in-trg-val)
         trg-gate   (trig gate gate-val)
         gate       (select:kr (in:kr in-gate-select-val)  [trg-gate gate])
-        note       (in:kr in-note-val)
-        freq       (midicps note)
+        note       (in:kr in-freq-val)
+        freq       note
         amp        (in:kr in-amp-val)
         dur        (in:kr in-dur-val)
         a          (in:kr in-a-val)
@@ -692,8 +692,8 @@
 (defsynth vintage-bass
   [in-trg 0
    in-trg-val 0
-   in-note 40
-   in-note-val 40
+   in-freq 40
+   in-freq-val 40
    in-velocity 80
    in-velocity-val 80
    in-t 0.6
@@ -716,7 +716,7 @@
         gate-val   (in:kr in-trg-val)
         trg-gate   (trig gate gate-val)
         gate       (select:kr (in:kr in-gate-select-val)  [trg-gate gate])
-        note       (in:kr in-note-val)
+        note       (in:kr in-freq-val)
         velocity   (in:kr in-velocity-val)
         t          (in:kr in-t-val)
         amp        (in:kr in-amp-val)
@@ -724,8 +724,8 @@
         d          (in:kr in-d-val)
         s          (in:kr in-s-val)
         r          (in:kr in-r-val)
-        freq       (midicps note)
-        sub-freq   (midicps (- note 12))
+        freq       note
+        sub-freq   (max 1 (- note 20))
         velocity   (/ velocity 127.0)
         sawz1      (* 0.275 (saw [freq (* 1.01 freq)]))
         sawz2      (* 0.75 (saw [(- freq 2) (+ 1 freq)]))
@@ -739,8 +739,8 @@
 (defsynth b3
   [in-trg 0
    in-trg-val 0
-   in-note 60
-   in-note-val 60
+   in-freq 60
+   in-freq-val 60
    in-amp 0.3
    in-amp-val 0.3
    in-a 0.01
@@ -759,13 +759,13 @@
         gate-val   (in:kr in-trg-val)
         trg-gate   (trig gate gate-val)
         gate       (select:kr (in:kr in-gate-select-val)  [trg-gate gate])
-        note       (in:kr in-note-val)
+        note       (in:kr in-freq-val)
         amp        (in:kr in-amp-val)
         a          (in:kr in-a-val)
         d          (in:kr in-d-val)
         s          (in:kr in-s-val)
         r          (in:kr in-r-val)
-        freq       (midicps note)
+        freq       note
         waves      (sin-osc [(* 0.5 freq)
                              freq
                              (* (/ 3 2) freq)
@@ -783,8 +783,8 @@
 (defsynth ks1
   [in-trg 0
    in-trg-val 0
-   in-note 60
-   in-note-val 60
+   in-freq 60
+   in-freq-val 60
    in-amp 1
    in-amp-val 1
    in-dur 2
@@ -797,12 +797,12 @@
    out-bus 0]
   (let [gate       (in:kr in-trg)
         gate-val   (in:kr in-trg-val)
-        note       (in:kr in-note-val)
+        note       (in:kr in-freq-val)
         amp        (in:kr in-amp-val)
         dur        (in:kr in-dur-val)
         decay      (in:kr in-decay-val)
         coef       (in:kr in-coef-val)
-        freq       (midicps note)
+        freq       note
         noize      (* 0.8 (white-noise))
         dly        (/ 1.0 freq)
         plk        (pluck noize gate (/ 1.0 freq) dly
@@ -818,8 +818,8 @@
 (defsynth bowed
   [in-trg 0
    in-trg-val 0
-   in-note 60
-   in-note-val 60
+   in-freq 60
+   in-freq-val 60
    in-velocity 80
    in-velocity-val 80
    in-amp 1
@@ -850,7 +850,7 @@
         gate-val     (in:kr in-trg-val)
         trg-gate     (trig gate gate-val)
         gate         (select:kr (in:kr in-gate-select-val)  [trg-gate gate])
-        note         (in:kr in-note-val)
+        note         (in:kr in-freq-val)
         velocity     (in:kr in-velocity-val)
         amp          (in:kr in-amp-val)
         bow-offset   (in:kr in-bow-offset-val)
@@ -862,7 +862,7 @@
         decay        (in:kr in-decay-val)
         sustain      (in:kr in-sustain-val)
         release      (in:kr in-release-val)
-        freq         (midicps note)
+        freq         note
         velocity     (/ velocity 127)
         beta-ratio   (+ 0.027236 (* 0.2 bow-position))
         base-delay   (reciprocal freq)

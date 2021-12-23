@@ -704,7 +704,8 @@
         value-string     "v"
         ]
     (if is-input-string (cond
-                          (re-matches #"n.*" x) (note (keyword (split-special-string x #"n")))
+                          ;(re-matches #"n.*" x) (note (keyword (split-special-string x #"n")))
+                          (re-matches #"n.*" x) (midi->hz (note (keyword (split-special-string x #"f"))))
                           (re-matches #"f.*" x) (midi->hz (note (keyword (split-special-string x #"f"))))
                           (re-matches #"b.*" x) (get-sample-id (keyword (split-special-string x #"b")))
                           (re-matches #"v.*" x) (Float/parseFloat (split-special-string x #"v")))
@@ -1006,8 +1007,9 @@
 (defn get-buffer-ids [pattern-name bt]
   (let [pattern-status (pattern-name @synthConfig)
         triggers       (:triggers pattern-status)]
-    (println (count triggers))
-    (map (fn [x] (bt ((first x) triggers))) triggers)
+    ;(println (count triggers))
+    (vec (:pattern-vector (bt triggers)))
+    ;(mapv (fn [x] (bt ((first x) triggers))) triggers)
     )
   )
 
@@ -1022,7 +1024,8 @@
 
 (defn lss [] (println (keys @synthConfig))  (keys @synthConfig) )
 
-                                        ; OSC
+
+                                        ;OSC
 ;(var addr=NetAddr.new("127.0.0.1", 3333);  OSCdef ('/tidalplay2', { arg msg; addr.sendMsg("/play2", *msg);}, '/play2', n);)
 ;; (defn init-osc [port]
 ;;   (def oscserver (osc-server port "osc-clj"))
@@ -1078,9 +1081,9 @@
         time    (if (and isargs (contains? args :t)) (:t args) 5000)
         time    (if (nil? time) 1000 time)
                                             steps   100
-        step    (/ ivol steps)
+        step    (/ ivol (+ 1 steps))
         rang    (range ivol 0 (* -1 step))
-        st      (/ time (count rang))]
+        st      (/ time (+ 1 (count rang)))]
                                         ;(println step)
                                         ;(println (count rang))
     ;(println st)
@@ -1106,9 +1109,9 @@
         time    (if (nil? time) 1000 time)
         dvol    (if (and  isargs (contains?  args :dvol)) (:dvol args) 1)
         steps   100
-        step    (/ (- dvol ivol) steps)
+        step    (/ (- dvol ivol) (+ 1 steps))
         rang    (range ivol dvol step)
-        st      (/ time (count rang))]
+        st      (/ time (+ 1 (count rang)))]
                                         ;(println time)
                                         ;(println st)
     (async/go
@@ -1121,7 +1124,6 @@
 
 (defn pan! [pattern-name pan] (let [pat      (pattern-name @synthConfig)]
                                 (ctl (:out-mixer pat) :pan pan) ) nil )
-
 
 
 (defn clrfx! [pattern-name] (let [pat      (pattern-name @synthConfig)
