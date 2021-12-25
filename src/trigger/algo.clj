@@ -34,7 +34,7 @@
                                   buf  (nth pat-vec buf-id)
                                   dur (vec (take 1 (markov-chains.core/generate @fobm_args)))]
                               (buffer-write! buf 1 dur))
-                            (catch Exception e (do (println "Excpetion " e)
+                            (catch Exception e (do (println "Exception " e)
                                                    (swap! alg-config dissoc alg-key)
                                                    (remove-event-handler alg-key)))))
               alg-key))
@@ -226,6 +226,8 @@
 (defn n [& notes]
   (let [nts (map (fn [x] (if (keyword? x) (midi->hz (note x)) x) ) notes)]
     (if (= (count nts) 1) (nth nts 0) nts)))
+
+
 
 
 (defn rep ([input n & args]
@@ -489,3 +491,9 @@
 
 (defn ofs [value x]
   (if (number? x) (+ x value) x ))
+
+(defn shf [value]
+  (if (number? 440) (* 440 (math/expt 2 (/ -69 12)) (math/expt 2 (/  value 12)) ) 440 ))
+
+;; (defn shf [value ]
+;;   (if (number? 440) (* 440 (math/expt 2 (/ (- value 69) 12)) ) 440 ))
