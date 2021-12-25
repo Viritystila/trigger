@@ -174,6 +174,8 @@
 (defn evr [coll n f & args]
   (let [isvec       (vector? coll)
         isfn        (fn? f)
+        is-n-fn     (fn? n)
+        n           (if is-n-fn (n) n)
         ;_ (println coll)
         coll        (piv coll)
         coll_length (count coll)
@@ -205,6 +207,8 @@
 
 (defn chr [root chord-name] (map midi->hz (map note (map find-note-name  (seq (chord root chord-name))))) )
 
+(defn chr-n [root chord-name]  (map find-note-name  (seq (chord root chord-name))) )
+
 
 (defn chd ([degree root mode] (map midi->hz (map note (seq (chord-degree degree root mode)))))
   ([degree root mode num-notes] (map midi->hz (map note (seq (chord-degree degree root mode num-notes))))))
@@ -227,6 +231,8 @@
 (defn rep ([input n & args]
             (let [isfn     (fn? input)
                   fn_i     (if isfn input (fn [x] x))
+                  is-n-fn     (fn? n)
+                  n           (if is-n-fn (n) n)
                   args     args]
               ;(println isfn)
               (if isfn (seq (piv (repeatedly n #(vec (apply fn_i  args)))))  (seq (piv (repeat n  input)))))))
@@ -262,6 +268,8 @@
                  coll        (piv coll)
                  coll_length (count coll)
                  isfn        (fn? input)
+                 is-n-fn     (fn? n)
+                 n           (if is-n-fn (n) n)
                  n_orig      n
                  n           (mod n (count  coll))
                  coll        (piv coll)
@@ -291,6 +299,8 @@
                  coll        (piv coll)
                  coll_length (count coll)
                  isfn        (fn? input)
+                 is-n-fn     (fn? n)
+                 n           (if is-n-fn (n) n)
                  n           (mod n (count  coll))
                  coll        (piv coll)
                  ncoll       (nth coll n)
@@ -317,7 +327,9 @@
 
 (defn asc [coll n input & args]
   ;(println coll)
-  (let [is_n_vec      (vector? n)
+  (let [is-n-fn     (fn? n)
+        n           (if is-n-fn (n) n)
+        is_n_vec      (vector? n)
         isfn          (fn? input)
 
         coll_length   (count coll)
@@ -339,17 +351,6 @@
     (if bothvec
       (apply assoc coll (interleave nmap input) )
       (assoc coll max_n input))
-    ))
-
-(defn asc_deprecated [coll n input & args]
-  ;(println coll)
-  (let [coll_length   (count coll)
-        n             (mod n coll_length)
-        isfn          (fn? input)
-        nth_element   (nth coll n)
-        input         (if isfn (apply input (conj args nth_element)) input)
-        ]
-    (assoc coll n input)
     ))
 
 (defn sir [n range center period]
