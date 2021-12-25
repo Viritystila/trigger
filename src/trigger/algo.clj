@@ -333,7 +333,6 @@
         n           (if is-n-fn (n) n)
         is_n_vec      (vector? n)
         isfn          (fn? input)
-
         coll_length   (count coll)
         max_n         (if is_n_vec
                         (mod (apply max n) (+ 1 coll_length))
@@ -490,10 +489,11 @@
   (if (number? x) (* x value) x ))
 
 (defn ofs [value x]
-  (if (number? x) (+ x value) x ))
+  (let [is-x-fn     (fn? x)
+        x           (if is-x-fn (x) x) ]
+    (if (number? x) (+ x value) x )))
 
-(defn shf [value]
-  (if (number? 440) (* 440 (math/expt 2 (/ -69 12)) (math/expt 2 (/  value 12)) ) 440 ))
-
-;; (defn shf [value ]
-;;   (if (number? 440) (* 440 (math/expt 2 (/ (- value 69) 12)) ) 440 ))
+(defn shf [f value]
+  (let [p (+ 69 (* 12 (/ (Math/log (/ f 440)) (Math/log 2))))
+        value (+ value p)]
+    (if (number? 440) (* 440 (math/expt 2 (/ -69 12)) (math/expt 2 (/  value 12)) ) 440 )))
