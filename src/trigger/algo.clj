@@ -53,7 +53,7 @@
                               (buffer-write! buf 1 dur)
                               (buffer-write! buf2 1 freq)
                               )
-                            (catch Exception e (do (println "Excpetion " e)
+                            (catch Exception e (do (println "Exception " e)
                                                    (swap! alg-config dissoc alg-key)
                                                  (remove-event-handler alg-key)))))
               alg-key))
