@@ -497,3 +497,8 @@
   (let [p (+ 69 (* 12 (/ (Math/log (/ f 440)) (Math/log 2))))
         value (+ value p)]
     (if (number? 440) (* 440 (math/expt 2 (/ -69 12)) (math/expt 2 (/  value 12)) ) 440 )))
+
+
+;; (trg :op overpad :in-trg  (-> (rtm 6 8) (rep 8) (evr 2 (rtm 5 8)) (evr 2 rpl (rand-int 4) (rtm 2 2))  (evr 1 sfl) (evr 1 map-in scl 0.1))  :in-freq (-> [ (range (mhz :c0) (mhz :bb1) 2) (range (mhz :d1) (mhz :c0) -2)] (sfl) (slw 2) (cnc [(trigger.algo/n :d1 r r :g0 :d1 :c2 )]) (cnc [(chr :c0 :7sus2)]) (cnc [(rev  (chr :c1 :7sus2))]) (evr 2 map-in trigger.algo/shf 12) ) )
+
+;; (trg :kick kick :in-trg (-> (rtm 4 7) (rep 8) (evr 2 (rtm 5 7))) :in-amp  [0.06] )

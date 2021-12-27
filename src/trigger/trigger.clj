@@ -135,6 +135,7 @@
         pool              @bufferPool
         buffers-left      (and (contains? pool size-key) (< 0 (count (size-key pool))))
         first-buf         (first (size-key pool))
+        ;_ (println buffers-left)
         ;first-buf-id-key  (keyword (str (buffer-id first-buf)))
                                         ;_ (println first-buf-id)
         ;; (not (contains? @buffersInUse first-buf-id-key))
@@ -638,6 +639,7 @@
 (defn changed? [trigger new-trigger-pattern  new-control-pattern]
   (let [old-trigger-pattern  (:original-pattern-vector trigger)
         old-control-pattern  (:original-pattern-value-vector trigger)]
+    ;(println old-trigger-pattern)
     (or (not= new-trigger-pattern old-trigger-pattern) (not= new-control-pattern old-control-pattern))))
 
 (defn t [synth-container control-pair]
@@ -653,6 +655,7 @@
         trigger-status    (control-key triggers)
         has-changed       (if (some? trigger-status)
                             (changed? trigger-status trig-pattern val-pattern))
+        ;_ (println control-key)
         trigger           (if (some? trigger-status)
                             (if (= true has-changed)
                               (update-trigger trigger-status trig-pattern val-pattern) trigger-status)
@@ -705,7 +708,7 @@
         ]
     (if is-input-string (cond
                           ;(re-matches #"n.*" x) (note (keyword (split-special-string x #"n")))
-                          (re-matches #"n.*" x) (midi->hz (note (keyword (split-special-string x #"f"))))
+                          (re-matches #"n.*" x) (midi->hz (note (keyword (split-special-string x #"n"))))
                           (re-matches #"f.*" x) (midi->hz (note (keyword (split-special-string x #"f"))))
                           (re-matches #"b.*" x) (get-sample-id (keyword (split-special-string x #"b")))
                           (re-matches #"v.*" x) (Float/parseFloat (split-special-string x #"v")))
@@ -770,12 +773,8 @@
       (do (intern (ns-name *ns*) fname (fn [& input] (trg (keyword pattern-name) synth-name input ))))
       (do (println "Definition exists")))))
 
-;(trg :kick kick (inp ["in-trg" "in-f3"] ["v 1, v 400" "v 3, v 1400"]))
-
 ;New trigger input function, allows more terse and powerful way to create patterns. Now clojure functions such as repeat can be used directly in the input.
 (defn trg ([pn sn & input]
-           ;(println input)
-           ;(println (type (first (first input))))
            (let [input                 (seq (parse-input-vector input))
                  pattern-name          (if (keyword? pn) (name pn) pn )
                  pattern-name-key      (keyword pattern-name)
@@ -798,18 +797,22 @@
                      triggers            (:triggers synth-container)
                      running-trigger-keys(keys triggers)
                      input-trigger-keys  (keys initial-controls-only)
-                     triggers-not-renewd (first (diff running-trigger-keys input-trigger-keys))
-                     ;; _                   (doseq [x triggers-not-renewd]
-                     ;;                       (if (some? x)
-                     ;;                         (do (kill-trg-group (x triggers)) (apply-default-bus synth-container x))))
-                     triggers            (apply dissoc triggers triggers-not-renewd)
                      synth-container     (assoc synth-container :triggers triggers)]
                  (swap! synthConfig assoc pattern-name-key synth-container)))
-             (swap! synthConfig assoc pattern-name-key
-                    (assoc (pattern-name-key @synthConfig)
-                           :triggers
-                           (zipmap (keys input-controls-only)
-                                   (map (partial t (pattern-name-key @synthConfig)) input-controls-only))))
+             (let [synth-container     (pattern-name-key @synthConfig)
+                   triggers            (:triggers synth-container)
+                   ;_ (println input-controls-only)
+                   ;_ (println    (filter #(not (.contains (flatten %) nil)) input-controls-only) )
+                   updated-triggers    (zipmap
+                                        (keys input-controls-only)
+                                        (map
+                                         (partial t (pattern-name-key @synthConfig)) input-controls-only))
+                   merged-triggers (merge triggers updated-triggers)
+                   ]
+               (swap! synthConfig assoc pattern-name-key
+                      (assoc (pattern-name-key @synthConfig)
+                             :triggers
+                             merged-triggers)))
              (make-helper-function pattern-name synth-name input)
              pattern-name)))
 
@@ -846,14 +849,21 @@
                            ;; _                   (doseq [x triggers-not-renewd]
                            ;;                       (if (some? x)
                            ;;                         (do (kill-trg-group (x triggers)) (apply-default-bus synth-container x))))
-                           triggers            (apply dissoc triggers triggers-not-renewd)
+                           ;triggers            (apply dissoc triggers triggers-not-renewd)
                            synth-container     (assoc synth-container :triggers triggers)]
                        (swap! synthConfig assoc sub-pattern-name-key synth-container)))
-                   (swap! synthConfig assoc sub-pattern-name-key
-                          (assoc (sub-pattern-name-key @synthConfig)
-                                 :triggers
-                                 (zipmap (keys input-controls-only)
-                                         (map (partial t (sub-pattern-name-key @synthConfig)) input-controls-only))))) (println "Parent synth" pattern-name-key "does not exist.") )
+                   (let  [synth-container     (sub-pattern-name-key @synthConfig)
+                          triggers            (:triggers synth-container)
+                          updated-triggers    (zipmap
+                                               (keys input-controls-only)
+                                               (map
+                                                (partial t (sub-pattern-name-key @synthConfig)) input-controls-only))
+                          merged-triggers (merge triggers updated-triggers)
+                          ] (swap! synthConfig assoc sub-pattern-name-key
+                               (assoc (sub-pattern-name-key @synthConfig)
+                                      :triggers
+                                      merged-triggers
+                                      )))) (println "Parent synth" pattern-name-key "does not exist.") )
              (make-helper-function sub-pattern-name synth-name input)
              sub-pattern-name)))
 
@@ -1012,6 +1022,8 @@
     ;(mapv (fn [x] (bt ((first x) triggers))) triggers)
     )
   )
+
+
 
 (defn sctl [pattern-name var value]
   (let [pattern-status (pattern-name @synthConfig)]
