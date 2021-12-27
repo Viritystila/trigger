@@ -135,30 +135,31 @@
         pool              @bufferPool
         buffers-left      (and (contains? pool size-key) (< 0 (count (size-key pool))))
         first-buf         (first (size-key pool))
-        ;_ (println buffers-left)
-        ;first-buf-id-key  (keyword (str (buffer-id first-buf)))
-                                        ;_ (println first-buf-id)
-        ;; (not (contains? @buffersInUse first-buf-id-key))
         rest-buf          (rest  (size-key pool))
         pool              (assoc pool size-key  rest-buf )]
     (if (and buffers-left true )
       (do (let [first-buf-id-key  (keyword (str (buffer-id first-buf)))]
             (if (not (contains? @buffersInUse first-buf-id-key))
-                (do (reset! bufferPool pool)
-                    (reset! buffersInUse (assoc @buffersInUse first-buf-id-key first-buf))
-                    first-buf)
-                (do (let [new-buf      (with-server-sync #(buffer size) "Whilst retrieve-buffer")]
-                      (reset! buffersInUse (assoc @buffersInUse
-                                                  (keyword
-                                                   (str (buffer-id new-buf))) new-buf))
-                      new-buf))
-                ))
+              (do
+                ;(println "use existing buffer")
+                (reset! bufferPool pool)
+                (reset! buffersInUse (assoc @buffersInUse first-buf-id-key first-buf))
+                first-buf)
+              (do
+                ;(println "create new buffer")
+                (let [new-buf      (with-server-sync #(buffer size) "Whilst retrieve-buffer")]
+                  (reset! buffersInUse (assoc @buffersInUse
+                                              (keyword
+                                               (str (buffer-id new-buf))) new-buf))
+                  new-buf))
+              ))
           first-buf)
       (do (let [new-buf      (with-server-sync #(buffer size) "Whilst retrieve-buffer")]
             (reset! buffersInUse (assoc @buffersInUse
                                         (keyword
                                          (str (buffer-id new-buf))) new-buf))
             new-buf)) )))
+
 
 (defn generate-buffer-pool [sizes amount]
   (let [size-vectors   (vec (range 1 sizes))
@@ -850,10 +851,6 @@
                            running-trigger-keys(keys triggers)
                            input-trigger-keys  (keys initial-controls-only)
                            triggers-not-renewd (first (diff running-trigger-keys input-trigger-keys))
-                           ;; _                   (doseq [x triggers-not-renewd]
-                           ;;                       (if (some? x)
-                           ;;                         (do (kill-trg-group (x triggers)) (apply-default-bus synth-container x))))
-                           ;triggers            (apply dissoc triggers triggers-not-renewd)
                            synth-container     (assoc synth-container :triggers triggers)]
                        (swap! synthConfig assoc sub-pattern-name-key synth-container)))
                    (let  [synth-container     (sub-pattern-name-key @synthConfig)
@@ -912,12 +909,6 @@
     (doseq [x synths] (trg x  (:synth-name (:x @synthConfig))  (condition-pattern input (keyword (str (x synmap))) false true )) )
     ;(println patterns)
     ))
-;; (gtc [:op_1 :op_2 :png_1] :in-trg [(| [1] [1] [1])] [(| [1] [1] [1])] [(| [1] [1] [1 1])] [(| [1] [1] [(acc (rep 1 32))])]  :in-note [(| ["ne3" ["nd3" "ne3"]] "ng3" "ng4")] [(| ["nf3" "nc3" "nd3"] ["na3""nb3" r  "nd4"] ["nd4"])]  )
-;;(clojure.walk/prewalk #(if (number? %) (inc %) %) [1 [1 [6 7]] 3])
-;;(clojure.walk/prewalk #(condp apply [%] number? (+ % 1) map? (:0 %) %) [1 [1 [{:0 300} 7]] 3])
-                                        ; (gtc [:op_1 :op_2 :png_1] :in-trg [(| [1 1 r 1] 1 1)] [(| [1 1] 1 1)] [(| 1 1 [1 1])] [(| 1 1 [(acc (rep 1 32))])]  :in-note [(| ["ne3" ["nd3" "ne3"]] "ng3" "ng4")] [(| ["nf3" "ne3" "nd3"] ["na3" "nb3" r  "nd4"] ["nd4"])]  )
-                                        ;
-;(gtc [:op_1 :op_2 :png_1] :in-trg [1 (| [1 1 r 1]) 1 1] [(| [1 1] 1 1)] [(| 1 1 [1 1 r 1]) 1 r 1] [(| [r 1 r r] r (acc (rep 1 32)))]  :in-note [(| nn)] [(| ["ng3" "nd3" "nbb3" r] ["nc3" "ng3" r  "nd3"] ["nbb3"])]  )
                                         ; Misc pattern related functions
 
 (defn stop-pattern [pattern-name]
@@ -933,43 +924,46 @@
         ;_ (println sub-synth-keys)
         sub-synth-vals        (vals sub-synths)
         triggers              (vals (:triggers pattern-status))]
-    (if (some? pattern-status) (do (if (not issub) (free-default-buses pattern-status))
-                                   (if (not issub) (free-control-out-bus pattern-status))
-                                   (if (not issub) (free-out-bus pattern-status))
-                                   (if (not issub) (free-secondary-out-bus pattern-status))
-                                   (doseq [x triggers] (kill-trg-group x))
-                                   (if (not issub)
-                                     (kill-trg pattern-status)
-                                     (kill-synth pattern-status) )
-                                   (if (not issub)
-                                     (reset! synthConfig  (apply dissoc @synthConfig sub-synth-keys))
-                                     (do
-                                       (reset! synthConfig  (apply dissoc @synthConfig sub-synth-vals))
-                                       (doseq [x sub-synth-keys]  (reset! synthConfig (assoc @synthConfig x  (assoc (x @synthConfig) :sub-synths  (apply dissoc (:sub-synths (x @synthConfig)) sub-synth-vals))))))
-                                     )
-                                   (swap! synthConfig dissoc pattern-name-key) (println "pattern" (:pattern-name pattern-status) "stopped")) (println "No such pattern") )))
+    (if (some? pattern-status)
+      (do (if (not issub) (free-default-buses pattern-status))
+          (if (not issub) (free-control-out-bus pattern-status))
+          (if (not issub) (free-out-bus pattern-status))
+          (if (not issub) (free-secondary-out-bus pattern-status))
+          (doseq [x triggers] (kill-trg-group x))
+          (if (not issub)
+            (kill-trg pattern-status)
+            (kill-synth pattern-status) )
+          (if (not issub)
+            (reset! synthConfig  (apply dissoc @synthConfig sub-synth-keys))
+            (do
+              (reset! synthConfig  (apply dissoc @synthConfig sub-synth-vals))
+              (doseq [x sub-synth-keys]  (reset! synthConfig (assoc @synthConfig x  (assoc (x @synthConfig) :sub-synths  (apply dissoc (:sub-synths (x @synthConfig)) sub-synth-vals))))))
+            )
+          (swap! synthConfig dissoc pattern-name-key) (println "pattern" (:pattern-name pattern-status) "stopped")) (println "No such pattern") )))
 
 (defn stp [& pattern-names]
-  (doseq [x pattern-names] (let [pattern-name-key      x
-                                 pattern-status        (pattern-name-key @synthConfig)
-                                 issub                 (:is-sub-synth pattern-status)
-                                 sub-synths            (:sub-synths pattern-status)
-                                 sub-synth-keys        (keys sub-synths)]
-                             ;(println sub-synth-keys)
-                             ;(println issub)
-                             (doseq [y sub-synth-keys] (do (if (:is-sub-synth (y @synthConfig)) (stop-pattern y))))
-                             (stop-pattern x)) ))
+  (doseq [x pattern-names]
+    (let [pattern-name-key      x
+          pattern-status        (pattern-name-key @synthConfig)
+          issub                 (:is-sub-synth pattern-status)
+          sub-synths            (:sub-synths pattern-status)
+          sub-synth-keys        (keys sub-synths)]
+                                        ;(println sub-synth-keys)
+                                        ;(println issub)
+      (doseq [y sub-synth-keys] (do (if (:is-sub-synth (y @synthConfig)) (stop-pattern y))))
+      (stop-pattern x)) ))
 
 (defn sta []
-  (doseq [x  (keys @synthConfig)](let [pattern-name-key      x
-                                 pattern-status        (pattern-name-key @synthConfig)
-                                 issub                 (:is-sub-synth pattern-status)
-                                 sub-synths            (:sub-synths pattern-status)
-                                 sub-synth-keys        (keys sub-synths)]
-                             ;(println sub-synth-keys)
-                             ;(println issub)
-                             (doseq [y sub-synth-keys] (do (if (:is-sub-synth (y @synthConfig)) (stop-pattern y))))
-                             (stop-pattern x)) (stop-pattern x)))
+  (doseq [x  (keys @synthConfig)]
+    (let [pattern-name-key      x
+          pattern-status        (pattern-name-key @synthConfig)
+          issub                 (:is-sub-synth pattern-status)
+          sub-synths            (:sub-synths pattern-status)
+          sub-synth-keys        (keys sub-synths)]
+                                        ;(println sub-synth-keys)
+                                        ;(println issub)
+      (doseq [y sub-synth-keys] (do (if (:is-sub-synth (y @synthConfig)) (stop-pattern y))))
+      (stop-pattern x)) (stop-pattern x)))
 
 (defn set-out-bus [pattern-name]
   (let [pattern-name-key    pattern-name
