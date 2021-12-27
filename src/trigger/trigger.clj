@@ -706,13 +706,16 @@
         buffer-string    "b"
         value-string     "v"
         ]
-    (if is-input-string (cond
-                          ;(re-matches #"n.*" x) (note (keyword (split-special-string x #"n")))
-                          (re-matches #"n.*" x) (midi->hz (note (keyword (split-special-string x #"n"))))
-                          (re-matches #"f.*" x) (midi->hz (note (keyword (split-special-string x #"f"))))
-                          (re-matches #"b.*" x) (get-sample-id (keyword (split-special-string x #"b")))
-                          (re-matches #"v.*" x) (Float/parseFloat (split-special-string x #"v")))
-        x)))
+    (if is-input-string
+      (cond
+                                        ;(re-matches #"n.*" x) (note (keyword (split-special-string x #"n")))
+        (re-matches #"n.*" x) (midi->hz (note (keyword (split-special-string x #"n"))))
+        (re-matches #"f.*" x) (midi->hz (note (keyword (split-special-string x #"f"))))
+        (re-matches #"b.*" x) (get-sample-id (keyword (split-special-string x #"b")))
+        (re-matches #"v.*" x) (Float/parseFloat (split-special-string x #"v")))
+      (cond
+        (= x nil) r
+        :else x))))
 
 
 (defn special-case [input key]
@@ -726,8 +729,9 @@
            result []]
       (if xv
         (let [fst (first xv)]
-          (if (vector? fst) (recur (next xv)  (conj result (vec (apply-special-cases fst special-cond))))
-              (recur (next xv) (conj result (special-case fst special-cond))))) result ))))
+          (if (vector? fst)
+            (recur (next xv)  (conj result (vec (apply-special-cases fst special-cond))))
+            (recur (next xv) (conj result (special-case fst special-cond))))) result ))))
 
 (defn copy-key-val [input key]
   (let [value              (key input)
@@ -921,7 +925,12 @@
         pattern-status        (pattern-name-key @synthConfig)
         issub                 (:is-sub-synth pattern-status)
         sub-synths            (:sub-synths pattern-status)
+        ;_ (println pattern-name-key)
+        ;_ (println issub)
+        ;_ (println sub-synths)
+        ;_ (println (into [] (filter #(do (= (first %) pattern-name-key) sub-synths))))
         sub-synth-keys        (keys sub-synths)
+        ;_ (println sub-synth-keys)
         sub-synth-vals        (vals sub-synths)
         triggers              (vals (:triggers pattern-status))]
     (if (some? pattern-status) (do (if (not issub) (free-default-buses pattern-status))
@@ -936,14 +945,31 @@
                                      (reset! synthConfig  (apply dissoc @synthConfig sub-synth-keys))
                                      (do
                                        (reset! synthConfig  (apply dissoc @synthConfig sub-synth-vals))
-                                       (doseq [x sub-synth-keys]  (reset! synthConfig (assoc @synthConfig x  (assoc (x @synthConfig) :sub-synths  (apply dissoc (:sub-synths (x @synthConfig)) sub-synth-vals)))))))
+                                       (doseq [x sub-synth-keys]  (reset! synthConfig (assoc @synthConfig x  (assoc (x @synthConfig) :sub-synths  (apply dissoc (:sub-synths (x @synthConfig)) sub-synth-vals))))))
+                                     )
                                    (swap! synthConfig dissoc pattern-name-key) (println "pattern" (:pattern-name pattern-status) "stopped")) (println "No such pattern") )))
 
 (defn stp [& pattern-names]
-  (doseq [x pattern-names] (stop-pattern x)))
+  (doseq [x pattern-names] (let [pattern-name-key      x
+                                 pattern-status        (pattern-name-key @synthConfig)
+                                 issub                 (:is-sub-synth pattern-status)
+                                 sub-synths            (:sub-synths pattern-status)
+                                 sub-synth-keys        (keys sub-synths)]
+                             ;(println sub-synth-keys)
+                             ;(println issub)
+                             (doseq [y sub-synth-keys] (do (if (:is-sub-synth (y @synthConfig)) (stop-pattern y))))
+                             (stop-pattern x)) ))
 
 (defn sta []
-  (doseq [x  (keys @synthConfig)] (stop-pattern x)))
+  (doseq [x  (keys @synthConfig)](let [pattern-name-key      x
+                                 pattern-status        (pattern-name-key @synthConfig)
+                                 issub                 (:is-sub-synth pattern-status)
+                                 sub-synths            (:sub-synths pattern-status)
+                                 sub-synth-keys        (keys sub-synths)]
+                             ;(println sub-synth-keys)
+                             ;(println issub)
+                             (doseq [y sub-synth-keys] (do (if (:is-sub-synth (y @synthConfig)) (stop-pattern y))))
+                             (stop-pattern x)) (stop-pattern x)))
 
 (defn set-out-bus [pattern-name]
   (let [pattern-name-key    pattern-name
