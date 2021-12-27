@@ -78,12 +78,17 @@
 
 ;(defn func-args [& input])
 
-(defn cnc [& input]
-  (let [isseq (seq input)
-                                        ;input  (vec (reverse input))
-                          input (apply conj  input)]
-    (if isseq (conj input)
-        (concat input))))
+(defn cnc [x & input]
+  (let [isseq (seq? input)
+        _ (println isseq)
+        ;input (apply conj  input)
+        ]
+    (if isseq (vec (apply concat x  [input]))
+        ;(apply conj x input)
+        )))
+
+
+;;(defn cnc [x & y] (apply concat x [y]))
 
 
 (defn piv [input]
@@ -186,7 +191,7 @@
       (seqvec (map-indexed #(if (zero? (mod (inc %1) n)) f %2) coll)) )))
 
 
-(defn cnc [x & y] (apply concat x [y]))
+;;(defn cnc [x & y] (apply concat x [y]))
 
 ;; (defn rtm [pulses steps & args] (let [] (map (fn [x] (if (zero? x) r x))  (vec (euclidean-rhythm (max 1 (func-val (min pulses steps) args)) steps)))))
 
@@ -239,24 +244,6 @@
               ;(println isfn)
               (if isfn (seq (piv (repeatedly n #(vec (apply fn_i  args)))))  (seq (piv (repeat n  input)))))))
 
-
-;; (defn sfl [& coll]
-;;   (let [isseq (seq? (first coll))
-;;         isseq (if (= 1 (count coll )) true false )]
-;;     (if isseq (vec (shuffle (first coll)))
-;;         (vec (shuffle coll)))))
-
-;; (defn rpl ([n input & coll]
-;;            (let [coll        (piv coll)
-;;                  coll_length (count coll)
-;;                  isseq       (seq? (first coll))
-;;                  isfn        (fn? input)
-;;                  n           (mod n (count  coll))
-;;                  coll        (piv coll)
-;;                  ncoll       (nth coll n)
-;;                  input       (if isfn (input ncoll) input) ]
-;;              (if isfn (seq (assoc (vec coll) n input))
-;;                  (seq (assoc (vec coll) n input))))))
 
 (defn mpa [coll input & args]
   ;(println coll n input)

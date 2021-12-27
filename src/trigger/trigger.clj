@@ -50,7 +50,7 @@
 (defonce algConfig (atom {}))
 (defonce bufferPool (atom {}))
 (defonce buffersInUse (atom {}))
-(def timeatom (atom 0))
+(defonce timeatom (atom 0))
 
 (defn init_groups_dur_and_del []
                                         ;Groups
@@ -101,23 +101,28 @@
         pattern-buffer-id       (dbufrd base-pattern-buffer-in base-counter)
         pattern-value-buffer-id (dbufrd base-pattern-value-buffer-in base-counter)
         pattern-first-value     (demand:kr base-trigger base-trigger (dbufrd pattern-buffer-id (dseries 0 1 1) 0) )
-        pattern-value-start-idx (select:kr (= 0.0 pattern-first-value) [0 1])
-                                        ; Depending on if a spacer trigger exists or not in the first index of a buffer,
-                                        ;this value needs to be either 1 or 0 in order to play the buffer as intended.
-        trg                     (t-duty:kr (* (dbufrd base-dur-in (dseries 0 1 INF) ) (dbufrd pattern-buffer-id (dseries 0 1 INF) 0))
-                                           base-trigger
-                                           (dbufrd pattern-buffer-id (dseries 0 1 INF) 0))
-        pattern-item-value      (demand:kr trg base-trigger (dbufrd pattern-value-buffer-id (dseries pattern-value-start-idx 1 INF)))
-        pattern-trg-value       (demand:kr trg base-trigger (dbufrd pattern-buffer-id (dseries pattern-value-start-idx 1 INF)))
+        pattern-value-start-idx (select:kr
+                                 (= 0.0 pattern-first-value) [0 1])
+        ;; Depending on if a spacer trigger exists or not in the first index of a buffer,
+        ;;this value needs to be either 1 or 0 in order to play the buffer as intended.
+        trg                     (t-duty:kr
+                                 (* (dbufrd base-dur-in (dseries 0 1 INF) )
+                                    (dbufrd pattern-buffer-id (dseries 0 1 INF) 0))
+                                 base-trigger
+                                 (dbufrd pattern-buffer-id (dseries 0 1 INF) 0))
+        pattern-item-value      (demand:kr trg base-trigger
+                                           (dbufrd pattern-value-buffer-id
+                                                   (dseries pattern-value-start-idx 1 INF)))
+        pattern-trg-value       (demand:kr trg base-trigger
+                                           (dbufrd pattern-buffer-id
+                                                   (dseries pattern-value-start-idx 1 INF)))
         cntr  (pulse-count:kr trg base-trigger)
-        trg  (select:kr (= 0 cntr) [trg 0])
-        ;_ (out:kr dbg pattern-value-start-idx)
-        ;_ (out:kr dbg2 pattern-item-value)
-        ]
+        trg   (select:kr (= 0 cntr) [trg 0]) ]
     (send-trig trg trigger-id pattern-trg-value)
     (send-trig trg trigger-val-id pattern-item-value)
     (out:kr trigger-value-bus-out pattern-item-value)
     (out:kr trigger-bus-out trg)))
+
 
                                         ;Buffer pool functions
 (defn store-buffer [buf]
@@ -839,8 +844,7 @@
                  initial-controls-only   input-controls-only
                  input-check             (some? (not-empty input-controls-only))]
              (if  (not= nil parent-synth-container)
-               (do (if
-                       (= nil synth-container)
+               (do (if (= nil synth-container)
                      (do (println "Synth created")
                          (swap! synthConfig assoc pattern-name-key (assoc parent-synth-container :sub-synths  (assoc parent-sub-synths sub-pattern-name-key pattern-name-key)))
                          (swap! synthConfig assoc sub-pattern-name-key (create-synth-config! pattern-name-key sub-pattern-name synth-name))  )
