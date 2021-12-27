@@ -79,12 +79,10 @@
 ;(defn func-args [& input])
 
 (defn cnc [x & input]
-  (let [isseq (seq? input)
-        _ (println isseq)
-        ;input (apply conj  input)
+  (let [isseq (seq? x)
         ]
-    (if isseq (vec (apply concat x  [input]))
-        ;(apply conj x input)
+    (if isseq  (apply concat x  [input])
+        (seq (apply concat [x] [input]))
         )))
 
 
