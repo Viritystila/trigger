@@ -23,7 +23,7 @@
 
 (def port 57111)
 (defn boot-ext [] (if (server-connected?) nil (boot-external-server port {:max-buffers 2621440 :max-control-bus 80960}) ))
-;(boot-ext)
+;;(boot-ext)
 
 (defn boot-int [] (if (server-connected?) nil (boot :internal port {:max-buffers 2621440 :max-control-bus 80960}) ))
 (boot-int)
@@ -597,6 +597,20 @@
   (let  [new-size    (count new-buf-vec)]
     (retrieve-buffer new-size)))
 
+
+(defn compare-changes [vector-of-values vector-of-buffers ]
+  (let [vector-of-values-counts   (map count vector-of-values)
+        vector-of-buffers-counts  (map (fn [x] (:size (buffer-info x))) vector-of-buffers)
+        change-vector-length      (count vector-of-values)
+        change-vector             (vec (repeat change-vector-length true))
+        dur-count-diff            (map (fn [x y] (= x y)) vector-of-values-counts vector-of-buffers-counts)
+        change-vector             (map (fn [y] (if (< y (count dur-count-diff))
+                                                (nth dur-count-diff y)
+                                                (nth change-vector y)))
+                                       (range (count change-vector)) )]
+    change-vector))
+
+
 ;Buffer-write relays cause timeout expections occasionally
 (defn update-trigger [trigger
                       pattern-vector
@@ -608,6 +622,8 @@
         old-val-buffers      (vec (:pattern-value-vector trigger))
         old-id-buffers       (:pattern-buf trigger)
         old-value-id-buffers (:pattern-value-buf trigger)
+        dur-change-vector    (compare-changes pattern-vector old-dur-buffers)
+        _ (println dur-change-vector)
         dur-buffers          (vec (map (fn [x] (reuse-or-create-buffer x)) pattern-vector))
         val-buffers          (vec (map (fn [x] (reuse-or-create-buffer x)) pattern-value-vector))
         _                    (vec (mapv (fn [x y] (buffer-writer x y)) dur-buffers pattern-vector ))
@@ -645,8 +661,10 @@
 (defn changed? [trigger new-trigger-pattern  new-control-pattern]
   (let [old-trigger-pattern  (:original-pattern-vector trigger)
         old-control-pattern  (:original-pattern-value-vector trigger)]
-    ;(println old-trigger-pattern)
-    (or (not= new-trigger-pattern old-trigger-pattern) (not= new-control-pattern old-control-pattern))))
+    ;(println (map count old-trigger-pattern))
+    (or
+     (not= new-trigger-pattern old-trigger-pattern)
+     (not= new-control-pattern old-control-pattern))))
 
 (defn t [synth-container control-pair]
   (let [control-key       (first control-pair)
@@ -897,10 +915,8 @@
                       string? %
                       %)
                    mod-pat1)]
-    ;(println "mod-pat2" mod-pat2)
     mod-pat2))
 
-;(trg :kick_1 (:synth-name (:kick_1 @synthConfig)) :in-f3 [100])
 (defn gtc [synths & input]
   (let [synths         synths
         last-synths    (subvec synths 1)
@@ -908,10 +924,9 @@
         ransynths      (mapv keyword (mapv str (vec (range lensynths))))
         synmap         (zipmap synths (vec (range (count synths))))
         patterns       (condition-pattern input :0 false true)]
-    ;(println synmap)
-    ;(trg (first synths)  (:synth-name ((first synths) @synthConfig))  (condition-pattern input (keyword (str ((first synths) synmap))) false true ))
-    (doseq [x synths] (trg x  (:synth-name (:x @synthConfig))  (condition-pattern input (keyword (str (x synmap))) false true )) )
-    ;(println patterns)
+    (doseq [x synths]
+      (trg x  (:synth-name (:x @synthConfig))
+           (condition-pattern input (keyword (str (x synmap))) false true )))
     ))
                                         ; Misc pattern related functions
 
@@ -920,14 +935,10 @@
         pattern-status        (pattern-name-key @synthConfig)
         issub                 (:is-sub-synth pattern-status)
         sub-synths            (:sub-synths pattern-status)
-        ;_ (println pattern-name-key)
-        ;_ (println issub)
-        ;_ (println sub-synths)
-        ;_ (println (into [] (filter #(do (= (first %) pattern-name-key) sub-synths))))
         sub-synth-keys        (keys sub-synths)
-        ;_ (println sub-synth-keys)
         sub-synth-vals        (vals sub-synths)
         triggers              (vals (:triggers pattern-status))]
+    ;(println pattern-name)
     (if (some? pattern-status)
       (do (if (not issub) (free-default-buses pattern-status))
           (if (not issub) (free-control-out-bus pattern-status))
@@ -941,9 +952,14 @@
             (reset! synthConfig  (apply dissoc @synthConfig sub-synth-keys))
             (do
               (reset! synthConfig  (apply dissoc @synthConfig sub-synth-vals))
-              (doseq [x sub-synth-keys]  (reset! synthConfig (assoc @synthConfig x  (assoc (x @synthConfig) :sub-synths  (apply dissoc (:sub-synths (x @synthConfig)) sub-synth-vals))))))
-            )
-          (swap! synthConfig dissoc pattern-name-key) (println "pattern" (:pattern-name pattern-status) "stopped")) (println "No such pattern") )))
+              (doseq [x sub-synth-keys]
+                (reset! synthConfig
+                        (assoc @synthConfig x
+                               (assoc (x @synthConfig) :sub-synths
+                                      (apply dissoc (:sub-synths (x @synthConfig)) sub-synth-vals)))))))
+          (swap! synthConfig dissoc pattern-name-key)
+          (ns-unmap *ns* (symbol (name pattern-name)))
+          (println "pattern" (:pattern-name pattern-status) "stopped")) (println "No such pattern") )))
 
 (defn stp [& pattern-names]
   (doseq [x pattern-names]
@@ -954,7 +970,9 @@
           sub-synth-keys        (keys sub-synths)]
                                         ;(println sub-synth-keys)
                                         ;(println issub)
-      (doseq [y sub-synth-keys] (do (if (:is-sub-synth (y @synthConfig)) (stop-pattern y))))
+      (doseq [y sub-synth-keys]
+        (do (if (:is-sub-synth (y @synthConfig))
+              (stop-pattern y))))
       (stop-pattern x)) ))
 
 (defn sta []

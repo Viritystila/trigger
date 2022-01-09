@@ -479,7 +479,8 @@
     (if (number? x) (+ x value) x )))
 
 (defn shf [f value]
-  (let [p (+ 69 (* 12 (/ (Math/log (/ f 440)) (Math/log 2))))
+  (let [is_string (string? f)
+        p (+ 69 (* 12 (/ (Math/log (/ f 440)) (Math/log 2))))
         value (+ value p)]
     (if (number? 440) (* 440 (math/expt 2 (/ -69 12)) (math/expt 2 (/  value 12)) ) 440 )))
 
