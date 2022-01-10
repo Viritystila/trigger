@@ -597,26 +597,8 @@
   (let  [new-size    (count new-buf-vec)]
     (retrieve-buffer new-size)))
 
-
-(defn compare-length [vector-of-values vector-of-buffers ]
-  (let [vector-of-values-counts   (map count vector-of-values)
-        vector-of-buffers-counts  (map (fn [x] (:size (buffer-info x))) vector-of-buffers)
-        change-vector-length      (count vector-of-values)
-        change-vector             (vec (repeat change-vector-length false))
-        dur-count-diff            (map (fn [x y] (= x y)) vector-of-values-counts vector-of-buffers-counts)
-        change-vector             (map (fn [y] (if (< y (count dur-count-diff))
-                                                (nth dur-count-diff y)
-                                                (nth change-vector y)))
-                                       (range (count change-vector)) )]
-    (map not change-vector)))
-
-
 (defn compare-old-and-new [new-vector old-vector]
-  (let [;;vector-of-values-counts   (map count vector-of-values)
-        ;;vector-of-buffers-counts  (map (fn [x]) vector-of-buffers)
-        ;;_ (println new-vector)
-        ;;_ (println old-vector)
-        change-vector-length      (count new-vector)
+  (let [change-vector-length      (count new-vector)
         change-vector             (vec (repeat change-vector-length false))
         dur-count-diff            (map (fn [x y] (= x y)) new-vector old-vector)
         change-vector             (map (fn [y] (if (< y (count dur-count-diff))
@@ -626,7 +608,7 @@
     (map not change-vector)))
 
 
-(defn update-or-not [data-vector buffer-vector condition fnc]
+(defn update-or-not [buffer-vector data-vector condition fnc]
   (let [cond-idx    (range (count condition))]
     (vec
      (mapv (fn [x y]
@@ -634,6 +616,17 @@
                (reuse-or-create-buffer x)
                (nth buffer-vector y)))
            data-vector cond-idx ) )))
+
+(defn write-buffer-or-not [buffer-vector data-vector condition]
+  (let [cond-idx    (range (count condition))]
+    (vec
+     (mapv (fn [x y z]
+             (if (nth condition z)
+               (buffer-writer x y)
+               nil))
+           buffer-vector data-vector cond-idx ) )))
+
+
 
 ;Buffer-write relays cause timeout expections occasionally
 (defn update-trigger [trigger
@@ -652,9 +645,13 @@
         val-change-vector        (compare-old-and-new pattern-value-vector old-pattern-value-vector)
         ;dur-change-vector-r  (range (count dur-change-vector))
         _ (println dur-change-vector)
-        dur-buffers              (vec (map (fn [x] (reuse-or-create-buffer x)) pattern-vector))
-        val-buffers              (vec (map (fn [x] (reuse-or-create-buffer x)) pattern-value-vector))
-        _                        (vec (mapv (fn [x y] (buffer-writer x y)) dur-buffers pattern-vector ))
+        dur-buffers              (update-or-not old-dur-buffers pattern-vector  dur-change-vector reuse-or-create-buffer)
+        ;;dur-buffers              (vec (map (fn [x] (reuse-or-create-buffer x)) pattern-vector))
+        val-buffers              (update-or-not old-val-buffers pattern-value-vector  val-change-vector reuse-or-create-buffer)
+        ;;val-buffers              (vec (map (fn [x] (reuse-or-create-buffer x)) pattern-value-vector))
+        _                        (write-buffer-or-not dur-buffers pattern-vector dur-change-vector)
+        ;;_                        (vec (mapv (fn [x y] (buffer-writer x y)) dur-buffers pattern-vector ))
+        _                        (write-buffer-or-not val-buffers pattern-value-vector val-change-vector)
         _                        (vec (mapv (fn [x y] (buffer-writer x y)) val-buffers pattern-value-vector))
         pattern-id-buf           (retrieve-buffer buf-size)
         pattern-value-id-buf     (retrieve-buffer buf-size)
