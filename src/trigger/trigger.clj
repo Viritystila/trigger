@@ -598,47 +598,75 @@
     (retrieve-buffer new-size)))
 
 
-(defn compare-changes [vector-of-values vector-of-buffers ]
+(defn compare-length [vector-of-values vector-of-buffers ]
   (let [vector-of-values-counts   (map count vector-of-values)
         vector-of-buffers-counts  (map (fn [x] (:size (buffer-info x))) vector-of-buffers)
         change-vector-length      (count vector-of-values)
-        change-vector             (vec (repeat change-vector-length true))
+        change-vector             (vec (repeat change-vector-length false))
         dur-count-diff            (map (fn [x y] (= x y)) vector-of-values-counts vector-of-buffers-counts)
         change-vector             (map (fn [y] (if (< y (count dur-count-diff))
                                                 (nth dur-count-diff y)
                                                 (nth change-vector y)))
                                        (range (count change-vector)) )]
-    change-vector))
+    (map not change-vector)))
 
+
+(defn compare-old-and-new [new-vector old-vector]
+  (let [;;vector-of-values-counts   (map count vector-of-values)
+        ;;vector-of-buffers-counts  (map (fn [x]) vector-of-buffers)
+        ;;_ (println new-vector)
+        ;;_ (println old-vector)
+        change-vector-length      (count new-vector)
+        change-vector             (vec (repeat change-vector-length false))
+        dur-count-diff            (map (fn [x y] (= x y)) new-vector old-vector)
+        change-vector             (map (fn [y] (if (< y (count dur-count-diff))
+                                                (nth dur-count-diff y)
+                                                (nth change-vector y)))
+                                       (range (count change-vector)) )]
+    (map not change-vector)))
+
+
+(defn update-or-not [data-vector buffer-vector condition fnc]
+  (let [cond-idx    (range (count condition))]
+    (vec
+     (mapv (fn [x y]
+             (if (nth condition y)
+               (reuse-or-create-buffer x)
+               (nth buffer-vector y)))
+           data-vector cond-idx ) )))
 
 ;Buffer-write relays cause timeout expections occasionally
 (defn update-trigger [trigger
                       pattern-vector
                       pattern-value-vector]
   (let [trigger_old          trigger
-        control-key          (:control-key trigger)
-        buf-size             (count pattern-vector)
-        old-dur-buffers      (vec (:pattern-vector trigger))
-        old-val-buffers      (vec (:pattern-value-vector trigger))
-        old-id-buffers       (:pattern-buf trigger)
-        old-value-id-buffers (:pattern-value-buf trigger)
-        dur-change-vector    (compare-changes pattern-vector old-dur-buffers)
+        control-key              (:control-key trigger)
+        buf-size                 (count pattern-vector)
+        old-pattern-vector       (:original-pattern-vector trigger)
+        old-pattern-value-vector (:original-pattern-value-vector trigger)
+        old-dur-buffers          (vec (:pattern-vector trigger))
+        old-val-buffers          (vec (:pattern-value-vector trigger))
+        old-id-buffers           (:pattern-buf trigger)
+        old-value-id-buffers     (:pattern-value-buf trigger)
+        dur-change-vector        (compare-old-and-new pattern-vector old-pattern-vector)
+        val-change-vector        (compare-old-and-new pattern-value-vector old-pattern-value-vector)
+        ;dur-change-vector-r  (range (count dur-change-vector))
         _ (println dur-change-vector)
-        dur-buffers          (vec (map (fn [x] (reuse-or-create-buffer x)) pattern-vector))
-        val-buffers          (vec (map (fn [x] (reuse-or-create-buffer x)) pattern-value-vector))
-        _                    (vec (mapv (fn [x y] (buffer-writer x y)) dur-buffers pattern-vector ))
-        _                    (vec (mapv (fn [x y] (buffer-writer x y)) val-buffers pattern-value-vector))
-        pattern-id-buf       (retrieve-buffer buf-size)
-        pattern-value-id-buf (retrieve-buffer buf-size)
-        _                    (buffer-writer pattern-id-buf       (vec (map (fn [x] (buffer-id x)) dur-buffers)))
-        _                    (buffer-writer pattern-value-id-buf (vec (map (fn [x] (buffer-id x)) val-buffers)))
-        trigger              (assoc trigger :pattern-vector dur-buffers)
-        trigger              (assoc trigger :pattern-value-vector val-buffers)
-        trigger              (assoc trigger :pattern-buf pattern-id-buf)
-        trigger              (assoc trigger :pattern-value-buf pattern-value-id-buf)
-        trigger              (assoc trigger :original-pattern-vector pattern-vector)
-        trigger              (assoc trigger :original-pattern-value-vector pattern-value-vector)
-        trig-synth           (:trigger-synth trigger)]
+        dur-buffers              (vec (map (fn [x] (reuse-or-create-buffer x)) pattern-vector))
+        val-buffers              (vec (map (fn [x] (reuse-or-create-buffer x)) pattern-value-vector))
+        _                        (vec (mapv (fn [x y] (buffer-writer x y)) dur-buffers pattern-vector ))
+        _                        (vec (mapv (fn [x y] (buffer-writer x y)) val-buffers pattern-value-vector))
+        pattern-id-buf           (retrieve-buffer buf-size)
+        pattern-value-id-buf     (retrieve-buffer buf-size)
+        _                        (buffer-writer pattern-id-buf       (vec (map (fn [x] (buffer-id x)) dur-buffers)))
+        _                        (buffer-writer pattern-value-id-buf (vec (map (fn [x] (buffer-id x)) val-buffers)))
+        trigger                  (assoc trigger :pattern-vector dur-buffers)
+        trigger                  (assoc trigger :pattern-value-vector val-buffers)
+        trigger                  (assoc trigger :pattern-buf pattern-id-buf)
+        trigger                  (assoc trigger :pattern-value-buf pattern-value-id-buf)
+        trigger                  (assoc trigger :original-pattern-vector pattern-vector)
+        trigger                  (assoc trigger :original-pattern-value-vector pattern-value-vector)
+        trig-synth               (:trigger-synth trigger)]
     ;(println old-dur-buffers)
     ;(println old-id-buffers)
     ;(println old-value-id-buffers)
