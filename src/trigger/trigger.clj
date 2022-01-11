@@ -626,7 +626,19 @@
                nil))
            buffer-vector data-vector cond-idx ) )))
 
-
+(defn store-buffer-or-not [old-buffer-vector condition]
+  (let [;change-vector-length      (count  old-buffer-vector)
+        ;change-vector             (vec (repeat change-vector-length true))
+        ;cond-idx    (range (count condition))
+        ]
+    (vec
+     (mapv (fn [y]
+             (if (< y (count condition))
+               (if (not (nth condition y))
+                 (store-buffer (nth old-buffer-vector y))
+                 nil)
+               (store-buffer (nth old-buffer-vector y))))
+           (range (count (old-buffer-vector))) ) )))
 
 ;Buffer-write relays cause timeout expections occasionally
 (defn update-trigger [trigger
@@ -652,7 +664,7 @@
         _                        (write-buffer-or-not dur-buffers pattern-vector dur-change-vector)
         ;;_                        (vec (mapv (fn [x y] (buffer-writer x y)) dur-buffers pattern-vector ))
         _                        (write-buffer-or-not val-buffers pattern-value-vector val-change-vector)
-        _                        (vec (mapv (fn [x y] (buffer-writer x y)) val-buffers pattern-value-vector))
+        ;;_                        (vec (mapv (fn [x y] (buffer-writer x y)) val-buffers pattern-value-vector))
         pattern-id-buf           (retrieve-buffer buf-size)
         pattern-value-id-buf     (retrieve-buffer buf-size)
         _                        (buffer-writer pattern-id-buf       (vec (map (fn [x] (buffer-id x)) dur-buffers)))
