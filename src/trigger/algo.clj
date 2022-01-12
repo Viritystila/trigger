@@ -232,7 +232,6 @@
 
 
 
-
 (defn rep ([input n & args]
             (let [isfn     (fn? input)
                   fn_i     (if isfn input (fn [x] x))

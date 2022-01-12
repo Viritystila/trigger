@@ -627,18 +627,17 @@
            buffer-vector data-vector cond-idx ) )))
 
 (defn store-buffer-or-not [old-buffer-vector condition]
-  (let [;change-vector-length      (count  old-buffer-vector)
-        ;change-vector             (vec (repeat change-vector-length true))
-        ;cond-idx    (range (count condition))
-        ]
-    (vec
-     (mapv (fn [y]
-             (if (< y (count condition))
-               (if (not (nth condition y))
-                 (store-buffer (nth old-buffer-vector y))
-                 nil)
-               (store-buffer (nth old-buffer-vector y))))
-           (range (count (old-buffer-vector))) ) )))
+  (let []
+    ;(println (count condition))
+    ;(println (range (count old-buffer-vector)))
+    (mapv (fn [y]
+            (if (< y (count condition))
+              (if (nth condition y)
+                (store-buffer (nth old-buffer-vector y))
+                nil)
+              (store-buffer (nth old-buffer-vector y))))
+          (range (count old-buffer-vector)))
+    ))
 
 ;Buffer-write relays cause timeout expections occasionally
 (defn update-trigger [trigger
@@ -656,7 +655,7 @@
         dur-change-vector        (compare-old-and-new pattern-vector old-pattern-vector)
         val-change-vector        (compare-old-and-new pattern-value-vector old-pattern-value-vector)
         ;dur-change-vector-r  (range (count dur-change-vector))
-        _ (println dur-change-vector)
+        ;_ (println dur-change-vector)
         dur-buffers              (update-or-not old-dur-buffers pattern-vector  dur-change-vector reuse-or-create-buffer)
         ;;dur-buffers              (vec (map (fn [x] (reuse-or-create-buffer x)) pattern-vector))
         val-buffers              (update-or-not old-val-buffers pattern-value-vector  val-change-vector reuse-or-create-buffer)
@@ -676,15 +675,14 @@
         trigger                  (assoc trigger :original-pattern-vector pattern-vector)
         trigger                  (assoc trigger :original-pattern-value-vector pattern-value-vector)
         trig-synth               (:trigger-synth trigger)]
-    ;(println old-dur-buffers)
-    ;(println old-id-buffers)
-    ;(println old-value-id-buffers)
-    (try
+     (try
       (do (ctl trig-synth
                :base-pattern-buffer-in pattern-id-buf
                :base-pattern-value-buffer-in pattern-value-id-buf)
-          (vec (map (fn [x] (store-buffer x)) old-dur-buffers))
-          (vec (map (fn [x] (store-buffer x)) old-val-buffers))
+          (store-buffer-or-not old-dur-buffers dur-change-vector)
+          (store-buffer-or-not old-val-buffers val-change-vector)
+          ;;(vec (map (fn [x] (store-buffer x)) old-dur-buffers))
+          ;;(vec (map (fn [x] (store-buffer x)) old-val-buffers))
           (vec (map (fn [x] (store-buffer x)) [old-id-buffers]))
           (vec (map (fn [x] (store-buffer x)) [old-value-id-buffers]))
           trigger)
@@ -698,7 +696,6 @@
 (defn changed? [trigger new-trigger-pattern  new-control-pattern]
   (let [old-trigger-pattern  (:original-pattern-vector trigger)
         old-control-pattern  (:original-pattern-value-vector trigger)]
-    ;(println (map count old-trigger-pattern))
     (or
      (not= new-trigger-pattern old-trigger-pattern)
      (not= new-control-pattern old-control-pattern))))
