@@ -72,10 +72,12 @@
         start-pos (in:kr in-start-pos-val)
         step      (in:kr in-step-val)
         loop      (in:kr in-loop-val)
-        dur       (/ 1.0 24000)
+        dur       (/ 1.0 (/ 44100 2))
         td        (t-duty:ar dur 0 1 )
+        out-pos   (demand:ar td trg (dseries start-pos step INF))
         buffer-value  (demand:ar td trg (dbufrd buf-no (dseries start-pos step  INF) loop))
         ]
+    (out:kr ctrl-out (a2k out-pos))
     (out out-bus (pan2 (* amp buffer-value)))))
 
 
