@@ -51,8 +51,6 @@
                in-trg-val 0
                in-buf 0
                in-buf-val 0
-               in-rate 48000
-               in-rate-val 48000
                in-start-pos 0
                in-start-pos-val 0
                in-step 2
@@ -61,6 +59,7 @@
                in-loop-val 0
                in-amp 1
                in-amp-val 1
+               sample-rate 48000
                out-bus 0
                ctrl-out 0
                bus-in 0]
@@ -68,11 +67,10 @@
         buf-trg   (in:kr in-buf)
         buf-no    (in:kr in-buf-val)
         amp       (in:kr in-amp-val)
-        rate      (in:kr in-rate-val)
         start-pos (in:kr in-start-pos-val)
         step      (in:kr in-step-val)
         loop      (in:kr in-loop-val)
-        dur       (/ 1.0 (/ rate 2))
+        dur       (/ 1.0 (/ sample-rate 2))
         td        (t-duty:ar dur 0 1 )
         out-pos   (demand:ar td trg (dseries start-pos step INF))
         buffer-value  (demand:ar td trg (dbufrd buf-no (dseries start-pos step  INF) loop))
