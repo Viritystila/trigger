@@ -51,8 +51,8 @@
                in-trg-val 0
                in-buf 0
                in-buf-val 0
-               in-rate 24000
-               in-rate-val 24000
+               in-rate 48000
+               in-rate-val 48000
                in-start-pos 0
                in-start-pos-val 0
                in-step 2
@@ -72,7 +72,7 @@
         start-pos (in:kr in-start-pos-val)
         step      (in:kr in-step-val)
         loop      (in:kr in-loop-val)
-        dur       (/ 1.0 (/ 44100 2))
+        dur       (/ 1.0 (/ rate 2))
         td        (t-duty:ar dur 0 1 )
         out-pos   (demand:ar td trg (dseries start-pos step INF))
         buffer-value  (demand:ar td trg (dbufrd buf-no (dseries start-pos step  INF) loop))
