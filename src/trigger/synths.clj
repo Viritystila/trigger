@@ -79,6 +79,58 @@
     (out out-bus (pan2 (* amp buffer-value)))))
 
 
+(defsynth smp-sync [in-trg 0
+               in-trg-val 0
+               in-buf 0
+               in-buf-val 0
+               in-start-pos 0
+               in-start-pos-val 0
+               in-step 2
+               in-step-val 2
+               in-dir 1
+               in-dir-val 1
+               in-loop 0
+               in-loop-val 0
+               in-amp 1
+               in-amp-val 1
+               in-length          48000
+               in-length-val      48000
+               in-min-pos         0
+               in-min-pos-val     0
+               in-max-pos         1000
+               in-max-pos-val     1000
+               sample-rate 48000
+               out-bus 0
+               ctrl-out 0
+               bus-in 0]
+  (let [trg       (in:kr in-trg)
+        buf-trg   (in:kr in-buf)
+        buf-no    (in:kr in-buf-val)
+        amp       (in:kr in-amp-val)
+        start-pos (in:kr in-start-pos-val)
+        step      (in:kr in-step-val)
+        dir       (in:kr in-dir-val)
+        loop      (in:kr in-loop-val)
+        loops     (select:kr (= 0 loop) [1 INF])
+        length    (in:kr in-length-val)
+        min-pos   (in:kr in-min-pos-val)
+        max-pos   (in:kr in-max-pos-val)
+        sp-ff     (max min-pos (mod start-pos max-pos))
+        sp-rw     (min max-pos (+ min-pos (mod start-pos min-pos )))
+        sp        (select:kr (< 0 dir) [sp-rw sp-ff])
+        l-ff      (min (/ length step) (/ (- max-pos sp) step))  ;; (min length max-pos)
+        l-rw      (min (/ length step) (/ (- sp min-pos) step))
+        l         (select:kr (< 0 dir) [l-rw l-ff])
+        dur       (/ 1.0 (/ sample-rate 2))
+        td        (t-duty:ar dur 0 1 )
+        out-pos   (demand:ar td trg (dseq (dseries sp (* step dir) l) loops))
+        buffer-value  (demand:ar td trg  (dbufrd buf-no (dseq (dseries sp (* step dir) l) loops) loop))
+        ]
+    (out:kr ctrl-out (a2k out-pos))
+    (out out-bus (pan2 (* amp buffer-value)))))
+
+
+    
 (defsynth smp2 [in-trg1 0
                 in-trg1-val 0
                 in-buf1 0
