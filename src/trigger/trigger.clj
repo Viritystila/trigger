@@ -1053,7 +1053,7 @@
   (:trigger-bus (trig-name (:triggers (pattern-name @synthConfig)))))
 
 (defn get-trigger-val-bus [pattern-name trig-name]
-  (:trigger-val-bus (trig-name (:triggers (pattern-name @synthConfig)))))
+  (:trigger-value-bus (trig-name (:triggers (pattern-name @synthConfig)))))
 
 (defn get-trigger-id [pattern-name trig-name]
   (:trigger-id (trig-name (:triggers (pattern-name @synthConfig)))))
