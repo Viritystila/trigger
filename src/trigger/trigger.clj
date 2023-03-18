@@ -863,8 +863,6 @@
                  (swap! synthConfig assoc pattern-name-key synth-container)))
              (let [synth-container     (pattern-name-key @synthConfig)
                    triggers            (:triggers synth-container)
-                   ;_ (println input-controls-only)
-                   ;_ (println    (filter #(not (.contains (flatten %) nil)) input-controls-only) )
                    updated-triggers    (zipmap
                                         (keys input-controls-only)
                                         (map

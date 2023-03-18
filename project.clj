@@ -14,6 +14,6 @@
                 [de.dfki.mary/marytts-runtime "5.2"]
                 [de.dfki.mary/voice-cmu-slt-hsmm "5.2"]
                 [de.dfki.mary/voice-enst-camille-hsmm "5.2"]]
-  :repl-options {:init-ns trigger.trigger}
+  :repl-options {:init-ns trigger.trigger :timeout 9220000}
   :main  ^{:skip-aot true}  trigger.trigger
   :jvm-opts ^:replace [])
