@@ -7,7 +7,9 @@
   :dependencies [[org.clojure/clojure "1.10.0"]
                 [org.clojure/tools.namespace "0.2.11"]
                 [org.clojure/core.async "0.4.490"]
-                [overtone            "0.10.6"]
+                [overtone-javacpp            "0.10.6.0"]
+                [org.bytedeco/SuperCollider  "13.3.0-1.5.9"]
+                [org.bytedeco/SuperCollider-platform "13.3.0-1.5.9"]
                 [rm-hull/markov-chains "0.1.1"]
                 [org.clojure/math.numeric-tower "0.0.4"]
                 [de.dfki.mary/marytts "5.2" :extension "pom"]
@@ -15,5 +17,6 @@
                 [de.dfki.mary/voice-cmu-slt-hsmm "5.2"]
                 [de.dfki.mary/voice-enst-camille-hsmm "5.2"]]
   :repl-options {:init-ns trigger.trigger :timeout 9220000}
+  :native-path "native"
   :main  ^{:skip-aot true}  trigger.trigger
   :jvm-opts ^:replace [])

@@ -17,7 +17,10 @@
    [overtone.sc.machinery.server.connection :refer [boot]]
    [overtone.sc.machinery.server native])
   (:import
-   (java.nio IntBuffer ByteBuffer FloatBuffer ByteOrder)))
+   [java.nio IntBuffer ByteBuffer FloatBuffer ByteOrder]
+   [org.bytedeco.javacpp BytePointer]
+   [org.bytedeco.SuperCollider.global SuperCollider]
+   [org.bytedeco.SuperCollider WorldOptions World ReplyAddress ReplyFunc SndBuf]))
 
                                         ;Boot Supercollider
 
@@ -134,6 +137,37 @@
     (reset! bufferPool pool)
     (reset! buffersInUse (dissoc @buffersInUse buf-id-key))))
 
+;; (defn retrieve-buffer [size]
+;;   ;(println size)
+;;   (let [size-key          (keyword (str size))
+;;         pool              @bufferPool
+;;         buffers-left      (and (contains? pool size-key) (< 0 (count (size-key pool))))
+;;         first-buf         (first (size-key pool))
+;;         rest-buf          (rest  (size-key pool))
+;;         pool              (assoc pool size-key  rest-buf )]
+;;     (if (and buffers-left true )
+;;       (do (let [first-buf-id-key  (keyword (str (buffer-id first-buf)))]
+;;             (if (not (contains? @buffersInUse first-buf-id-key))
+;;               (do
+;;                 ;(println "use existing buffer")
+;;                 (reset! bufferPool pool)
+;;                 (reset! buffersInUse (assoc @buffersInUse first-buf-id-key first-buf))
+;;                 first-buf)
+;;               (do
+;;                 ;(println "create new buffer")
+;;                 (let [new-buf      (with-server-sync #(buffer size) "Whilst retrieve-buffer")]
+;;                   (reset! buffersInUse (assoc @buffersInUse
+;;                                               (keyword
+;;                                                (str (buffer-id new-buf))) new-buf))
+;;                   new-buf))
+;;               ))
+;;           first-buf)
+;;       (do (let [new-buf      (with-server-sync #(buffer size) "Whilst retrieve-buffer")]
+;;             (reset! buffersInUse (assoc @buffersInUse
+;;                                         (keyword
+;;                                          (str (buffer-id new-buf))) new-buf))
+;;             new-buf)) )))
+
 (defn retrieve-buffer [size]
   ;(println size)
   (let [size-key          (keyword (str size))
@@ -152,24 +186,31 @@
                 first-buf)
               (do
                 ;(println "create new buffer")
-                (let [new-buf      (with-server-sync #(buffer size) "Whilst retrieve-buffer")]
+                (let [new-buf      (buffer-native size)]
                   (reset! buffersInUse (assoc @buffersInUse
                                               (keyword
                                                (str (buffer-id new-buf))) new-buf))
                   new-buf))
               ))
           first-buf)
-      (do (let [new-buf      (with-server-sync #(buffer size) "Whilst retrieve-buffer")]
+      (do (let [new-buf      (buffer-native size)]
             (reset! buffersInUse (assoc @buffersInUse
                                         (keyword
                                          (str (buffer-id new-buf))) new-buf))
             new-buf)) )))
 
 
+;; (defn generate-buffer-pool [sizes amount]
+;;   (let [size-vectors   (vec (range 1 sizes))
+;;         size-keys      (pmap (fn [x] (keyword (str x))) size-vectors)
+;;         buffers        (doall (pmap (fn [y]  (doall (map (fn [x] (with-server-sync #(buffer x) "Whilst generate-buffer-pool")) (repeat  amount y)))) size-vectors))
+;;         b_p            (zipmap size-keys buffers)]
+;;     (reset! bufferPool b_p)) nil)
+
 (defn generate-buffer-pool [sizes amount]
   (let [size-vectors   (vec (range 1 sizes))
         size-keys      (pmap (fn [x] (keyword (str x))) size-vectors)
-        buffers        (doall (pmap (fn [y]  (doall (map (fn [x] (with-server-sync #(buffer x) "Whilst generate-buffer-pool")) (repeat  amount y)))) size-vectors))
+        buffers        (doall (pmap (fn [y]  (doall (map (fn [x] (buffer-native x)) (repeat  amount y)))) size-vectors))
         b_p            (zipmap size-keys buffers)]
     (reset! bufferPool b_p)) nil)
 
@@ -186,7 +227,7 @@
   (def base-trigger-count-bus (control-bus 1))
   (def base-trigger-count (base-trigger-counter [:tail main-g] base-trigger-bus base-trigger-count-bus))
   (println "Begin generating buffer pool, please wait.")
-  (generate-buffer-pool 128 256)
+  (generate-buffer-pool 64 128)
   (println "trigger initialized")
   (println (trigger-logo))
   )
@@ -540,17 +581,18 @@
 
 
 
-(defn buffer-writer [buf data]
-  ;(println (buffer-id buf))
-  (with-server-sync #(buffer-write-relay! buf data) "Whlist buffer-writer")
-  ;; (try
-  ;;                                 ;(buffer-write-relay! buf data)
-  ;;                                (do
-  ;;                                   (println "Buffer write failed")
-  ;;                                  ;(store-buffer buf)
-  ;;                                   ))
+;; (defn buffer-writer2 [buf data]
+;;   (with-server-sync #(buffer-write-relay! buf data) "Whlist buffer-writer")
+;; )
 
-  )
+(defn buffer-writer [buf data]
+  (let [bp    (buffer-pointer buf)
+        bd    (.data bp)
+        fd    (float-array data)
+        bc    (.samples bp)
+        dc    (count fd)]
+        (if (= dc bc ) (.put bd fd) ))
+)
 
 (defn create-trigger [control-key
                       control-val-key
