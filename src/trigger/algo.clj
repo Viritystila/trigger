@@ -216,6 +216,9 @@
 (defn chd ([degree root mode] (map midi->hz (map note (seq (chord-degree degree root mode)))))
   ([degree root mode num-notes] (map midi->hz (map note (seq (chord-degree degree root mode num-notes))))))
 
+(defn sca ([root scale-name] (map midi->hz (scale root scale-name)))
+  ([root scale-name degrees] (map midi->hz (scale root scale-name degrees))))
+
 ;(defn crn [root chord-name]  (map (fn [x] (str "n" x)) (map name (map find-note-name (chr root chord-name)))))
 
 ;(defn cdn [degree root mode]  (map (fn [x] (str "n" x)) (map name (map find-note-name (chd degree root mode)))))

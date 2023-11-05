@@ -964,15 +964,7 @@
              (make-helper-function sub-pattern-name synth-name input)
              sub-pattern-name)))
 
-;;Functions to set patterns to multiple synths at once, for example to
-;;play chords.
-(defn | [& input]
-  (let [input (piv input)
-        lenip (count input)
-        ranip (mapv keyword (mapv str(vec (range lenip))))
-        ip    (zipmap ranip input)]
-    ;(println ip)
-    (fn [] ip)))
+
 
 (defn condition-pattern [pattern key replace-with-r open-map]
   (let [mod-pat1   (clojure.walk/prewalk
@@ -1002,6 +994,46 @@
       (trg x  (:synth-name (:x @synthConfig))
            (condition-pattern input (keyword (str (x synmap))) false true )))
     ))
+
+; Controlling multiple synths simulatenoeusly
+(defprotocol trgg-proto
+  (get-nth [this n]))
+
+(defrecord trgg_data [data]
+ trgg-proto (get-nth [this n] (nth (. this data) n)))
+
+(defn pivg [idx input]
+  (let []
+    ;(println idx)
+    (loop [xv     (seq input)
+           result []]
+      (if xv
+        (let [fst     (first xv) ]
+          (cond
+            (vector? fst) (recur (next xv) (conj result (vec (pivg idx fst))))
+            (seq? fst ) (recur (next xv) (conj result (vec (pivg idx fst))))
+            :else (recur (next xv) (conj result (if (record? fst) (do (get-nth fst idx)) fst ))))) 
+        (seq result)))))
+
+
+
+(defn | [& input]
+    (trgg_data. (apply concat input ) ))
+
+
+(defn trgg
+  ([group fnc]
+   (let [idxs (range (count group))
+         trgdict (apply assoc {} (interleave group idxs))]
+     (doall (doseq [[k v] trgdict] (fnc k)  )) ))
+  ([group in-type & input]
+  (let [idxs    (range (count group))
+        trgdict (apply assoc {} (interleave group idxs))
+        max-idx (count group)]
+    (doall (doseq [[k v] trgdict] (do (trg k (:play-synth (k @synthConfig)) in-type (pivg (min v max-idx) input))))))))
+
+
+
                                         ; Misc pattern related functions
 
 (defn stop-pattern [pattern-name]

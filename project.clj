@@ -7,7 +7,7 @@
   :dependencies [[org.clojure/clojure "1.10.0"]
                 [org.clojure/tools.namespace "0.2.11"]
                 [org.clojure/core.async "0.4.490"]
-                [overtone-javacpp            "0.10.6.0"]
+                [overtone-javacpp            "0.11.0"]
                 [org.bytedeco/SuperCollider  "13.3.0-1.5.9"]
                 [org.bytedeco/SuperCollider-platform "13.3.0-1.5.9"]
                 [rm-hull/markov-chains "0.1.1"]
